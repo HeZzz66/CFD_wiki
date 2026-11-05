@@ -107,29 +107,6 @@
     "summary": "Large Language Models (LLMs) are increasingly deployed for knowledge synthesis, yet their capacity for compositional generalization in scientific knowledge remains under-characterized. Existing benchmarks primarily focus on single-turn restricted scenarios, failing to capture the capability boundaries exposed by real-world interactive scientific workflows. To address this, we introduce XDomainBench, a diagnostic ben…"
   },
   {
-    "id": "doi:10.1063/5.0351583",
-    "title": "Wind field and pressure prediction of a ground-mounted rectangular cylinder based on Hankel-inspired reduced order model and temporal convolutional network-transformer",
-    "authors": [
-      "Wei Lu",
-      "Zhibo Lu",
-      "Gang Hu",
-      "Hongfu Zhang",
-      "Jie Chen",
-      "Jiawei He"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "This study proposes a hybrid framework combining a Hankel-inspired reduced-order model (HROM) and a Temporal Convolutional Network (TCN)–Transformer network for predicting the wind field and surface pressure around a ground-mounted rectangular cylinder. Unlike purely data-driven approaches, the proposed method explicitly incorporates time-delay embedding to reconstruct an augmented dynamical phase space, enabling the reduced-order representation to better preserve the intrinsic temporal evolution of coherent flow structures. The HROM can effectively extract dominant large-scale modes associated with flow separation, shear layer, and wake dynamics, thereby providing a physically meaningful low-dimensional representation of the highly nonlinear wind field. On this basis, the TCN–Transformer network is employed to model the temporal evolution of modal coefficients, where the TCN captures local unsteady fluctuations induced by vortex dynamics, while the Transformer component accounts for long-range temporal dependencies associated with global flow organization. The results demonstrate that the proposed framework achieves accurate prediction of both velocity and surface pressure fields. In addition, increasing the delay embedding dimension in the HROM strengthens the energetic coherence of dominant flow modes, improves the physical interpretability of the reduced-order dynamics, and enhances overall prediction accuracy.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0351583",
-    "doi": "10.1063/5.0351583",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "This study proposes a hybrid framework combining a Hankel-inspired reduced-order model (HROM) and a Temporal Convolutional Network (TCN)–Transformer network for predicting the wind field and surface pressure around a ground-mounted rectangular cylinder. Unlike purely data-driven approaches, the proposed method explicitly incorporates time-delay embedding to reconstruct an augmented dynamical phase space, enabling th…"
-  },
-  {
     "id": "or:Eqm5VEaAom",
     "title": "Who Said Neural Networks Aren't Linear?",
     "authors": [
@@ -273,24 +250,6 @@
       "其他相关"
     ],
     "summary": "Air entrainment often plays a crucial role in determining impact loads exerted by free-surface wave flows interacting with structures, yet its modeling is often oversimplified in numerical approaches. In this study, a two-phase numerical model, based on the Lattice Boltzmann Method coupled to a conservative Allen–Cahn interface-capturing equation, is employed to perform three-dimensional simulations of dam-break wav…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12298",
-    "title": "Viscous and resistive eddies near a sharp corner – CORRIGENDUM",
-    "authors": [
-      "H.K. Moffatt"
-    ],
-    "year": 2026,
-    "date": "2026-11-04",
-    "abstract": "",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12298",
-    "doi": "10.1017/jfm.2026.12298",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Viscous and resistive eddies near a sharp corner – CORRIGENDUM"
   },
   {
     "id": "arxiv:2611.03542v1",
@@ -490,27 +449,6 @@
     "summary": "Deep learning methods based on backward stochastic differential equations (BSDEs) have emerged as competitive alternatives to physics-informed neural networks (PINNs) for solving high-dimensional partial differential equations (PDEs). By leveraging probabilistic representations, BSDE approaches can avoid the curse of dimensionality and often admit second-order-free training objectives that do not require explicit He…"
   },
   {
-    "id": "doi:10.1038/s41467-026-78355-6",
-    "title": "UNMASC: modelling non-monotonic dose responses to cytokine combinations",
-    "authors": [
-      "Geneviève Bistodeau-Gagnon",
-      "Dana Segal",
-      "Yale S. Michaels",
-      "Morgan Craig"
-    ],
-    "year": 2026,
-    "date": "2026-11-04",
-    "abstract": "",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-78355-6",
-    "doi": "10.1038/s41467-026-78355-6",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "UNMASC: modelling non-monotonic dose responses to cytokine combinations"
-  },
-  {
     "id": "or:0M6BfcAVMW",
     "title": "TusoAI: Agentic Optimization for Scientific Methods",
     "authors": [
@@ -530,26 +468,6 @@
       "scientific machine learning"
     ],
     "summary": "Scientific discovery is often slowed by the manual development of computational tools needed to analyze complex experimental data. Building such tools is costly and time-consuming because scientists must iteratively review literature, test mod- eling and scientific assumptions against empirical data, and implement these in- sights into efficient software. Large language models (LLMs) have demonstrated strong capabil…"
-  },
-  {
-    "id": "doi:10.1063/5.0353818",
-    "title": "Turbidity current simulation with OpenFOAM: The role of drag forces in sediment transport",
-    "authors": [
-      "Omar Shahbakhsh",
-      "Nariman Mehranfar",
-      "Morteza Kolahdoozan"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "Turbidity currents are gravity-driven flows that occur when dense, sediment-laden flows mix with a less dense fluid, which transports suspended particles. These currents are the primary reason for sediment deposition in reservoirs and lakes, and they often impact infrastructure, such as communication cables on the seafloor, while reducing the capacity of dams. The present work involves implementing various drag force models into a turbidity current solver for correctly predicting sediment transport and deposition. Several drag force models, including those of Stokes, Wen and Yu, and Tenneti et al., were applied to improve the accuracy of turbidity current simulations. To compare the performance of drag force models, the solver results were further compared with experimental data of continuous and lock-exchange flows. The study has examined flow velocity, sediment deposition, and flow entrainment, with the Tenneti drag force model performing the best. More precisely, it enhances the forecast of the head position by 3% and sediment deposition by 25% compared to previous studies. Results obtained through this study show that for the introduced conditions, the concentration contribution to the drag force model is also important for the final prediction of related parameters. These enhancements enable more reliable predictions regarding the management of sediment deposition, infrastructure maintenance, dam capacity optimization, and hydropower efficiency.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0353818",
-    "doi": "10.1063/5.0353818",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Turbidity currents are gravity-driven flows that occur when dense, sediment-laden flows mix with a less dense fluid, which transports suspended particles. These currents are the primary reason for sediment deposition in reservoirs and lakes, and they often impact infrastructure, such as communication cables on the seafloor, while reducing the capacity of dams. The present work involves implementing various drag forc…"
   },
   {
     "id": "or:UJvkXnuozY",
@@ -734,64 +652,6 @@
       "graph neural network"
     ],
     "summary": "Data products are non-standardized and context-dependent, so their prices are jointly shaped by product attributes and contextual factors such as provider reputation, product comparability, and industry structure. We formulate data product pricing as a learning task over a heterogeneous information network spanning data products, providers, marketplaces, industries, and pricing modes, and design theory-grounded meta…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12189",
-    "title": "Theory of the coalescence of two spherical liquid drops at early times",
-    "authors": [
-      "Rodolfo Brandão",
-      "Jens Eggers",
-      "Marco Fontelos",
-      "James E. Sprittles"
-    ],
-    "year": 2026,
-    "date": "2026-10-26",
-    "abstract": "We consider the dynamics of two equal, spherical liquid drops of Newtonian fluid, brought into contact at a negligible speed, and merging driven by surface tension. The effects of an outer fluid or that of gravity are disregarded, so that the entire motion is determined uniquely by the Ohnesorge number Oh equals eta divided by StartRoot rho gamma upper R EndRoot Oh = η / ρ γ R $\\textit{Oh }= \\eta /\\sqrt {\\rho \\gamma R}$ , where eta η $\\eta$ is the viscosity, rho ρ $\\rho$ the density, gamma γ $\\gamma$ the surface tension and upper R R $R$ the drop radius. Using methods of matched asymptotics, in the limit that the minimum radius r 0 r 0 $r_0$ of the bridge connecting the drops is much smaller than the initial drop radius, we compute the dynamics for r 0 left parenthesis t right parenthesis r 0 ( t ) $r_0(t)$ , as well as the shape of the gap between the drops. For very early times, the translational motion of the drops along the axis of symmetry is arrested by inertia, which affects the shape of the scaling function describing the gap on the scale of r 0 r 0 $r_0$ . For r 0 divided by upper R almost equals StartRoot ln italic Oh EndRoot slash italic Oh r 0 / R ≈ ln ⁡ Oh / Oh $r_0/R \\approx \\sqrt {\\ln \\textit{Oh}}/\\textit{Oh}$ , the motion crosses over to an entirely viscous similarity solution, passing through a sequence of time-dependent scaling functions, which we compute. Our results agree well with full numerical simulations of the Navier–Stokes equation, as well as experiment.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12189",
-    "doi": "10.1017/jfm.2026.12189",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "We consider the dynamics of two equal, spherical liquid drops of Newtonian fluid, brought into contact at a negligible speed, and merging driven by surface tension. The effects of an outer fluid or that of gravity are disregarded, so that the entire motion is determined uniquely by the Ohnesorge number Oh equals eta divided by StartRoot rho gamma upper R EndRoot Oh = η / ρ γ R $\\textit{Oh }= \\eta /\\sqrt {\\rho \\gamma…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12173",
-    "title": "Theoretical modelling of unsteady shock reflection induced by vertical upward wedge motion",
-    "authors": [
-      "Jinglun Zhang",
-      "Chenyuan Bai"
-    ],
-    "year": 2026,
-    "date": "2026-10-23",
-    "abstract": "Combining theoretical analysis and numerical simulations, this paper investigates the unsteady effects on shock reflection as the wedge moves vertically upward from an initial steady state. A theoretical model is developed to predict the configuration of the incident shock and the corresponding downstream flow characteristics, validated by numerical simulations. Accordingly, the unsteady evolution is classified into four stages, delimited by the different unsteady wave systems. For cases initialised with regular reflection, an analytical solution for the reflection point velocity is derived, and its dynamic variation is identified as the key factor dominating shock reflection transitions. Based on the temporal evolution of the incoming Mach number and flow deflection angle at the reflection point in a moving frame, a theoretical framework is established to predict the unsteadiness-induced transition behaviours, with the reflection point velocity and the timing of the first transition from regular reflection to Mach reflection accurately predicted, and the timing of the reverse-transition from Mach reflection to regular reflection addressed by introducing a simplified Mach stem correction. Thus five typical flow regimes are summarised and numerically verified, distinguished by the initial conditions and transition history, with two critical motion velocities governing the boundaries between each regime. Of particular interest is a special unsteady-dominated regime: although the flow starts from regular reflection and remains within the dual-solution domain after unsteady effects vanish, the transient unsteadiness drives the flow to transition into Mach reflection, persisting due to the hysteresis effect. This study provides a new perspective and analytical approach for investigating unsteady shock reflection.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12173",
-    "doi": "10.1017/jfm.2026.12173",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Combining theoretical analysis and numerical simulations, this paper investigates the unsteady effects on shock reflection as the wedge moves vertically upward from an initial steady state. A theoretical model is developed to predict the configuration of the incident shock and the corresponding downstream flow characteristics, validated by numerical simulations. Accordingly, the unsteady evolution is classified into…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12182",
-    "title": "The minimal attached eddy in wall turbulence: statistical foundations, inverse identification and influence kernels",
-    "authors": [
-      "Karthik Duraisamy"
-    ],
-    "year": 2026,
-    "date": "2026-11-04",
-    "abstract": "Townsend’s attached-eddy hypothesis models the logarithmic region of high-Reynolds-number wall turbulence as a random superposition of wall-attached, self-similar eddies whose sizes obey a scale-invariant population law. Building on the statistical framework of Woodcock &amp; Marusic (2015 Phys. Fluids , vol. 27, no. 1, p. 015104), the present work (i) poses an inverse problem to infer the ideal single-eddy contribution (influence) functions for the mean velocity and Reynolds stresses from direct numerical simulations, (ii) uses these inferred kernels to guide a minimal Biot–Savart-consistent hairpin-type eddy built from Rankine vortex rods with an inviscid image system and (iii) introduces and infers a spectral influence kernel that maps a self-similar eddy footprint to its one-dimensional energy spectrum. The influence-kernel viewpoint yields an explanation for the emergence of the linear part of the energy spectrum, provides a clear scale-by-scale decomposition and helps rationalize why simple eddy templates can reproduce a broad set of log-layer statistics once the mean-flow anchoring is fixed. Closed-form expressions for the mean influence function and the Fourier-space streamwise velocity of a general straight-segment hairpin family with image are derived, revealing a mean-variance duality: for a rectangular hairpin, the horizontal head determines the entire mean kernel while the inclined legs dominate the spectral energy. It is shown that the rectangular hairpin yields a precise plateau in the influence function, resulting in a logarithmic mean velocity profile and desirable properties for the streamwise fluctuations. The model is further extended by calibrating the eddy population density as a function of scale, yielding accurate descriptions of mean velocity and streamwise variance across italic Re Subscript tau Baseline equals 6000 minus 20 000 Re τ = 6000 − 20 000 $\\textit{Re}_{\\tau }=6000{-}20\\,000$ .",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12182",
-    "doi": "10.1017/jfm.2026.12182",
-    "keywords": [
-      "foundation model"
-    ],
-    "summary": "Townsend’s attached-eddy hypothesis models the logarithmic region of high-Reynolds-number wall turbulence as a random superposition of wall-attached, self-similar eddies whose sizes obey a scale-invariant population law. Building on the statistical framework of Woodcock &amp; Marusic (2015 Phys. Fluids , vol. 27, no. 1, p. 015104), the present work (i) poses an inverse problem to infer the ideal single-eddy contribu…"
   },
   {
     "id": "arxiv:2610.39914v1",
@@ -1293,33 +1153,6 @@
     "summary": "Abstract Argonaute (Ago) proteins associate with 20-22 nucleotide (nt) long microRNAs (miRNAs) to constitute the functional RISC core and downregulate mRNAs containing complementarity to the seed sequence. Target RNA engagement in RISC stimulates CK1α-mediated phosphorylation of the conserved eukaryotic insertion (EI) in Ago, releasing the target and enabling the RISC complex to suppress additional target sites for…"
   },
   {
-    "id": "doi:10.1038/s41467-026-78600-y",
-    "title": "Spin-adapted neural network wavefunctions in real space",
-    "authors": [
-      "Ruichen Li",
-      "Yuzhi Liu",
-      "Du Jiang",
-      "Yixiao Chen",
-      "Xuelan Wen",
-      "Wenrui Li",
-      "Di He",
-      "Liwei Wang",
-      "Ji Chen",
-      "Weiluo Ren"
-    ],
-    "year": 2026,
-    "date": "2026-10-24",
-    "abstract": "",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-78600-y",
-    "doi": "10.1038/s41467-026-78600-y",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Spin-adapted neural network wavefunctions in real space"
-  },
-  {
     "id": "arxiv:2611.04389v1",
     "title": "Spin Spherical Fourier Neural Operators: Efficient Equivariant Learning for Vector and Spin Fields on the Sphere",
     "authors": [
@@ -1383,52 +1216,6 @@
       "PINN"
     ],
     "summary": "For low-dimensional problems ($d\\leq3$), spectral methods can achieve exceptionally high accuracy. For middle-dimensional problems ($4 \\leq d \\lesssim 10$), spectral methods remain feasible through specific techniques such as sparse grids or hyperbolic cross. However, for high-dimensional problems ($d\\gg 10$), spectral methods suffer frome the curse of dimensionality. Physics-informed neural networks (PINNs) have em…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12213",
-    "title": "Spectral dynamics of turbulent heat flux in plane Rayleigh–Bénard convection",
-    "authors": [
-      "Md. Jariful Haque",
-      "Myoungkyu Lee"
-    ],
-    "year": 2026,
-    "date": "2026-10-30",
-    "abstract": "The spectral budget of the vertical heat flux left angle bracket w theta right angle bracket ⟨ w θ ⟩ $\\langle w\\theta \\rangle$ is investigated in turbulent Rayleigh–Bénard convection by direct numerical simulation. Eight cases spanning three Rayleigh numbers ( italic Ra equals 1 times 10 Superscript 5 Ra = 1 × 10 5 $\\textit{Ra} = 1\\times 10^5$ , 6 times 10 Superscript 6 6 × 10 6 $6\\times 10^6$ and 4 times 10 Superscript 8 4 × 10 8 $4\\times 10^8$ ) and up to three geometric aspect ratios each are computed at italic probability equals 1 Pr = 1 $\\textit{Pr} = 1$ . The premultiplied spectra of left angle bracket w theta right angle bracket ⟨ w θ ⟩ $\\langle w\\theta \\rangle$ reveal a two-peak structure when both italic Ra Ra $\\textit{Ra}$ and upper Gamma Γ $\\varGamma$ are sufficiently large. Production of left angle bracket w theta right angle bracket ⟨ w θ ⟩ $\\langle w\\theta \\rangle$ is dominated by temperature fluctuations; production by velocity fluctuations is confined to the near-wall region and the large-scale production that develops at sufficient upper Gamma Γ $\\varGamma$ is restricted to the bulk. At large upper Gamma Γ $\\varGamma$ an inverse inter-scale cascade transfers left angle bracket w theta right angle bracket ⟨ w θ ⟩ $\\langle w\\theta \\rangle$ from intermediate to superstructure scales, the transfer towards the superstructure scale taking place away from the boundary layer. This upscale transfer is specific to the covariance, as the vertical kinetic energy and the temperature variance cascade towards small scales, so that the turbulence selectively transfers the correlation between vertical velocity and temperature towards the superstructure scale, consistent with the strong large-scale coherence of the superstructures. Pressure transport is the only mechanism that delivers large-scale left angle bracket w theta right angle bracket ⟨ w θ ⟩ $\\langle w\\theta \\rangle$ towards the wall with appreciable magnitude, yet the pressure–strain term destroys the transported quantity so that the net pressure–temperature interaction is purely negative at all scales. No mechanism in the budget delivers large-scale spectral content into the boundary layer, providing a scale-by-scale explanation for the insensitivity of the Nusselt number to the aspect ratio beyond a moderate threshold.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12213",
-    "doi": "10.1017/jfm.2026.12213",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "The spectral budget of the vertical heat flux left angle bracket w theta right angle bracket ⟨ w θ ⟩ $\\langle w\\theta \\rangle$ is investigated in turbulent Rayleigh–Bénard convection by direct numerical simulation. Eight cases spanning three Rayleigh numbers ( italic Ra equals 1 times 10 Superscript 5 Ra = 1 × 10 5 $\\textit{Ra} = 1\\times 10^5$ , 6 times 10 Superscript 6 6 × 10 6 $6\\times 10^6$ and 4 times 10 Supersc…"
-  },
-  {
-    "id": "doi:10.1063/5.0352095",
-    "title": "Spatiotemporal attention network for pore-scale capillary–viscous imbibition in complex porous media",
-    "authors": [
-      "KuiCheng Duan",
-      "Hao Yu",
-      "Bo Li",
-      "JiaXuan Chen",
-      "HanXi Xu",
-      "YuTian Zhou",
-      "FengChao Wang",
-      "Yang Gao",
-      "He Liu",
-      "HengAn Wu"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "Pore-scale multiphase displacement in heterogeneous fractured porous media is governed by coupled capillary, viscous, interfacial, and structural effects, leading to complex interfacial evolution and displacement behaviors, which require fine discretization and substantial computational cost in conventional simulations. In this work, an end-to-end spatiotemporal attention network (STA-Net) is proposed for time-dependent prediction of pore-scale capillary–viscous imbibition. STA-Net integrates a convolutional encoder–decoder, feature-wise linear modulation-based physics embedding, and a tailored spatiotemporal attention module. The attention mechanism is decoupled into spatial and temporal branches. Spatial attention captures nonlocal interactions induced by pore connectivity and flow redistribution, whereas causally masked temporal attention explicitly models history-dependent evolution by ensuring each state attends only to current and preceding flow states. This architecture enables direct prediction of temporally ordered saturation, velocity magnitude, and pressure fields. Validations against reference simulations under various porous structures, physical conditions, and time instances demonstrate that STA-Net accurately captures flow fields, displacement evolution, and transient interfacial dynamics. Ablation studies further show that STA-Net outperforms the convolutional baseline by ∼10% in terms of average R2, owing to the complementary contributions of spatial-context integration and temporal-state correlation. Leveraging this high-fidelity modeling, STA-Net enables rapid and dense exploration of the parameter space and physics-guided interpretation of displacement regimes, identifying how capillary and viscous effects govern regime transitions. These findings indicate that STA-Net provides an effective method for predicting and interpreting pore-scale multiphase flow evolution in complex porous media.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0352095",
-    "doi": "10.1063/5.0352095",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Pore-scale multiphase displacement in heterogeneous fractured porous media is governed by coupled capillary, viscous, interfacial, and structural effects, leading to complex interfacial evolution and displacement behaviors, which require fine discretization and substantial computational cost in conventional simulations. In this work, an end-to-end spatiotemporal attention network (STA-Net) is proposed for time-depen…"
   },
   {
     "id": "arxiv:2611.06540v1",
@@ -1547,26 +1334,6 @@
       "graph neural network"
     ],
     "summary": "Standard Graph Neural Networks (GNNs) implicitly assume that neighboring nodes share the same feature space, which contributes to oversmoothing and poor performance on heterophilic graphs. Sheaf Neural Networks (SNNs) remove this assumption by giving each node and edge its own vector space and learning restriction maps that transform features as they move between neighbors. These maps define a sheaf Laplacian that d…"
-  },
-  {
-    "id": "doi:10.1063/5.0360268",
-    "title": "Sessile analogs of spherical bubbles",
-    "authors": [
-      "Claudiu Patrascu",
-      "Andra-Eleonora Radan",
-      "Victoria-Elena Plopeanu"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "The Letter concerns the shape of spherical bubbles and their transition to sessile analogs on planar surfaces. A theoretical model is proposed, predicting the resting bubble's radius as a function of the initial bubble radius, which agrees well with the experimental data. We found a 26% increase in the characteristic radius for the transformation of a spherical bubble into a sessile counterpart on hydrophilic surfaces for soap bubbles and on hydrophobic surfaces for air bubbles in water. The model also highlights under which conditions significant deviations from the 26%—law can be expected for the transition to sessile analogs.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0360268",
-    "doi": "10.1063/5.0360268",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "The Letter concerns the shape of spherical bubbles and their transition to sessile analogs on planar surfaces. A theoretical model is proposed, predicting the resting bubble's radius as a function of the initial bubble radius, which agrees well with the experimental data. We found a 26% increase in the characteristic radius for the transformation of a spherical bubble into a sessile counterpart on hydrophilic surfac…"
   },
   {
     "id": "or:Pwz8xOM9jz",
@@ -2030,30 +1797,6 @@
       "operator learning"
     ],
     "summary": "Neural operator methods have achieved significant success in the efficient simulation and inverse problems of complex systems by learning a mapping between two infinite-dimensional Banach spaces. However, existing methods still exhibit room for optimization in terms of robustness and modeling accuracy. Specifically, existing methods are characterized by sensitivity to noise and a tendency to overlook the importance…"
-  },
-  {
-    "id": "doi:10.1016/j.jcp.2026.115159",
-    "title": "Robust B-Spline based interface tracking for melting particles in coupled thermo-buoyant dynamics",
-    "authors": [
-      "Lorenzo Vallisa",
-      "Maria Teresa Scelzo",
-      "Silvania Lopes",
-      "Yusufali Oomar",
-      "Arnaud Malan",
-      "Michel De Paepe",
-      "Delphine Laboureur"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115159",
-    "doi": "10.1016/j.jcp.2026.115159",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Robust B-Spline based interface tracking for melting particles in coupled thermo-buoyant dynamics"
   },
   {
     "id": "arxiv:2611.05163v2",
@@ -2674,26 +2417,6 @@
     "summary": "Large language models (LLMs) are capable of emulating reasoning and using tools, creating opportunities for autonomous agents that execute complex scientific tasks. Protein design provides a natural testbed: although machine learning (ML) methods achieve strong results, these are largely restricted to canonical amino acids and narrow objectives, leaving unfilled need for a generalist tool for broad design pipelines.…"
   },
   {
-    "id": "doi:10.1038/s41467-026-79050-2",
-    "title": "Process-dependent shifts in conspecific negative density dependence during boreal forest succession",
-    "authors": [
-      "Yingying Zhu",
-      "Chen Chen",
-      "Han Y. H. Chen"
-    ],
-    "year": 2026,
-    "date": "2026-10-30",
-    "abstract": "Abstract Conspecific negative density dependence (CNDD)—the stronger negative effects of conspecific than heterospecific neighbours on plant demographic performance—is a key process proposed to stabilize forest diversity, yet how it changes during succession remains poorly understood. Using a 25-year spatially explicit dataset from 148 post-fire plots in boreal forests, we show that species richness increases with stand age and that CNDD varies in process- and abundance-dependent ways across recruitment, survival, and growth. Plot-level CNDD shows no significant change with stand age in recruitment or survival, but mean relative effects are generally stronger for recruitment, and CNDD shifts from destabilizing to stabilizing for growth as stands mature. Species-level CNDD is strongly associated with species abundance, with rare species consistently experiencing stronger CNDD in recruitment and growth, whereas common species tend toward neutral or destabilizing effects. For survival, by contrast, CNDD is stronger in common than in rare species. These abundance-related differences remain broadly consistent across stand development, except in recruitment, where CNDD intensifies in rare species but remains consistently weak or near-neutral in common species. This shifting balance of density-dependent pressures highlights succession-driven trade-offs as central to species coexistence and increases in diversity in disturbance-driven forests.",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-79050-2",
-    "doi": "10.1038/s41467-026-79050-2",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Abstract Conspecific negative density dependence (CNDD)—the stronger negative effects of conspecific than heterospecific neighbours on plant demographic performance—is a key process proposed to stabilize forest diversity, yet how it changes during succession remains poorly understood. Using a 25-year spatially explicit dataset from 148 post-fire plots in boreal forests, we show that species richness increases with s…"
-  },
-  {
     "id": "or:0Mvm3lqLjF",
     "title": "Procedural Generation Of Algorithm Discovery Tasks in Machine Learning",
     "authors": [
@@ -2880,32 +2603,6 @@
     "summary": "We study the posterior contraction rate of Bayesian Physics-Informed Neural Networks (PINNs) for solving a general class of elliptic partial differential equations (PDEs). We focus on learning of the elliptic equation with a non-homogeneous Dirichlet boundary condition from independent and noisy measurements collected both inside the domain and on the boundary. Assuming that the PDE admits a strong solution in a Höl…"
   },
   {
-    "id": "doi:10.1063/5.0350138",
-    "title": "Pore-network reconstruction, energy evolution, and mechanical damage of shale under supercritical CO2–water/brine interactions",
-    "authors": [
-      "Mengru Zeng",
-      "Yugang Cheng",
-      "Liang Cheng",
-      "Hongfei Chen",
-      "Yuanming Lai",
-      "Xuefu Zhang",
-      "Bo Hu",
-      "Menglai Li",
-      "Jinjie Yang"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "Deep saline aquifers are considered promising sites for large-scale CO2 geological sequestration. However, interactions among supercritical CO2 (ScCO2), pore fluids, and rock minerals may alter shale pore structures and mechanical properties, potentially increasing CO2 leakage risk. In this study, Longmaxi shale was exposed to H2O–ScCO2 and brine–ScCO2 at 90 °C and 12 MPa for 14 days, followed by x-ray diffraction, nuclear magnetic resonance, and uniaxial compressive strength. Both treatments induced mineral dissolution, pore restructuring, and mechanical degradation, with stronger effects under brine–ScCO2 conditions. Dolomite and calcite contents decreased by 42.4%–52.8% and 30.8%–43.1%, respectively, while total porosity increased by 13.2% under H2O–ScCO2 and 18.1% under brine–ScCO2. The increases in the permeation-pore and overall fractal dimensions further indicate enhanced pore-network heterogeneity and geometric complexity, particularly after brine–ScCO2 treatment. Fluid–ScCO2 interactions also altered the pre-failure deformation and crack-evolution processes. Both treatments increased the relative proportions of the crack-closure and stable crack-propagation stages while reducing that of the elastic deformation stage, whereas the unstable crack-growth stage remained nearly unchanged. These changes were more pronounced under brine–ScCO2 conditions. Young's modulus decreased by 7.8% and 11.6%, respectively. Energy analysis revealed a shift from elastic energy storage toward energy dissipation, indicating weakened brittleness and more progressive deformation behavior after treatment. A segmented statistical damage model incorporating porosity related chemical effects and dissipated energy driven mechanical degradation effectively reproduced the initial compaction and pre-peak stress–strain response of chemically altered shale.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0350138",
-    "doi": "10.1063/5.0350138",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Deep saline aquifers are considered promising sites for large-scale CO2 geological sequestration. However, interactions among supercritical CO2 (ScCO2), pore fluids, and rock minerals may alter shale pore structures and mechanical properties, potentially increasing CO2 leakage risk. In this study, Longmaxi shale was exposed to H2O–ScCO2 and brine–ScCO2 at 90 °C and 12 MPa for 14 days, followed by x-ray diffraction,…"
-  },
-  {
     "id": "arxiv:2611.04614v1",
     "title": "Policy Network Diffusion",
     "authors": [
@@ -3036,54 +2733,6 @@
       "neural PDE solver"
     ],
     "summary": "AI for fusion requires bridging a critical ``sim-to-real'' gap: simulation-trained models must generalize reliably under distribution shifts in safety-critical workflows. Focusing on the nonlinear Grad-Shafranov equation (GSE), we develop and analyze a physics-anchored operator-learning framework for fixed-boundary equilibrium prediction. The framework combines data anchors with PDE residual constraints and uses a p…"
-  },
-  {
-    "id": "doi:10.1016/j.jcp.2026.115141",
-    "title": "Physics-encoded graph deep learning for physical diffusion systems",
-    "authors": [
-      "Weiwei He",
-      "Jinzhao Li",
-      "Xuan Kong",
-      "Yaxiong Liu",
-      "Lu Deng",
-      "Xiangxiang Zeng",
-      "Hao Sun"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115141",
-    "doi": "10.1016/j.jcp.2026.115141",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Physics-encoded graph deep learning for physical diffusion systems"
-  },
-  {
-    "id": "doi:10.1063/5.0345734",
-    "title": "Physics-constrained symbolic regression for reduced-order carinal pressure laws in transient endotracheal-tube airflow",
-    "authors": [
-      "Filippos Sofos",
-      "Talib Dbouk",
-      "Zoi D. Pana",
-      "Dimitris Drikakis"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "High-fidelity computational fluid dynamics (CFD) can resolve transient airway flow during mechanical ventilation, but its cost limits parametric exploration and rapid model evaluation. We present a physics-constrained symbolic regression framework that converts transient three-dimensional multiphysics CFD simulations of endotracheal-tube airflow into closed-form reduced-order laws for local carinal pressure. The database spans pressure-controlled ventilation (PCV), volume-controlled ventilation (VCV), oxygen mass fraction, tip-to-carina distance, Murphy-eye orientation, and the transient inlet-flow response. All regressors are expressed as dimensionless variables, so that the search is unit-invariant, and nonlinear operators act only on dimensionally admissible arguments. Separate symbolic searches are performed for pressure-controlled and VCV. The recovered laws are consistent with mode-specific ventilation physics: an inverse quadratic inspiratory phase dependence for PCV and a normalized-time Reynolds number dependence for VCV. The best expressions achieve a coefficient of determination of 0.9993 and a root mean square error (RMSE) of 6.98×10−4 for PCV, and a coefficient of determination of 0.9983 and a root mean square error of 1.75×10−3 for VCV, reducing the prediction error by approximately one order of magnitude relative to a multivariate-linear baseline. Multi-seed Pareto screening and dimensionless pressure-regime maps show that the surrogate enables rapid interpolation within the sampled parameter space without rerunning CFD. The framework provides a transparent, scientific machine learning route from multiphysics flow simulations to dimensionally admissible pressure laws for biological fluid mechanics, while remaining limited to the investigated airway geometry and operating conditions.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0345734",
-    "doi": "10.1063/5.0345734",
-    "keywords": [
-      "operator learning",
-      "scientific machine learning",
-      "machine learning fluid dynamics",
-      "surrogate model"
-    ],
-    "summary": "High-fidelity computational fluid dynamics (CFD) can resolve transient airway flow during mechanical ventilation, but its cost limits parametric exploration and rapid model evaluation. We present a physics-constrained symbolic regression framework that converts transient three-dimensional multiphysics CFD simulations of endotracheal-tube airflow into closed-form reduced-order laws for local carinal pressure. The dat…"
   },
   {
     "id": "doi:10.1063/5.0354834",
@@ -3433,25 +3082,6 @@
       "diffusion model"
     ],
     "summary": "For decades, diagnostic pathology has relied on thin two-dimensional (2D) tissue sections, despite biological tissues exhibiting inherently three-dimensional (3D) morphological organization. Because a single section captures only one focal plane, important morphological cues along the z-axis are inevitably discarded, limiting tissue representation for both human interpretation and computational analysis. In this wor…"
-  },
-  {
-    "id": "doi:10.1063/5.0355488",
-    "title": "Particle settling in yield stress fluids: Effect of porosity",
-    "authors": [
-      "M. Pourjafar-Chelikdani",
-      "K. Sadeghy"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "Porous particles can be used for applications such as water purification. In certain applications, however, the working fluid might exhibit a yield stress. In this study, we have numerically investigated the effect of porosity on sedimentation behavior of a single circular porous particle immersed in a closed-ended two-dimensional vessel filled with a yield-stress liquid obeying Bingham–Papanastasiou (BP) model. Finite element software package COMSOL Multiphysics was used for the simulations. Volume-averaged macroscopic equations were used to model the flow of interstitial fluid through the porous particle. The interaction force between the interstitial fluid and the solid skeleton (modelled as a body force) was related to its porosity through Ergun's relationships. Simulations were carried out in a coupled Eulerian–Lagrangian framework. Numerical results obtained for centered particles suggest that porosity decreases the terminal velocity of particles in yield stress fluids. The impeding effect of porosity on particle terminal velocity is attributed to its effect on the viscosity field. Since a porous particle has a smaller weight, it exerts smaller stress on the surrounding liquid so that viscosity of BP fluid remains close to its zero-shear-viscosity. It is shown that, for any given yield stress, there exists a critical porosity at which the particle is practically arrested. For off-center particles undergoing non-monotonic migration toward the channel's centerline, it is shown that this behavior can be suppressed by increasing particle's porosity or fluid's yield stress. Non-uniform distribution of shear stress is shown to be the main driving force behind particle migration toward the centerline.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0355488",
-    "doi": "10.1063/5.0355488",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Porous particles can be used for applications such as water purification. In certain applications, however, the working fluid might exhibit a yield stress. In this study, we have numerically investigated the effect of porosity on sedimentation behavior of a single circular porous particle immersed in a closed-ended two-dimensional vessel filled with a yield-stress liquid obeying Bingham–Papanastasiou (BP) model. Fin…"
   },
   {
     "id": "arxiv:2610.40731v1",
@@ -3824,26 +3454,6 @@
     "summary": "Physics-informed neural networks (PINNs) can be unreliable on PDEs with oscillatory, multiscale, stiff, or long-time solutions, and these difficulties worsen in high dimensions where collocation-based training yields large numerical integration error and high-variance gradients. We propose Low-Rank Fourier Sums (LoRFS), representing the solution as a low-rank sum of separable Fourier expansions (products of one-dime…"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12216",
-    "title": "Oscillatory onset and scaling laws of electroconvection in Oldroyd-B fluid at high Weissenberg numbers: A reduced analytical theory",
-    "authors": [
-      "Yong-Hao Huang",
-      "Zhi-Ying Zheng",
-      "Jian Wu"
-    ],
-    "year": 2026,
-    "date": "2026-10-29",
-    "abstract": "We extend the linear stability analysis of electroconvective instability in a quiescent Oldroyd-B viscoelastic fluid subjected to an electric field into the strongly elastic regime, up to Weissenberg numbers ( italic Wi Wi $\\textit{Wi}$ ) of order 10 cubed 10 3 $10^{3}$ . The oscillatory onset is governed by the interplay among destabilising Coulomb forcing, viscous dissipation and elastic stress relaxation. For the quiescent base state, the linearised constitutive relation allows the polymer stress to be represented through a complex effective viscosity. We then apply a single-mode Galerkin projection based on the Newtonian critical eigenfunction, obtaining a reduced dispersion relation and a closed-form prediction for the neutral oscillation frequency. In the limit of large italic Wi Wi $\\textit{Wi}$ , this analytical solution yields two asymptotic scaling laws, namely a frequency scaling law omega Subscript c Baseline proportional to StartRoot left parenthesis 1 minus beta right parenthesis slash italic Wi EndRoot ω c ∝ ( 1 − β ) / Wi $\\omega _{c} \\propto \\sqrt {(1-\\beta )/\\textit{Wi}}$ ( omega Subscript c ω c $\\omega _{c}$ is the critical frequency and beta β $\\beta$ is the solvent to total viscosity ratio) and a threshold scaling law upper T Subscript c Baseline equals beta upper T Subscript c Superscript upper N Baseline plus a left parenthesis beta right parenthesis slash italic Wi T c = β T c N + a ( β ) / Wi $T_{c} = \\beta T_{c}^{N} + a(\\beta )/\\textit{Wi}$ ( upper T Subscript c T c $T_{c}$ is the critical electric Rayleigh number, upper T Subscript c Superscript upper N T c N $T_{c}^{N}$ is the Newtonian critical electric Rayleigh number and a left parenthesis beta right parenthesis a ( β ) $a(\\beta )$ is the coefficient related to beta β $\\beta$ ), which satisfy a self-consistency relation. Here, upper T Subscript c T c $T_{c}$ exhibits a three-stage evolution with italic Wi Wi $\\textit{Wi}$ , and a frozen-elasticity limit is identified at large italic Wi Wi $\\textit{Wi}$ . With a single geometric constant as input, the values of omega Subscript c ω c $\\omega _{c}$ and upper T Subscript c T c $T_{c}$ obtained from the analytical solution and from high-resolution spectral computations agree to within 0.3 %, providing mutual corroboration.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12216",
-    "doi": "10.1017/jfm.2026.12216",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "We extend the linear stability analysis of electroconvective instability in a quiescent Oldroyd-B viscoelastic fluid subjected to an electric field into the strongly elastic regime, up to Weissenberg numbers ( italic Wi Wi $\\textit{Wi}$ ) of order 10 cubed 10 3 $10^{3}$ . The oscillatory onset is governed by the interplay among destabilising Coulomb forcing, viscous dissipation and elastic stress relaxation. For the…"
-  },
-  {
     "id": "or:nBDuY2PjTY",
     "title": "Origo: Interpretable Multi-physics PDE Foundation Model through Neural Operator Splitting",
     "authors": [
@@ -3979,25 +3589,6 @@
     "summary": "Egocentric human video offers a scalable source of manipulation priors for robot learning, yet translating raw data scale into generalizable robot policies demands rigorous data curation and training recipes. We introduce Open-HumanScale, the first fully open recipe for scaling egocentric pretraining to 50,000 hours, anchored by Open-HumanScale-50K---a curated egocentric video corpus densely annotated with hand moti…"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12054",
-    "title": "On the spatio-temporal dynamics of turbulent flow separation over a fence with a splitter plate in uniform flow",
-    "authors": [
-      "Jinhao Kang",
-      "Mark Francis Tachie"
-    ],
-    "year": 2026,
-    "date": "2026-10-23",
-    "abstract": "The spatial and temporal dynamics of separated flow induced by a fence with a splitter plate in uniform flow at moderate Reynolds numbers were investigated using time-resolved particle image velocimetry. The Reynolds numbers, based on the free-stream velocity and the fence height above the splitter plate, were 2700, 5500 and 7500. The mean separated flow is characterised by a large primary clockwise recirculating vortex above the splitter plate and a smaller counter-rotating secondary vortex in the corner of the fence and splitter plate. Guided by different vorticity thickness growth rates, the separated shear layer is partitioned into four regions, whose dynamics are governed by the initial roll-up, shear layer stabilisation, wall-induced large-scale vortex breakdown and post-reattachment recovery. Streamwise momentum transport, entrainment velocity, convective velocity, spectral proper orthogonal decomposition, as well as spatial autocorrelation and whole-field integral time scales are used to examine the dynamics of the shear layer across these four regions. Spectral analysis reveals a distinct frequency migration along the shear layer, wherein the Kelvin–Helmholtz frequency near the fence transitions to the vortex shedding frequency near reattachment through successive vortex pairing events. Analysis of instantaneous reverse flow areas demonstrates that the second half of the primary vortex dominates the global unsteadiness of the separation bubble, whereas the first half exhibits strong coupling between the primary and secondary vortices. Conditional averaging analysis indicates that flapping motion significantly modulates turbulence production, however, the dynamic importance of the mean velocity gradients and Reynolds stresses varies across the four regions.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12054",
-    "doi": "10.1017/jfm.2026.12054",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "The spatial and temporal dynamics of separated flow induced by a fence with a splitter plate in uniform flow at moderate Reynolds numbers were investigated using time-resolved particle image velocimetry. The Reynolds numbers, based on the free-stream velocity and the fence height above the splitter plate, were 2700, 5500 and 7500. The mean separated flow is characterised by a large primary clockwise recirculating vo…"
-  },
-  {
     "id": "arxiv:2611.05984v1",
     "title": "On the Design of Hyper-Connections: Simplification, Stability, and Scalability",
     "authors": [
@@ -4024,28 +3615,6 @@
       "foundation model"
     ],
     "summary": "Hyper-Connections (HC) architectures are increasingly adopted in frontier language models, yet their components remain insufficiently understood and introduce non-negligible training overhead. In this work, we systematically study the HC architecture to understand its components and identify simpler, more efficient designs. We find that learned read/write gating without mixing and unconstrained mixing with fixed gat…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12156",
-    "title": "On buoyancy in disperse two-phase flow and its impact on the well-posedness of two-fluid models",
-    "authors": [
-      "Rui Zhu",
-      "Yulan Chen",
-      "Katharina Tholen",
-      "Zhiguo He",
-      "Thomas Pähtz"
-    ],
-    "year": 2026,
-    "date": "2026-10-29",
-    "abstract": "The Maxey–Riley–Gatignol equation for the flow around a sphere at low particle Reynolds number tells us that the fluid–particle interaction force decomposes into a contribution from the local flow disturbance caused by the particle’s boundary – consisting of the drag, virtual-mass and history forces, and their Faxén corrections – and another contribution from the stress of the background flow, termed generalized-buoyancy force. There is also a consensus that, for general disperse two-phase flow, the interfacial force density, coupling the average fluid phase and dispersed-phase momentum balances, decomposes in a like manner. However, there has been a long-standing controversy about the physical closure separating the generalized buoyancy from the interfacial force density, especially whether or not pseudostresses, such as the Reynolds stress, should be attributed to the background flow. Furthermore, most existing propositions for this closure involve small-particle approximations. Here, we show that all existing buoyancy closures are inconsistent with particle-resolving numerical simulations and/or at least one of two simple thought experiments designed to determine the roles of pseudostresses and small-particle approximations. We then derive the unique consistent closure. It requires no approximation and implies that all stresses and pseudostresses in the average fluid phase momentum balance, except the Reynolds stress, fully contribute to the background flow responsible for buoyancy. Remarkably, it exhibits a low-pass filter property, attenuating buoyancy at short wavelengths, that prevents it from causing Hadamard instabilities, constituting a first-principles-based solution to the long-standing ill-posedness problem of two-fluid models. When employing the derived closure, even simplistic two-fluid models are linearly well-posed.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12156",
-    "doi": "10.1017/jfm.2026.12156",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "The Maxey–Riley–Gatignol equation for the flow around a sphere at low particle Reynolds number tells us that the fluid–particle interaction force decomposes into a contribution from the local flow disturbance caused by the particle’s boundary – consisting of the drag, virtual-mass and history forces, and their Faxén corrections – and another contribution from the stress of the background flow, termed generalized-buo…"
   },
   {
     "id": "arxiv:2611.01069v1",
@@ -4140,27 +3709,6 @@
     "summary": "Optical Character Recognition (OCR) is among the oldest and most widely deployed applications of artificial intelligence. This survey reviews its development, focusing on the Foundation Model Era. We define OCR through faithful transcription: within a specified visual scope, OCR should completely reconstruct the text, notation, and document structure observable in the source image, and every textual, notational, or…"
   },
   {
-    "id": "doi:10.1016/j.jcp.2026.115235",
-    "title": "Novel fast numerical approach for describing bubble dynamics in microfluidics water electrolysis",
-    "authors": [
-      "Thomas Mabit",
-      "Hamid Ben Ahmed",
-      "Laurent Courbin",
-      "Marie-Caroline Jullien"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115235",
-    "doi": "10.1016/j.jcp.2026.115235",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Novel fast numerical approach for describing bubble dynamics in microfluidics water electrolysis"
-  },
-  {
     "id": "arxiv:2610.41059v1",
     "title": "Nonlinear Maps Between Irreducible Representations in Graph Neural Networks",
     "authors": [
@@ -4177,26 +3725,6 @@
       "graph neural network"
     ],
     "summary": "Equivariant linear maps cannot mix non-isomorphic irreducible representations, whereas nonlinear activations can. We develop a degree-resolved version of this nonlinear interaction picture and use the resulting block inventory to construct Specht Triple, a residual on unordered graph triples. On a synthetic structural benchmark with a frozen GIN backbone, Specht Triple reduces aggregate standardised test MSE by 11.0…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12223",
-    "title": "Non-equilibrium plasma formation and electromagnetic-wave scattering in hypersonic transitional flow",
-    "authors": [
-      "Zhigang Pu",
-      "Junzhe Cao",
-      "Kun Xu"
-    ],
-    "year": 2026,
-    "date": "2026-11-05",
-    "abstract": "Hypersonic flows in the transitional regime exhibit strong thermochemical non-equilibrium, where conventional continuum assumptions fail. This paper presents a hybrid kinetic-fluid framework for simulating partially ionised argon plasmas under such conditions. The heavy-particle component is governed by a kinetic equation and solved using the unified gas-kinetic wave–particle (UGKWP) method, which captures flow physics from the rarefied to the continuum regime without being constrained by the mean free path scale. Electrons are modelled as a fluid with a separate temperature equation that accounts for elastic collisions and ionisation energy loss. An electromagnetic-wave solver, coupled with an auxiliary differential equation for the plasma current density, evaluates the wave scattering by the plasma. Validation against shock-tube experiments confirms the accuracy of the present algorithm. Application to a Mach 22 cylinder flow at Knudsen number 0.05 reveals three notable non-equilibrium transport effects – elevated near-wall heavy-particle density enhances ionisation near the stagnation point; non-equilibrium boundary-layer cooling lowers the electron-density peak in the shock layer; and non-equilibrium transport in the rarefied wake yields a higher downstream electron density. The thermal structure predicted by UGKWP differs significantly from that of the continuum gas-kinetic scheme (GKS), underscoring the important role of multiscale methods. These differences in ionisation further lead to distinct electromagnetic scattering patterns. Our results thus establish a link between multiscale non-equilibrium transport, plasma formation and electromagnetic blackout in hypersonic transitional flows.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12223",
-    "doi": "10.1017/jfm.2026.12223",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Hypersonic flows in the transitional regime exhibit strong thermochemical non-equilibrium, where conventional continuum assumptions fail. This paper presents a hybrid kinetic-fluid framework for simulating partially ionised argon plasmas under such conditions. The heavy-particle component is governed by a kinetic equation and solved using the unified gas-kinetic wave–particle (UGKWP) method, which captures flow phys…"
   },
   {
     "id": "or:EqE4qCHJGV",
@@ -4314,29 +3842,6 @@
     "summary": "Deep learning-based methods have shown remarkable effectiveness in solving PDEs, largely due to their ability to enable fast simulations once trained. However, despite the availability of high-performance computing infrastructure, many critical applications remain constrained by the substantial computational costs associated with generating large-scale, high-quality datasets and training models. In this work, inspir…"
   },
   {
-    "id": "doi:10.1038/s41467-026-78895-x",
-    "title": "Neural subspaces encode sequential working memory without detectable neural sequences",
-    "authors": [
-      "Aniol Santo-Angles",
-      "Jiarui Yang",
-      "Ying Zhou",
-      "Wing Kwan Hannah Chu",
-      "Grace W. Lindsay",
-      "Kartik K. Sreenivasan"
-    ],
-    "year": 2026,
-    "date": "2026-10-23",
-    "abstract": "Abstract The neural mechanisms of multiple-item working memory are not well understood. In the current study, we address two competing hypotheses about the neural basis of sequential working memory: neural subspaces versus neural sequences. Using broadband MEG data from human participants, we applied dimensionality reduction and multivariate decoding techniques to test whether a sequence of items is maintained through the reactivation of individual items in sequence (neural sequences) or by organizing them into distinct low-dimensional subspaces (neural subspaces). Our results revealed behaviorally relevant, low-dimensional neural subspaces that organized memory representations according to ordinal position in the sequence, supporting the neural subspaces hypothesis. In contrast, we found no evidence of sequential neural replay during the retention period, contrary to the neural sequences hypothesis. In this work, we show that sequential working memory is maintained through structured geometric organization in low-dimensional representational space, rather than through the sequential reactivation of individual items, thus clarifying the mechanisms of multi-item working memory.",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-78895-x",
-    "doi": "10.1038/s41467-026-78895-x",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Abstract The neural mechanisms of multiple-item working memory are not well understood. In the current study, we address two competing hypotheses about the neural basis of sequential working memory: neural subspaces versus neural sequences. Using broadband MEG data from human participants, we applied dimensionality reduction and multivariate decoding techniques to test whether a sequence of items is maintained throu…"
-  },
-  {
     "id": "doi:10.1016/j.jcp.2026.115173",
     "title": "Neural network-enhanced hr-adaptive finite element algorithm for parabolic equations",
     "authors": [
@@ -4356,30 +3861,6 @@
       "其他相关"
     ],
     "summary": "Neural network-enhanced hr-adaptive finite element algorithm for parabolic equations"
-  },
-  {
-    "id": "doi:10.1038/s41467-026-78974-z",
-    "title": "Neural limits of temporal feature binding in human visual cortex",
-    "authors": [
-      "N Schönemann",
-      "C Merkel",
-      "H Strumpf",
-      "AM Felßberg",
-      "MV Bartsch",
-      "MA Schoenfeld",
-      "J-M Hopf"
-    ],
-    "year": 2026,
-    "date": "2026-10-26",
-    "abstract": "Abstract Humans are able to track the change of color and orientation (CO) of an object at a stunning rate. However, spatially separating those features slows this rate by an order of magnitude – a temporal limit of feature binding that is little understood. Here, we investigate the underlying mechanisms using high-temporal resolution cortical source localization of the magnetic field response elicited by CO-pairs alternating at different frequencies in color and orientation. We show that (1) binding requires a rapid recurrent modulation (~120 ms) of activity in V1/V2, whose latency is independent of the alternation rate. (2) Performance drops to chance when the alternation rate becomes too high to accommodate the recurrent process within a single alternation. (3) CO binding itself is mediated by color-based attention, which gradually biases re-occurring CO combinations containing the attended color. These observations together demonstrate that CO-binding across space depends on rapid recurrent processing in early visual cortex, with its temporal limit being set by the time this process takes to be completed. Binding ultimately results from a slower and gradual attentional bias of the recurrent process instantiating a form of stroboscopic stationarity in the stream of alternations for unambiguous discrimination of the correct feature-combination.",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-78974-z",
-    "doi": "10.1038/s41467-026-78974-z",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Abstract Humans are able to track the change of color and orientation (CO) of an object at a stunning rate. However, spatially separating those features slows this rate by an order of magnitude – a temporal limit of feature binding that is little understood. Here, we investigate the underlying mechanisms using high-temporal resolution cortical source localization of the magnetic field response elicited by CO-pairs a…"
   },
   {
     "id": "doi:10.1016/j.jcp.2026.115136",
@@ -4404,44 +3885,6 @@
       "其他相关"
     ],
     "summary": "Neural ensemble Kalman filter: Data assimilation for compressible flows with shocks"
-  },
-  {
-    "id": "doi:10.1038/s41467-026-78783-4",
-    "title": "Neural autoantibodies in the cerebrospinal fluid of individuals with schizophrenia spectrum disorders",
-    "authors": [
-      "P. R. Pandit",
-      "S. L. Listwak",
-      "T. T. Ngo",
-      "M. T. Salem",
-      "T. J. Esparza",
-      "P. P. Khil",
-      "R. Dandekar",
-      "B. D. Alvarenga",
-      "G. C. Mooneyham",
-      "K. L. Hamilton",
-      "J. L. DeRisi",
-      "A. Nath",
-      "R. Gomez",
-      "B. A. C. Cree",
-      "S. L. Hauser",
-      "K. A. Fiore",
-      "T. Lencz",
-      "J. A. Gallego",
-      "M. R. Wilson",
-      "S. J. Pleasure",
-      "C. M. Bartley"
-    ],
-    "year": 2026,
-    "date": "2026-11-03",
-    "abstract": "Abstract Schizophrenia spectrum disorders have substantial genetic liability, but their stable incidence and clinical heterogeneity leave open contributions from non-genetic mechanisms. Though autoimmune encephalitis demonstrates that anti-neural antibodies can cause psychosis, encephalitis antibodies are uncommon in schizophrenia. Here we show that multi-platform autoantigen profiling of cerebrospinal fluid and plasma detects rare, anti-neural autoantibodies in schizophrenia spectrum disorders. By antibody profiling the cerebrospinal fluid of 32 schizophrenia spectrum participants and 32 neuropsychiatrically unaffected controls by brain tissue immunostaining, immunoprecipitation–mass spectrometry, phage display immunoprecipitation sequencing, and plasma by complementary protein microarrays, we identify three autoantibodies, including to alpha-crystallin B. The anti-alpha-crystallin B antibody preferentially recognizes phosphorylated serine-45 and is absent from the cerebrospinal fluid of individuals with untreated multiple sclerosis, a disease with frequent antibodies to unphosphorylated alpha-crystallin B. These findings do not define autoimmune psychosis as a new disease but support broader autoantibody searches in psychotic disorders.",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-78783-4",
-    "doi": "10.1038/s41467-026-78783-4",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Abstract Schizophrenia spectrum disorders have substantial genetic liability, but their stable incidence and clinical heterogeneity leave open contributions from non-genetic mechanisms. Though autoimmune encephalitis demonstrates that anti-neural antibodies can cause psychosis, encephalitis antibodies are uncommon in schizophrenia. Here we show that multi-platform autoantigen profiling of cerebrospinal fluid and pla…"
   },
   {
     "id": "arxiv:2610.38064v1",
@@ -4622,29 +4065,6 @@
     "summary": "Neural operators have emerged as an efficient paradigm for solving PDEs, overcoming the limitations of traditional numerical methods and significantly improving computational efficiency. However, due to the diversity and complexity of PDE systems, existing neural operators typically rely on a single network architecture, which limits their capacity to fully capture heterogeneous features and complex system dependenc…"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12231",
-    "title": "Near-field pressure and wake dynamics in aerodynamic noise control of a forced rotating cylinder",
-    "authors": [
-      "Chenghao Yang",
-      "Nvzi Bao",
-      "Reza Maryami",
-      "Yu Liu",
-      "Yubao Song",
-      "Chuanxing Bi"
-    ],
-    "year": 2026,
-    "date": "2026-11-05",
-    "abstract": "This study investigates the aerodynamic noise control mechanisms of a forced rotating circular cylinder at a subcritical Reynolds number ( upper R e equals 4.7 times 10 Superscript 4 R e = 4.7 × 10 4 $Re = 4.7 \\times 10^4$ ) using large-eddy simulation coupled with the Ffowcs Williams–Hawkings acoustic analogy, validated by wind tunnel experiments. Five representative rotation ratios, alpha equals 0 α = 0 $\\alpha =0$ , 0.5 0.5 $0.5$ , 1 1 $1$ , 2 2 $2$ and 4 4 $4$ , are analysed to relate wall-pressure fluctuations and wake organisation to the radiated noise. At alpha equals 0.5 α = 0.5 $\\alpha =0.5$ , the natural shedding tone separates into two components, upper S t 01 almost equals 0.18 S t 01 ≈ 0.18 $St_{01}\\approx 0.18$ and upper S t 02 almost equals 0.23 S t 02 ≈ 0.23 $St_{02}\\approx 0.23$ . Their three-dimensional (3-D) structures exhibit spanwise phase dislocation and reduced coherence, explaining the decrease in tonal radiation despite locally enhanced wall-pressure fluctuations. Coherent shedding partially recovers at alpha equals 1 α = 1 $\\alpha =1$ , whereas alpha equals 2 α = 2 $\\alpha =2$ gives the strongest tonal-noise reduction among the investigated cases, accompanied by weakened wake fluctuations, spanwise coherence and wall–wake correlation. At alpha equals 4 α = 4 $\\alpha =4$ , the classical Kármán mode is suppressed and localised near-wall helical structures are associated with a broadband elevation near upper S t almost equals 0.1 S t ≈ 0.1 $St\\approx 0.1$ . The results show that rotation controls noise through changes in both unsteady-loading amplitude and 3-D source organisation.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12231",
-    "doi": "10.1017/jfm.2026.12231",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "This study investigates the aerodynamic noise control mechanisms of a forced rotating circular cylinder at a subcritical Reynolds number ( upper R e equals 4.7 times 10 Superscript 4 R e = 4.7 × 10 4 $Re = 4.7 \\times 10^4$ ) using large-eddy simulation coupled with the Ffowcs Williams–Hawkings acoustic analogy, validated by wind tunnel experiments. Five representative rotation ratios, alpha equals 0 α = 0 $\\alpha =0…"
-  },
-  {
     "id": "doi:10.1016/j.jcp.2026.115179",
     "title": "NP4Buoyancy: An end-to-end differentiable neural-physics framework for buoyancy-driven flows",
     "authors": [
@@ -4744,26 +4164,6 @@
       "PINN"
     ],
     "summary": "Physics‐informed neural networks (PINNs) embed physical laws into data-driven learning and are becoming increasingly influential in climate and ocean forecasting. Yet effectively capturing multi-scale variability across high and low frequencies while maintaining training stablility and ensuring convergence remains challenging for conventional PINNs. We introduce M$^2$F-PINN, a novel Transformer-based multi-scale fre…"
-  },
-  {
-    "id": "doi:10.1016/j.jcp.2026.115231",
-    "title": "Muon with spectral guidance: Efficient optimization for scientific machine learning",
-    "authors": [
-      "Binghang Lu",
-      "Jiahao Zhang",
-      "Guang Lin"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115231",
-    "doi": "10.1016/j.jcp.2026.115231",
-    "keywords": [
-      "scientific machine learning"
-    ],
-    "summary": "Muon with spectral guidance: Efficient optimization for scientific machine learning"
   },
   {
     "id": "doi:10.1038/s41467-026-79170-9",
@@ -4949,25 +4349,6 @@
       "graph neural network"
     ],
     "summary": "Predicting ice dynamics and sea-level rise requires an understanding of subglacial bedrock topography; however, inversion remains a challenging task in data-sparse regions where surface observations are limited. Some conventional machine learning methods face challenges in predicting subglacial topography due to heavy reliance on purely data correlations and cannot guarantee physical consistency, especially in data-…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12238",
-    "title": "Motion of a spherical particle in viscosity-stratified plane Couette flow",
-    "authors": [
-      "Rupayan Jana",
-      "Shubhadeep Mandal"
-    ],
-    "year": 2026,
-    "date": "2026-11-03",
-    "abstract": "We investigate the dynamics of a rigid spherical particle in plane Couette flow with a viscosity that varies linearly across the channel, from the Stokes limit to non-zero Reynolds numbers, using analytical theory and immersed-boundary lattice Boltzmann simulations. In the Stokes limit, we find that the particle develops a constant, viscosity-gradient-induced translational slip, defined as the difference between the particle velocity and the undisturbed fluid velocity at its centre. The particle leads the flow when the viscosity increases towards the moving wall and lags when it decreases. Its angular velocity equals half the local, viscosity-gradient-modified fluid vorticity, experiencing no additional rotational slip. Furthermore, we show that cross-stream particle migration is strictly prohibited at any confinement ratio or gradient magnitude. At non-zero Reynolds numbers in a constant-viscosity fluid, increasing the channel Reynolds number beyond a critical value induces a supercritical pitchfork bifurcation that splits the stable centreline equilibrium into two symmetric off-centre equilibria. With a viscosity gradient, we find that for Reynolds numbers below this bifurcation point, the particle consistently settles at a single off-centre equilibrium in the less-viscous half. For Reynolds numbers exceeding this point, however, we identify a critical viscosity gradient threshold: below this limit, the particle can stabilise in either channel half depending on its initial placement; above it, the particle focuses exclusively in the less-viscous half regardless of its initial position. These findings enable predictive particle manipulation in viscosity-stratified microflows.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12238",
-    "doi": "10.1017/jfm.2026.12238",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "We investigate the dynamics of a rigid spherical particle in plane Couette flow with a viscosity that varies linearly across the channel, from the Stokes limit to non-zero Reynolds numbers, using analytical theory and immersed-boundary lattice Boltzmann simulations. In the Stokes limit, we find that the particle develops a constant, viscosity-gradient-induced translational slip, defined as the difference between the…"
   },
   {
     "id": "doi:10.1063/5.0349349",
@@ -6029,51 +5410,6 @@
     "summary": "Graph neural networks are increasingly proposed for network intrusion detection, yet many reported results come from protocols in which test flows shape the graph used for training, duplicated flows sit on both sides of the split, or a single split is reported. This study measures what a residual graph convolutional network gains over simpler models once these sources of optimism are removed. CICIDS2017 and NF-UNSW-…"
   },
   {
-    "id": "doi:10.1038/s41467-026-78340-z",
-    "title": "Layer-wise Prediction for Interpretation of Hidden Representations in Deep Neural Networks through Evolving Probability Distributions",
-    "authors": [
-      "Zitu Liu",
-      "Yue Liu",
-      "Jiawang Li",
-      "Zhenyao Yu",
-      "Zhengwei Yang",
-      "Yike Guo",
-      "Qun Liu",
-      "Guoyin Wang"
-    ],
-    "year": 2026,
-    "date": "2026-10-29",
-    "abstract": "",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-78340-z",
-    "doi": "10.1038/s41467-026-78340-z",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Layer-wise Prediction for Interpretation of Hidden Representations in Deep Neural Networks through Evolving Probability Distributions"
-  },
-  {
-    "id": "doi:10.1016/j.jcp.2026.115150",
-    "title": "Latent dynamics graph convolutional networks for model order reduction of parameterized time-dependent PDEs",
-    "authors": [
-      "Lorenzo Tomada",
-      "Federico Pichi",
-      "Gianluigi Rozza"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115150",
-    "doi": "10.1016/j.jcp.2026.115150",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Latent dynamics graph convolutional networks for model order reduction of parameterized time-dependent PDEs"
-  },
-  {
     "id": "or:Wlmji1kHql",
     "title": "Latent Space Learning for PDE Systems with Complex Boundary Conditions",
     "authors": [
@@ -6140,35 +5476,6 @@
       "surrogate model"
     ],
     "summary": "Compressible multiphase flow is central to numerous engineering applications, characterized by complex wave dynamics and challenging shock-interface interactions. Despite their importance, they remain significantly missing from existing benchmarks in the Scientific Machine Learning (SciML) community, limiting progress on generalization to impactful real-world scenarios. To address this issue, we introduce two exempl…"
-  },
-  {
-    "id": "doi:10.1038/s41467-026-79051-1",
-    "title": "Large-scale identification of the regulatory potential of SNPs in human neural stem cells",
-    "authors": [
-      "Eline Koornstra",
-      "Eva S. van Zanten",
-      "Noud H. M. Klaassen",
-      "Lize Meert",
-      "Miguel Martinez-Ara",
-      "Mariana Pelicano de Almeida",
-      "Sander Lamballais",
-      "Mike R. Dekker",
-      "Mathias Eder",
-      "Hieab H. H. Adams",
-      "Bas van Steensel",
-      "Raymond A. Poot"
-    ],
-    "year": 2026,
-    "date": "2026-11-03",
-    "abstract": "Abstract GWAS have identified thousands of SNPs associated with different human phenotypes. Most SNPs are located in non-coding regions of the genome, where a small subset of causal SNPs is thought to contribute to risk by regulating transcription. However, identification of such causal variants remains challenging due to linkage disequilibrium, where blocks of SNPs are inherited together. Here, we perform a massively parallel reporter assay called SuRE in human neural stem cells to assess the transcriptional regulatory potential of 7.1 million SNPs. We identify 7,002 SNPs with regulatory potential (emVars) among the 484,057 SNPs with sufficiently high expression. These emVars are enriched in enhancers and often coincide with binding sites for transcription factors, such as ZBTB33, YY1, and ETS factors. We overlap SuRE data with eQTL data to pinpoint likely gene-regulatory variants. Additionally, combining SuRE data with GWAS for seven neuropsychiatric phenotypes identifies 187 emVars in risk loci containing 183,186 SNPs assessed by SuRE. In conclusion, our SuRE dataset provides a rich source to prioritize genetic variants that may be relevant for complex human phenotypes.",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-79051-1",
-    "doi": "10.1038/s41467-026-79051-1",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Abstract GWAS have identified thousands of SNPs associated with different human phenotypes. Most SNPs are located in non-coding regions of the genome, where a small subset of causal SNPs is thought to contribute to risk by regulating transcription. However, identification of such causal variants remains challenging due to linkage disequilibrium, where blocks of SNPs are inherited together. Here, we perform a massive…"
   },
   {
     "id": "arxiv:2611.01984v1",
@@ -6698,24 +6005,6 @@
     "summary": "Axial force critically affects the operational stability, bearing load and service life of centrifugal pumps, and back blades on the rear shroud are a widely adopted effective measure for axial-force mitigation. This work systematically explores the influences of curved back-blade configurations on pump hydraulic performance, axial-force variation, and internal flow structures via experiments coupled with steady and…"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12168",
-    "title": "Inertial gravity currents released from a lock in frames under horizontal oscillations: Analytical model",
-    "authors": [
-      "M. Ungarish"
-    ],
-    "year": 2026,
-    "date": "2026-10-23",
-    "abstract": "We consider the flow of a gravity current released from a lock inside a tank which performs horizontal oscillations (equivalent to internal pressure-gradient pulses), in the buoyancy–inertia (high-Reynolds-number) regime. We develop a shallow-water model which provides clear-cut insights and simple predictions of the propagation, height and velocity fields as a function of time, for a wide range of parameters. Comparisons with the simulations of Bingol et al. (2025 J. Fluid. Mech. , vol. 1002, A14) support the approximate analysis. Moreover, we point out a new effect, called pulse-buoyancy, which was not covered by these simulation. The clear-cut predictions of the model are amenable to straightforward experimental verification, and suggest further numerical work for an as yet unexplored parameter range.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12168",
-    "doi": "10.1017/jfm.2026.12168",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "We consider the flow of a gravity current released from a lock inside a tank which performs horizontal oscillations (equivalent to internal pressure-gradient pulses), in the buoyancy–inertia (high-Reynolds-number) regime. We develop a shallow-water model which provides clear-cut insights and simple predictions of the propagation, height and velocity fields as a function of time, for a wide range of parameters. Compa…"
-  },
-  {
     "id": "or:gnzNB7GFFo",
     "title": "Imposing Boundary Conditions on Neural Operators via Learned Function Extensions",
     "authors": [
@@ -7171,60 +6460,6 @@
     "summary": "The Transformer architecture plays a central role in modern deep learning, and its SE(3)-equivariant variants have been widely applied to molecular conformation modeling and optimization. Given its importance, many methods attempt to interpret and improve the Transformer through the lens of dynamics. However, they mainly focus on a single attention head rather than the full Transformer architecture and seldom consid…"
   },
   {
-    "id": "doi:10.1038/s41467-026-78412-0",
-    "title": "HERC2–UBE3A structure uncovers a domain-motif protein network potentially altered in Angelman and related syndromes",
-    "authors": [
-      "Auguste Demenge",
-      "JiaWen Lim",
-      "Arpoudamarie Roc",
-      "Boglarka Zambo",
-      "Gergo Gogl",
-      "Alexandra Cousido-Siah",
-      "Alastair G. McEwen",
-      "Anna Bonhoure",
-      "Camille Kostmann",
-      "Christine Fagotto-Kaufmann",
-      "Pascal Eberling",
-      "Judit Osz-Papai",
-      "Alberto Podjarny",
-      "Eduardo Howard",
-      "Christelle Golzio",
-      "Anne Debant",
-      "Susanne Schmidt",
-      "Gilles Travé"
-    ],
-    "year": 2026,
-    "date": "2026-10-31",
-    "abstract": "",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-78412-0",
-    "doi": "10.1038/s41467-026-78412-0",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "HERC2–UBE3A structure uncovers a domain-motif protein network potentially altered in Angelman and related syndromes"
-  },
-  {
-    "id": "doi:10.1038/s42256-026-01331-8",
-    "title": "Guidelines for evaluating structure-based methods for protein–ligand binding prediction",
-    "authors": [
-      "Viet-Khoa Tran-Nguyen",
-      "Pedro J. Ballester"
-    ],
-    "year": 2026,
-    "date": "2026-10-23",
-    "abstract": "",
-    "source": "Nature Machine Intelligence",
-    "venue": "Nat. Mach. Intell.",
-    "url": "https://doi.org/10.1038/s42256-026-01331-8",
-    "doi": "10.1038/s42256-026-01331-8",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Guidelines for evaluating structure-based methods for protein–ligand binding prediction"
-  },
-  {
     "id": "or:945vCIUZWt",
     "title": "Guided and Interpretable Neural Operator Design for Partial Differential Equation Learning",
     "authors": [
@@ -7348,24 +6583,6 @@
     "summary": "Vegetation plays a central role in cities, serving functional roles such as balancing shade and sky exposure, shaping the microclimate, carbon sequestration, and providing acoustic screening. Furthermore, aesthetic choices in landscape styles (formal, modernist, picturesque) are important for citizens' well-being and should be considered in the design of urban landscapes. In this paper, we present a novel method for…"
   },
   {
-    "id": "doi:10.1063/5.0359470",
-    "title": "Gravity-induced branch selection and no-shear theorems for compressible pure-swirl vortices",
-    "authors": [
-      "Haowen Xi"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "We classify steady axisymmetric pure-swirl solutions of the compressible Navier–Stokes–Fourier equations for a calorically perfect ideal gas under uniform gravity, with no distributed volumetric heating or azimuthal body forcing. Radial and vertical momentum balance impose the compatibility conditions T=Θ(χ) and p=P(χ), where χ=gz−Ψ(r) and Ψ′(r)=Vϕ2/r. For constant dynamic viscosity and arbitrary positive conductivity k(T), the azimuthal momentum equation admits Vϕ=Ar+B/r, but the energy equation retains only the two pure branches: Ar with uniform temperature and B/r with k(T)Tχ=−2μ. The mixed branch AB≠0 is excluded. If viscosity depends on temperature, every sheared region must satisfy μ[T(χ)]=μ0eλχ. Power-law and Sutherland viscosity under the standard constant-Prandtl closure are incompatible with the remaining energy constraint; no steady sheared pure-swirl state then exists in this class. The constant-viscosity potential branch survives as an exact conductive solution on an annulus. Thus, each additional thermodynamic or transport constraint reduces the admissible pure-swirl solution set.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0359470",
-    "doi": "10.1063/5.0359470",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "We classify steady axisymmetric pure-swirl solutions of the compressible Navier–Stokes–Fourier equations for a calorically perfect ideal gas under uniform gravity, with no distributed volumetric heating or azimuthal body forcing. Radial and vertical momentum balance impose the compatibility conditions T=Θ(χ) and p=P(χ), where χ=gz−Ψ(r) and Ψ′(r)=Vϕ2/r. For constant dynamic viscosity and arbitrary positive conductivi…"
-  },
-  {
     "id": "or:fJZCNGRxFF",
     "title": "Graph-Based Operator Learning from Limited Data on Irregular Domains",
     "authors": [
@@ -7473,32 +6690,6 @@
       "diffusion model"
     ],
     "summary": "We study a coupled elliptic-parabolic system modelling electrical discharge in a micro-electro-mechanical (MEMS) capacitor: a Poisson equation for the electrostatic potential, coupled to drift-diffusion equations for the ion and electron densities with a Townsend ionization source whose rate per electron grows linearly in the electric field. Gimperlein, He and Lacey proved local well-posedness and left open whether…"
-  },
-  {
-    "id": "doi:10.1016/j.jcp.2026.115151",
-    "title": "Geometry reconstruction from magnetic resonance velocimetry measurements via solving an inverse fluid flow problem",
-    "authors": [
-      "Shota Ito",
-      "Alexander Zimmermann",
-      "Julius Jeßberger",
-      "Stephan Simonis",
-      "Adrian Kummerländer",
-      "Fedor Bukreev",
-      "Jorg Thöming",
-      "Georg Pesch",
-      "Mathias J. Krause"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115151",
-    "doi": "10.1016/j.jcp.2026.115151",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Geometry reconstruction from magnetic resonance velocimetry measurements via solving an inverse fluid flow problem"
   },
   {
     "id": "or:2Aeje1T4se",
@@ -7930,93 +7121,6 @@
     "summary": "Neural operators learn mappings between function spaces, enabling fast surrogate solutions to partial differential equations. Despite remarkable architectural diversity, these methods often share a common input representation: raw coordinate-value pairs $(x, u(x))$. We ask whether inputs aligned with PDE differential structure can improve learning. Through Picard iteration on mild solutions, we show that derivatives…"
   },
   {
-    "id": "doi:10.1038/s42256-026-01336-3",
-    "title": "Fractal basin geometry and the limits to predictability and reproducibility in deep learning",
-    "authors": [
-      "Andrew Ly",
-      "Pulin Gong"
-    ],
-    "year": 2026,
-    "date": "2026-11-05",
-    "abstract": "Abstract Fundamental limits to predictability are central to our understanding of many physical and computational systems. In deep learning, training outcomes are often difficult to predict and reproduce even when extrinsic sources of randomness are controlled, yet the underlying mechanism remains unclear. Here we propose riddled basin geometry as a unifying dynamical systems mechanism: every initialization leading to one solution lies arbitrarily close to initializations leading to different solutions, forming a fat fractal with structure at arbitrarily fine scales. Using a minimal neural network model, we analytically establish the classical route to riddling and derive a near-zero uncertainty exponent: even sharp increases in initialization precision yield only marginal gains in outcome predictability. In deep networks, intertwined training destinations and near-zero parameter-space exponents provide robust signatures consistent with riddling across the tested architectures, optimizers and training protocols, offering a common dynamical account of otherwise disparate empirical observations. We further introduce functional uncertainty exponents, extending these diagnostics of scale-insensitive irreproducibility from parameter space to the learned functions themselves. Together, our results support riddled basin geometry as a candidate organizing principle for irreproducibility in deep learning, with practical implications for optimization and the reliable deployment of artificial intelligence.",
-    "source": "Nature Machine Intelligence",
-    "venue": "Nat. Mach. Intell.",
-    "url": "https://doi.org/10.1038/s42256-026-01336-3",
-    "doi": "10.1038/s42256-026-01336-3",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Abstract Fundamental limits to predictability are central to our understanding of many physical and computational systems. In deep learning, training outcomes are often difficult to predict and reproduce even when extrinsic sources of randomness are controlled, yet the underlying mechanism remains unclear. Here we propose riddled basin geometry as a unifying dynamical systems mechanism: every initialization leading…"
-  },
-  {
-    "id": "doi:10.1038/s42256-026-01322-9",
-    "title": "Foundation model for particle collision data analysis",
-    "authors": [
-      "Ting-Hsiang Hsu",
-      "Baihong Zhou",
-      "Qibin Liu",
-      "Yue Xu",
-      "Shu Li",
-      "George Wei-Shu Hou",
-      "Benjamin Nachman",
-      "Shih-Chieh Hsu",
-      "Vinicius Mikuni",
-      "Yuan-Tang Chou",
-      "Yulei Zhang"
-    ],
-    "year": 2026,
-    "date": "2026-10-29",
-    "abstract": "Abstract Data-intensive collider experiments increasingly require models that transfer across high-dimensional, partially observed measurements, yet most analyses still optimize separate models for each task. Here, to address this bottleneck, we introduce EVENET, an event-level foundation model pretrained on 500 million simulated collision events using self-supervised learning and physics-informed supervision. The model constructs a shared particle-cloud representation from the variable-length set of physics objects in each event. Across searches for heavy resonances and exotic Higgs decays, EVENET outperforms both established and state-of-the-art baselines, particularly in low-statistics regimes. We validate transfer to experimental data by rediscovering the ϒ meson in CMS Open Data. The pretrained model also supports precise extraction of quantum-correlation observables that remain stable under the tested systematic variations. Together, these results establish a reusable backbone for diverse collider analyses, improving downstream adaptation after a substantial one-time pretraining investment.",
-    "source": "Nature Machine Intelligence",
-    "venue": "Nat. Mach. Intell.",
-    "url": "https://doi.org/10.1038/s42256-026-01322-9",
-    "doi": "10.1038/s42256-026-01322-9",
-    "keywords": [
-      "foundation model"
-    ],
-    "summary": "Abstract Data-intensive collider experiments increasingly require models that transfer across high-dimensional, partially observed measurements, yet most analyses still optimize separate models for each task. Here, to address this bottleneck, we introduce EVENET, an event-level foundation model pretrained on 500 million simulated collision events using self-supervised learning and physics-informed supervision. The m…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12201",
-    "title": "Forward and inverse resolvent modelling for instabilities and active control in compressible boundary layers using a Transformer neural operator",
-    "authors": [
-      "Shuo Feng",
-      "Bo-Fu Wang"
-    ],
-    "year": 2026,
-    "date": "2026-11-04",
-    "abstract": "Resolvent analysis effectively characterises flow instabilities and guides active control, but repeated singular-value-decomposition-based (SVD-based) calculations remain computationally expensive in high-dimensional parameter studies. Control-oriented workflows also require efficient mappings from prescribed response fields to compatible forcing fields. To address these needs, we introduce ResFormer, a unified Transformer-based neural operator framework for forward resolvent prediction and response-to-forcing reconstruction in compressible boundary layers. The framework is validated across supersonic and hypersonic regimes ( italic Ma equals 2.25 Ma = 2.25 $ \\textit{Ma}=2.25$ – 5.86 5.86 $5.86$ ), encompassing laminar, turbulent and controlled base-flow configurations. For forward prediction, ResFormer reconstructs the spatial topology, phase structure and amplitude envelope of both low-frequency Tollmien–Schlichting waves and high-frequency second-mode disturbances over the investigated parameter ranges. For response-to-forcing prediction, ResFormer learns a surrogate mapping from prescribed instability responses to compatible forcing fields. When the complete target response and discrete operator are known, the reference forcing is computed directly as ModifyingAbove bold italic f With caret Subscript italic ideal Baseline equals bold italic upper A Subscript omega comma beta Baseline ModifyingAbove bold italic q With caret Subscript italic decay f ^ ideal = A ω , β q ^ decay $\\kern2.5pt \\hat {\\boldsymbol{\\kern-2.5pt f}}_{\\textit{ideal}}=\\boldsymbol{A}_{\\omega ,\\beta }\\hat {\\boldsymbol{q}}_{\\textit{decay}}$ ; the physics term therefore acts as an operator consistency regulariser. The reconstructed forcing topology is then reduced to a compact Gaussian wall actuator prior and evaluated using high-fidelity computational fluid dynamics. ResFormer therefore accelerates repeated SVD-based forward and optimal mode evaluations while providing an operator-consistent learned representation for actuator prior identification and surrogate-assisted control design.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12201",
-    "doi": "10.1017/jfm.2026.12201",
-    "keywords": [
-      "neural operator",
-      "surrogate model",
-      "neural surrogate"
-    ],
-    "summary": "Resolvent analysis effectively characterises flow instabilities and guides active control, but repeated singular-value-decomposition-based (SVD-based) calculations remain computationally expensive in high-dimensional parameter studies. Control-oriented workflows also require efficient mappings from prescribed response fields to compatible forcing fields. To address these needs, we introduce ResFormer, a unified Tran…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12218",
-    "title": "Fluid–structure interaction in a square array of submerged flexible stems",
-    "authors": [
-      "Weilin Chen",
-      "Yuzhu Pearl Li"
-    ],
-    "year": 2026,
-    "date": "2026-11-05",
-    "abstract": "The evolution of flow structure is fundamental to establishing an accurate framework for predicting turbulent energy dissipation, momentum transfer, and sediment and nutrient transport within and above flexible stem arrays. The dynamics of flexible stems plays a crucial role in shaping these physical features. In this paper, direct numerical simulations are performed to examine flow through a three-dimensional square array of flexible stems, with explicit consideration of flexibility ( upper K K $K$ ) effects. The results provide a comprehensive characterisation of the coupled stem dynamics, flow distribution and vortex structures. Three distinct dynamical regimes are identified. For large upper K K $K$ , the stems behave as nearly rigid, causing the flow to accelerate through the gaps while attenuating behind the stems. At intermediate upper K K $K$ , a perfect lock-in occurs between the stem’s natural and oscillation frequencies, leading to large-amplitude vibrations and markedly altered flow characteristics. For small upper K K $K$ , the oscillation amplitude decreases but deformation increases, producing irregular stem dynamics and complex flow features. The flow dynamics underlying these regimes is systematically elucidated. Furthermore, energy dissipation and sediment transport effects are quantified through hydrodynamic drag, bed shear stress, and root mean square bed shear friction distributions. The array with intermediate upper K K $K$ exhibits the highest energy dissipation efficiency, surpassing even the rigid configuration. The bed shear stress reaches a peak at the upstream edge of the array, whereas stem oscillation redistributes the flow momentum towards the upper canopy and the overlying flow, reducing velocity fluctuations near the bed. Finally, the mechanisms governing the structural dynamics and hydrodynamic forces are discussed in detail. This study offers new physical insights into flow–structure interactions within flexible stem arrays, and proposes an optimised strategy for improving energy dissipation in coastal protection applications.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12218",
-    "doi": "10.1017/jfm.2026.12218",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "The evolution of flow structure is fundamental to establishing an accurate framework for predicting turbulent energy dissipation, momentum transfer, and sediment and nutrient transport within and above flexible stem arrays. The dynamics of flexible stems plays a crucial role in shaping these physical features. In this paper, direct numerical simulations are performed to examine flow through a three-dimensional squar…"
-  },
-  {
     "id": "doi:10.1063/5.0354000",
     "title": "Fluid structure interaction in wind-sensitive structures: Flow mechanisms, coupled modeling, and reduced-order prediction",
     "authors": [
@@ -8087,67 +7191,6 @@
       "operator learning"
     ],
     "summary": "Self-supervised learning (SSL) is a powerful paradigm for learning from unlabeled time-series data. However, popular methods such as masked autoencoders (MAEs) rely on reconstructing inputs from a fixed, predetermined masking ratio. Instead of this static design, we propose treating the corruption level as a new degree of freedom for representation learning, enhancing flexibility and performance. To achieve this, we…"
-  },
-  {
-    "id": "doi:10.1063/5.0347662",
-    "title": "Flow mechanisms of flying fish during free-surface taxiing",
-    "authors": [
-      "Xinyang Chen",
-      "Wenrong Hu"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "This study numerically investigates the flow mechanisms of a four-winged flying fish during free-surface taxiing, the pivotal phase enabling long-distance aerial gliding. Under identical kinematic parameters, the caudal fin yields substantial thrust (C¯T,tail≈1.22) during free-surface taxiing, in contrast to the negative value obtained in deep-water swimming (C¯T,tail≈−3.79), indicating that the free surface fundamentally alters the thrust-generation mechanism. Wake analyses reveal that the undulating caudal fin generates periodic depression waves, which reshape the vortex structure and drive the formation of a unique staggered 2S* vortex mode in the water phase; within this mode, each vortex independently induces intense streamwise momentum jets, thereby contributing to thrust generation. In addition, free-surface taxiing exhibits a markedly higher lift (CL≈2.15) compared to aerial gliding (CL≈0.57). Lift distribution undergoes a significant shift: the pectoral fins provide 85% of the total lift during aerial gliding, whereas the caudal fin contributes over 60% during taxiing, replacing the pectoral fins as the primary lift generator. This dominance stems from the substantial pressure differential induced by the density contrast between the media. Further parametric analysis demonstrates that efficient propulsion requires a pronounced 2S* vortex mode. Low-amplitude undulation produces shallow and narrow depression waves that fail to form the 2S* mode, resulting in ineffective propulsion. Meanwhile, excessively high frequency or wavelength causes depression waves to merge, disrupting the 2S* vortex street and substantially reducing propulsive efficiency. The optimal parameters are identified as A*≈0.2, St ≈0.85 , and λ*≈1. These results clarify how free-surface deformation couples with caudal-fin undulation to enhance propulsion and lift.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0347662",
-    "doi": "10.1063/5.0347662",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "This study numerically investigates the flow mechanisms of a four-winged flying fish during free-surface taxiing, the pivotal phase enabling long-distance aerial gliding. Under identical kinematic parameters, the caudal fin yields substantial thrust (C¯T,tail≈1.22) during free-surface taxiing, in contrast to the negative value obtained in deep-water swimming (C¯T,tail≈−3.79), indicating that the free surface fundame…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12083",
-    "title": "Flow in a narrow-gap annulus: drag reduction by inner cylinder azimuthal oscillation",
-    "authors": [
-      "Marcello Manna",
-      "Andrea Vacca",
-      "Roberto Verzicco"
-    ],
-    "year": 2026,
-    "date": "2026-10-23",
-    "abstract": "The axial flow through a thin gap between two concentric cylinders is investigated using direct numerical simulation (DNS) of the Navier–Stokes equations. It is shown that by imposing a stationary, harmonic, azimuthal velocity at the inner cylinder wall, drag reduction is always attained while power saving is limited to a portion of the explored amplitude–axial wavelength space. The largest values of drag reduction and power saving are 44 percent sign 44 % $44\\,\\%$ and 11 percent sign 11 % $11\\,\\%$ , respectively, obtained for different amplitude–axial wavelength pairs. It has been verified that the effect of such a control on a convex surface aligns well with the known concept in plane channel flows of depressing in turn the pressure–strain, the radial Reynolds stress, the turbulent shear stress and ultimately the viscous drag. A direct connection between the wall motion, through the Stokes layer, and the pressure–strain reduction has been identified as the root cause of the passive flow control effectiveness.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12083",
-    "doi": "10.1017/jfm.2026.12083",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "The axial flow through a thin gap between two concentric cylinders is investigated using direct numerical simulation (DNS) of the Navier–Stokes equations. It is shown that by imposing a stationary, harmonic, azimuthal velocity at the inner cylinder wall, drag reduction is always attained while power saving is limited to a portion of the explored amplitude–axial wavelength space. The largest values of drag reduction…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12200",
-    "title": "Flow features and jet formation in droplet–bubble collision",
-    "authors": [
-      "Arahata Senapati",
-      "Gaurav Singh",
-      "Arnab Atta",
-      "Gautam Biswas",
-      "Rajaram Lakkaraju"
-    ],
-    "year": 2026,
-    "date": "2026-11-03",
-    "abstract": "We investigate head-on droplet–bubble collisions in a quiescent, surfactant-free viscous liquid using three-dimensional volume-of-fluid simulations. By systematically varying the bubble-to-droplet radius ratio ( 0.5 less than or equals upper Delta less than or equals 2 0.5 ≤ Δ ≤ 2 $0.5\\le \\varDelta \\le 2$ ) and Weber number ( 3 less than or equals italic We less than or equals 270 3 ≤ We ≤ 270 $3\\le \\textit{We}\\le 270$ ) at small Ohnesorge number ( italic Oh less than 1 Oh &lt; 1 $ \\textit{Oh}\\lt 1$ ), we identify the mechanisms governing interfacial deformation, attachment, jet formation and vortex evolution during an isolated collision. Four distinct collision regimes emerge, ranging from oscillatory attachment to jet-mediated penetration and coupled toroidal deformations. A transition from weak- to inertia-dominated dynamics occurs at a critical Weber number of italic We almost equals 23 We ≈ 23 $ \\textit{We}\\approx 23$ , nearly independent of upper Delta Δ $\\varDelta$ , whereas the onset of complete jet penetration depends strongly on the size ratio. Comparison with the unsteady Oseen solution for an impulsively accelerated rigid sphere establishes a hydrodynamic baseline that isolates the effects of interface mobility and deformation, revealing the progressive emergence of toroidal vortices, interfacial oscillations and jetting. An energy analysis demonstrates that jet formation is controlled by the conversion of impact kinetic energy into surface energy, yielding a characteristic jet velocity comparable to the impact speed, while viscous dissipation suppresses jetting above a critical Ohnesorge number scaling as italic Oh Subscript c Baseline tilde upper W e Superscript negative 1 divided by 2 Oh c ∼ W e − 1 / 2 $ \\textit{Oh}_c\\sim We^{-1/2}$ . These results provide a unified physical framework linking inertia, capillarity and vortex dynamics in elementary droplet–bubble interactions, offering predictive insight into multiphase processes such as flotation, aeration, emulsification and liquid–liquid separation.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12200",
-    "doi": "10.1017/jfm.2026.12200",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "We investigate head-on droplet–bubble collisions in a quiescent, surfactant-free viscous liquid using three-dimensional volume-of-fluid simulations. By systematically varying the bubble-to-droplet radius ratio ( 0.5 less than or equals upper Delta less than or equals 2 0.5 ≤ Δ ≤ 2 $0.5\\le \\varDelta \\le 2$ ) and Weber number ( 3 less than or equals italic We less than or equals 270 3 ≤ We ≤ 270 $3\\le \\textit{We}\\le 2…"
   },
   {
     "id": "doi:10.1063/5.0353789",
@@ -8311,22 +7354,6 @@
     "summary": "In the context of over-parameterization, there is a line of work demonstrating that randomly initialized (stochastic) gradient descent (GD) converges to a globally optimal solution at a linear convergence rate for the quadratic loss function. However, the convergence rate of GD for training two-layer neural networks exhibits poor dependence on the sample size and the Gram matrix, leading to a slow training process.…"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12316",
-    "title": "FLM volume 1045 Cover and Front matter",
-    "authors": [],
-    "year": 2026,
-    "date": "2026-10-25",
-    "abstract": "",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12316",
-    "doi": "10.1017/jfm.2026.12316",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "FLM volume 1045 Cover and Front matter"
-  },
-  {
     "id": "or:Ue8aOgz9T9",
     "title": "FLIP2: Expanding Protein Fitness Landscape Benchmarks for Real-World Machine Learning Applications",
     "authors": [
@@ -8449,25 +7476,6 @@
       "graph neural network"
     ],
     "summary": "Lipid bilayers are central to cellular organization and function, yet their atomistic modelling remains constrained by its high computational cost. While coarse-grained (CG) models can overcome this bottleneck, they are limited in accuracy due to the use of simplified functional forms based on molecular mechanics. Using a hybrid functional form combining physics-based terms with a graph neural network, we present im…"
-  },
-  {
-    "id": "doi:10.1063/5.0356931",
-    "title": "Experimental investigation of supersonic impinging jets across overexpanded and underexpanded regimes using schlieren and modal analysis",
-    "authors": [
-      "Grayson S. Hayes",
-      "Hadi Samsam-Khayani"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "This study examined the effects of nozzle geometry, nozzle pressure ratio (NPR), and nozzle-to-wall distance on the flow structure and unsteady dynamics of supersonic free and impinging jets. Jets issuing from convergent and convergent–divergent nozzles were studied using time-resolved Z-type schlieren visualization and snapshot proper orthogonal decomposition (POD). Free-jet measurements established the shock-cell structure, Mach disk, jet boundary, and shear layers, while impinging jets were examined at L/De=1, 2, and 3. The convergent nozzle remained underexpanded throughout the range, whereas the convergent–divergent nozzle transitioned from overexpanded below its design pressure ratio of approximately 7.9 to underexpanded above it. Decreasing L/De shifted the first normal shock upstream, while its normalized width depended more strongly on nozzle geometry and expansion state. At L/De=1, the wall limits development of a complete shock-cell pattern, resulting in a confined near-wall compression region, whereas at L/De=2 and 3, the first Mach disk and near-wall stand-off shock became increasingly distinct. POD showed that increasing NPR broadened the dominant fluctuation structures from localized shock-intersection and impingement-region motions to structures involving the Mach disk, shock-cell system, extended shear layers, and wall jets. The slightly underexpanded convergent–divergent jet at L/De=3 and NPR=9 exhibited the most pronounced breathing-like motion in the stagnation region. The upstream barrel shock and first Mach disk remained comparatively stable, while the stand-off shock, reflected compression waves, stagnation region, and wall jets underwent strongly coupled motion. These results demonstrate that nozzle geometry, expansion regime, and nozzle-to-wall spacing govern the shock organization and coherent dynamics of supersonic impinging jets.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0356931",
-    "doi": "10.1063/5.0356931",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "This study examined the effects of nozzle geometry, nozzle pressure ratio (NPR), and nozzle-to-wall distance on the flow structure and unsteady dynamics of supersonic free and impinging jets. Jets issuing from convergent and convergent–divergent nozzles were studied using time-resolved Z-type schlieren visualization and snapshot proper orthogonal decomposition (POD). Free-jet measurements established the shock-cell…"
   },
   {
     "id": "or:KgcyeeFn2S",
@@ -8613,27 +7621,6 @@
     "summary": "Physics Informed Neural Networks offer a mesh-free approach to solving differential equations, but their application to time-dependent problems remains challenging, particularly when the governing dynamics involve widely different time scales. With collocation points spread uniformly in time, short intervals of rapid change are under resolved. This work introduces an equation informed time reparameterization framewo…"
   },
   {
-    "id": "doi:10.1016/j.jcp.2026.115227",
-    "title": "Enhancing semi-resolved CFD-DEM for dilute to dense particle-fluid systems: A point cloud based, two-step mapping strategy via coarse graining",
-    "authors": [
-      "Yuxiang Liu",
-      "Lu Jing",
-      "Xudong Fu",
-      "Huabin Shi"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115227",
-    "doi": "10.1016/j.jcp.2026.115227",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Enhancing semi-resolved CFD-DEM for dilute to dense particle-fluid systems: A point cloud based, two-step mapping strategy via coarse graining"
-  },
-  {
     "id": "or:EQNp3sFrY3",
     "title": "Enhancing Stability of Physics-Informed Neural Network Training Through Saddle-Point Reformulation",
     "authors": [
@@ -8705,30 +7692,6 @@
     "summary": "Generative models for 3D molecular conformations must respect Euclidean symmetries and concentrate probability mass on thermodynamically favorable, mechanically stable structures. However, E(3)-equivariant diffusion models often reproduce biases from semi-empirical training data rather than capturing the equilibrium distribution of a high-fidelity Hamiltonian. While physics-based guidance can correct this, it faces…"
   },
   {
-    "id": "doi:10.1038/s42256-026-01326-5",
-    "title": "Efficient equivariant framework for universal charge density prediction",
-    "authors": [
-      "Xiwen Li",
-      "Zaizhou Xin",
-      "Hongyu Yu",
-      "Yang Zhong",
-      "Liangliang Hong",
-      "Xingao Gong",
-      "Hongjun Xiang"
-    ],
-    "year": 2026,
-    "date": "2026-10-23",
-    "abstract": "",
-    "source": "Nature Machine Intelligence",
-    "venue": "Nat. Mach. Intell.",
-    "url": "https://doi.org/10.1038/s42256-026-01326-5",
-    "doi": "10.1038/s42256-026-01326-5",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Efficient equivariant framework for universal charge density prediction"
-  },
-  {
     "id": "arxiv:2611.00339v1",
     "title": "Efficient NPN Classification for Large Functions using Graph Neural Network",
     "authors": [
@@ -8748,27 +7711,6 @@
       "graph neural network"
     ],
     "summary": "Two Boolean functions are considered NPN equivalent if one can be transformed into the other by negating inputs, permuting inputs, or negating the output. Efficient NPN classification is valuable in fields such as logic synthesis, quantum computing, and information theory. However, exact NPN classification demands exhaustive enumeration of all possible input permutations and negations. Its complexity grows exponenti…"
-  },
-  {
-    "id": "doi:10.1063/5.0354432",
-    "title": "Effects of muzzle brake geometry on near field shock evolution and wall force impulse in a cased telescoped ammunition rarefaction wave gun",
-    "authors": [
-      "Ren-Jiu Chang",
-      "Xiao-Chun Xue",
-      "Bi-Rong Peng",
-      "Yong-Gang Yu"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "A cased telescoped charge configuration and rearward gas ejection in a rarefaction wave gun jointly modify pressure release before and after projectile muzzle exit, producing an underexpanded central jet, multiple lateral jets, and strong shock–wall interactions inside the muzzle brake. To clarify how brake geometry governs transient flow topology and momentum redistribution, a three-dimensional unsteady viscous compressible flow model with two-way data exchange between the interior ballistic and computational fluid dynamics solvers was developed for impact–reaction, reaction, and impact muzzle brakes. The three brakes generated dispersed lateral discharge after pre-expansion, sustained multi-row high-pressure discharge, and concentrated baffle impingement, respectively. The impact–reaction brake produced dispersed side jets and compression waves, whereas the reaction brake yielded a larger lateral discharge fraction and a wider compound wave region. The impact brake formed a concentrated stagnation-pressure zone, strong reflected compression structures, and highly directional jets. Peak axial forces on the principal braking surfaces were 41.61, 57.97, and 110.48 kN, with corresponding impulses of 64.39, 106.42, and 113.92 N s. Although the impact brake produced a peak force 1.91 times that of the reaction brake, its final impulse was only 7.0% higher, demonstrating the combined importance of load magnitude and duration. Rearward gas ejection reduced recoil impulse from 1720.36 to 352.27 N s; adding the three brakes further reduced it to 287.88, 245.85, and 238.35 N s, corresponding to recoil-reduction efficiencies of 83.27%, 85.71%, and 86.15%. These results link brake geometry to shock topology, wall loading, and impulse accumulation.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0354432",
-    "doi": "10.1063/5.0354432",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "A cased telescoped charge configuration and rearward gas ejection in a rarefaction wave gun jointly modify pressure release before and after projectile muzzle exit, producing an underexpanded central jet, multiple lateral jets, and strong shock–wall interactions inside the muzzle brake. To clarify how brake geometry governs transient flow topology and momentum redistribution, a three-dimensional unsteady viscous com…"
   },
   {
     "id": "doi:10.1038/s41467-026-79287-x",
@@ -8794,49 +7736,6 @@
       "其他相关"
     ],
     "summary": "Effective enzyme engineering through modeling kinetic parameter changes upon mutations with geometric deep learning"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12187",
-    "title": "Effect of spanwise extension on the wake dynamics of flow around a wall-mounted prism",
-    "authors": [
-      "Yu-Lu Liu",
-      "Qianxin Xu",
-      "Jianghua Li",
-      "Xiang Qiu",
-      "Bo-Fu Wang",
-      "Shixiao Fu"
-    ],
-    "year": 2026,
-    "date": "2026-10-25",
-    "abstract": "The effect of spanwise extension on the wake dynamics of flow past a wall-mounted prism is investigated using direct numerical simulations at Reynolds numbers italic Re Subscript h Baseline equals 300 Re h = 300 $\\textit{Re}_h=300$ , 500 500 $500$ and 1000 1000 $1000$ and spanwise extents b divided by h equals 1 b / h = 1 $b/h=1$ , 3 3 $3$ and 5 5 $5$ . A horseshoe vortex (HsV) system forms upstream of the prism in all cases, while in most flows the leading-edge shear layer undergoes Kelvin–Helmholtz (KH) instability, generating KH vortices that evolve into arch-shaped vortices (ArcV) and subsequently hairpin vortices (HV). As italic Re Subscript h Re h $\\textit{Re}_h$ and b divided by h b / h $b/h$ increase, the wake exhibits increasingly complex vortex dynamics. At italic Re Subscript h Baseline equals 300 Re h = 300 $\\textit{Re}_h=300$ , the HsV system remains stable. For b divided by h equals 5 b / h = 5 $b/h=5$ , the downstream wake exhibits a subharmonic associated with periodic alternation between two ArcV-to-HV evolution modes. At italic Re Subscript h Baseline equals 500 Re h = 500 $\\textit{Re}_h=500$ , dual vortex-evolution modes persist for b divided by h equals 3 b / h = 3 $b/h=3$ and 5 5 $5$ , accompanied by dual shedding frequencies. At italic Re Subscript h Baseline equals 1000 Re h = 1000 $\\textit{Re}_h=1000$ , the HsV system becomes unstable for b divided by h equals 3 b / h = 3 $b/h=3$ and 5 5 $5$ , generating streamwise-elongated braid vortices whose passage coincides with earlier destabilisation of the leading-edge shear layer. For b divided by h equals 3 b / h = 3 $b/h=3$ , the unstable HsV system exhibits two characteristic frequencies associated with coherent system-wide vortex dynamics. For b divided by h equals 1 b / h = 1 $b/h=1$ , the wake exhibits dual-frequency KH dynamics and develops a dual-row side-HV. Spanwise extension significantly enhances wake fluctuations. The turbulent kinetic energy is concentrated in regions of HV and side-HV formation, and is dominated by the streamwise component, with energy subsequently redistributed towards the vertical and spanwise components.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12187",
-    "doi": "10.1017/jfm.2026.12187",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "The effect of spanwise extension on the wake dynamics of flow past a wall-mounted prism is investigated using direct numerical simulations at Reynolds numbers italic Re Subscript h Baseline equals 300 Re h = 300 $\\textit{Re}_h=300$ , 500 500 $500$ and 1000 1000 $1000$ and spanwise extents b divided by h equals 1 b / h = 1 $b/h=1$ , 3 3 $3$ and 5 5 $5$ . A horseshoe vortex (HsV) system forms upstream of the prism in…"
-  },
-  {
-    "id": "doi:10.1063/5.0344521",
-    "title": "Effect of biodiesel on the rheological behavior of waxy crude oil and its data-driven modeling",
-    "authors": [
-      "Hongyan Wu",
-      "Botong Li",
-      "Minxiang Zhang"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "Low-temperature wax deposition limits the production and transportation of deepwater waxy crude oil. Although biodiesel can improve the flow behavior of waxy crude oil, its influence on crude-oil rheology involves coupled variations among multiple parameters. In this study, the rheological behavior of sunflower-biodiesel-treated Nigerian waxy crude oil was investigated using a shear-stress-biased autoencoder. To describe the nonlinear and non-injective relationship among temperature (T), biodiesel concentration (C), shear rate (γ̇), and shear stress (τ), the encoder of the autoencoder compresses (T,C,γ̇) into a one-dimensional latent variable L, while the decoder, which can operate as a standalone component after model training is complete, combines L with a prescribed target shear stress τ* to generate multiple feasible (T,C,γ̇) combinations. It reveals that high shear-stress states are mainly located in the low-temperature region, while increasing temperature weakens the wax-crystal network and reduces flow resistance. The low-apparent-viscosity region in the temperature-concentration space is mainly concentrated at high temperatures and high biodiesel concentrations. The treated crude oil maintains shear-thinning behavior over 10–60 °C. In addition, the apparent yield stress at 10 °C decreases nonlinearly with biodiesel concentration.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0344521",
-    "doi": "10.1063/5.0344521",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Low-temperature wax deposition limits the production and transportation of deepwater waxy crude oil. Although biodiesel can improve the flow behavior of waxy crude oil, its influence on crude-oil rheology involves coupled variations among multiple parameters. In this study, the rheological behavior of sunflower-biodiesel-treated Nigerian waxy crude oil was investigated using a shear-stress-biased autoencoder. To des…"
   },
   {
     "id": "doi:10.1063/5.0348013",
@@ -8916,27 +7815,6 @@
       "scientific machine learning"
     ],
     "summary": "Understanding the malware propagation dynamics over the Internet is crucial for effectively controlling its spread. Existing mechanistic and data-driven models in the context of malware propagation dynamics, have some issues with either interpretability or predictive accuracy. This study presents an Enhanced Universal Differential Equation (E-UDE) framework that explicitly incorporates more detailed key factors that…"
-  },
-  {
-    "id": "doi:10.1017/jfm.2026.12125",
-    "title": "Dynamics of spherical and oblate particles in a viscoelastic shear flow",
-    "authors": [
-      "Zhenyu Ouyang",
-      "Sen Jiang",
-      "Fangyang Yuan",
-      "Xiaoke Ku"
-    ],
-    "year": 2026,
-    "date": "2026-10-25",
-    "abstract": "This study employs a direct-forcing fictitious-domain method combined with the Oldroyd-B model to investigate the dynamics of spherical and oblate spheroidal particles in a viscoelastic shear flow. By varying the particle Reynolds number (0.1 ≤ Re p ≤ 10) and the Weissenberg number (1 ≤ Wi ≤ 5), we systematically examine the changes in particle equilibrium positions and rotational behaviours. For spherical particles, the equilibrium position shifts monotonically towards the wall with increasing Wi when Re p &lt; 1 or Re p &gt; 3, whereas it remains largely insensitive to elasticity for 1 ≤ Re p ≤ 3. For oblate particles, the rotational period increases steadily with Wi across low-to-moderate Re p , demonstrating that enhanced fluid elasticity significantly reduces the rotational speed. Owing to the interplay of fluid inertia and elasticity, oblate particles initialised with two representative initial orientations, denoted as n p 1 and n p 2 (specified by Euler angles as n p 1 = (0, 0, 0) and n p 2 = ( π /2, π /4, π /2)) exhibit six distinct modes of lateral migration and rotational motion. Under weak fluid inertia, increasing elasticity induces a kayak-like rotation, while at moderate inertia, the motion is dominated by rolling within the shear plane. When Re p ≥ 7, the rotation may become locked, and this locked state can be released as Wi increases.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12125",
-    "doi": "10.1017/jfm.2026.12125",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "This study employs a direct-forcing fictitious-domain method combined with the Oldroyd-B model to investigate the dynamics of spherical and oblate spheroidal particles in a viscoelastic shear flow. By varying the particle Reynolds number (0.1 ≤ Re p ≤ 10) and the Weissenberg number (1 ≤ Wi ≤ 5), we systematically examine the changes in particle equilibrium positions and rotational behaviours. For spherical particles…"
   },
   {
     "id": "arxiv:2611.06652v1",
@@ -9140,26 +8018,6 @@
       "其他相关"
     ],
     "summary": "Scientific discourse depends on argumentative reasoning: identifying claims, evaluating evidence, and constructing coherent responses. While recent advances in reasoning-capable language models have demonstrated strong performance on mathematical and logical benchmarks, their ability to engage in scientific argumentation remains unclear. We present the first systematic evaluation of language models across eight task…"
-  },
-  {
-    "id": "doi:10.1038/s41467-026-79266-2",
-    "title": "Disrupting the semantic network shifts activity to domain-general brain regions",
-    "authors": [
-      "Anna-Lisa Schuler",
-      "Andrea Bruera",
-      "Gesa Hartwigsen"
-    ],
-    "year": 2026,
-    "date": "2026-11-05",
-    "abstract": "Abstract Semantic processing relies on flexible interactions between specialized lexico-semantic regions and domain-general control networks, particularly under challenging conditions. Using transcranial magnetic stimulation interleaved with functional magnetic resonance imaging, we investigated acute network adaptation when the left posterior middle temporal gyrus—a core lexico-semantic region—was perturbed during lexico-semantic decisions in 25 healthy participants. High-intensity transcranial magnetic stimulation over the posterior middle temporal gyrus induced task-specific activity increases across semantic control and lexical retrieval areas, as well as remote domain-general regions. Critically, increased local activity at the stimulation site correlated with slower reaction times, whereas greater upregulation in domain-general frontal regions was associated with less disrupted semantic performance. These findings indicate that acute semantic disruption triggers immediate, flexible recruitment of domain-general control areas consistent with the maintenance of task performance, highlighting the brain’s capacity to dynamically adapt to interference. Our findings contribute to the current understanding of putative compensatory network-level mechanisms supporting lexico-semantic cognition.",
-    "source": "Nature Communications",
-    "venue": "Nat. Commun.",
-    "url": "https://doi.org/10.1038/s41467-026-79266-2",
-    "doi": "10.1038/s41467-026-79266-2",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Abstract Semantic processing relies on flexible interactions between specialized lexico-semantic regions and domain-general control networks, particularly under challenging conditions. Using transcranial magnetic stimulation interleaved with functional magnetic resonance imaging, we investigated acute network adaptation when the left posterior middle temporal gyrus—a core lexico-semantic region—was perturbed during…"
   },
   {
     "id": "or:Q5cOFun0H4",
@@ -9706,25 +8564,6 @@
     "summary": "Coupling-informed operator inference: Structure-preserving reduced-order modeling for multi-physics equations"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12207",
-    "title": "Coupled transport and adsorption in graded filters: A multi-scale analysis of non-solenoidal effects",
-    "authors": [
-      "Václav Klika",
-      "Vojtěch Kužel"
-    ],
-    "year": 2026,
-    "date": "2026-10-26",
-    "abstract": "We investigate the transport and adsorption of solutes within graded porous filters characterised by a spatially varying microstructure. While classical homogenisation theory typically assumes periodic media, we employ the method of multiple scales to derive an effective macroscopic model for ‘near-periodic’ geometries where the porosity varies slowly over the longitudinal coordinate. A key novelty of this work is the departure from the standard solenoidal constraint; instead, we introduce a modified incompressibility condition derived from non-equilibrium thermodynamics that accounts for the coupling between the solute concentration and the solvent velocity. This leads to a generalised Darcy-scale description where the fluid velocity field is non-solenoidal within the porous domain. Through asymptotic analysis, we determine the leading-order concentration profiles and quantify first-order corrections that capture the interplay between the porosity gradient and the mixture composition. We evaluate filter performance across several metrics, including outflux concentration and total adsorption rate, under both fixed-flow and fixed-pressure-drop operating conditions. Our results demonstrate that the porosity gradient and the coupling parameter significantly influence the filtration efficiency, particularly as the medium approaches the clogging limit. The analysis reveals that the optimal filter design is highly sensitive to the chosen performance metric, highlighting the necessity of physically consistent boundary conditions and mixture dynamics in the design of high-efficiency graded filters.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12207",
-    "doi": "10.1017/jfm.2026.12207",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "We investigate the transport and adsorption of solutes within graded porous filters characterised by a spatially varying microstructure. While classical homogenisation theory typically assumes periodic media, we employ the method of multiple scales to derive an effective macroscopic model for ‘near-periodic’ geometries where the porosity varies slowly over the longitudinal coordinate. A key novelty of this work is t…"
-  },
-  {
     "id": "doi:10.1038/s41467-026-78601-x",
     "title": "Coupled sea-level and biodiversity dynamics during the Cambrian SPICE event",
     "authors": [
@@ -9906,24 +8745,6 @@
       "其他相关"
     ],
     "summary": "Shear-thinning is a typical non-Newtonian rheological characteristic of biological fluids such as blood and mucus. Extensive studies have been conducted on self-propelled particles. The dynamics of externally actuated particles in non-Newtonian fluids have garnered widespread attention in recent years. Understanding the dynamic behavior of externally driven micro-particles in complex media is crucial for their biome…"
-  },
-  {
-    "id": "doi:10.1063/5.0353964",
-    "title": "Complex-ray extraction of flat-plate leading-edge receptivity with finite-distance corrections",
-    "authors": [
-      "Xuezhi Lu"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "Leading-edge receptivity converts free-stream forcing into downstream Tollmien–Schlichting waves through the first Lam–Rott mode. We develop a direct asymptotic formulation to control finite-distance bias in the extracted receptivity coefficient. A further Fredholm condition and main-deck matching determine distinct corrections for displacement and wall-shear estimators under common scaling, phase, and normalization conventions. These correction coefficients are evaluated before comparison with computed ray solutions. Seven rays spanning both halves of the dominance sector test the resulting extraction over four common windows. The correction reduces maximum pairwise distances between complex coefficients by factors of 24–60. The maximum corrected displacement–shear difference is approximately 1.67×10−4, while normal-grid and marching changes remain below the predeclared 2.5×10−4 tolerance. The measured remainder decay is consistent with the predicted O(χ−2) order over the tested range. Together, the explicit correction and resolution checks provide reproducible finite-window controls for complex-amplitude extraction in the stated flat-plate problem.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0353964",
-    "doi": "10.1063/5.0353964",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Leading-edge receptivity converts free-stream forcing into downstream Tollmien–Schlichting waves through the first Lam–Rott mode. We develop a direct asymptotic formulation to control finite-distance bias in the extracted receptivity coefficient. A further Fredholm condition and main-deck matching determine distinct corrections for displacement and wall-shear estimators under common scaling, phase, and normalization…"
   },
   {
     "id": "doi:10.1038/s41467-026-78996-7",
@@ -10298,26 +9119,6 @@
     "summary": "Multimodal brain MRI provides complementary anatomical, tissue, and pathological information to support downstream artificial intelligence (AI) applications. However, modality availability is uneven across public and pooled neuroimaging datasets: T1-weighted (T1w) MRI is widely represented, T2-weighted (T2w) and fluid-attenuated inversion recovery (FLAIR) MRI are less consistently available, and gadolinium-enhanced…"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12196",
-    "title": "Bypass transition beneath internal solitary waves in turbulent boundary layers",
-    "authors": [
-      "Andrés Posada-Bedoya",
-      "Jason Olsthoorn",
-      "Leon Boegman"
-    ],
-    "year": 2026,
-    "date": "2026-10-25",
-    "abstract": "Process-based studies of the transition to turbulence beneath internal solitary waves (ISWs) have typically assumed a laminar bottom boundary layer (BBL) and two-dimensional flow. In natural environments, however, ISWs often propagate over turbulent three-dimensional BBLs. Here, we perform three-dimensional high-resolution spectral numerical simulations of periodic ISWs of depression at momentum-thickness Reynolds numbers representative of laboratory ( upper R e Subscript upper I upper S upper W Baseline equals 300 R e I S W = 300 $Re_{ISW}=300$ ) and lake ( upper R e Subscript upper I upper S upper W Baseline equals 900 R e I S W = 900 $Re_{ISW}=900$ ) scale conditions to examine how ambient turbulence modifies the transition to turbulence beneath ISWs. When the ambient flow is laminar, this transition is governed by a modal instability. At upper R e Subscript upper I upper S upper W Baseline equals 300 R e I S W = 300 $Re_{ISW}=300$ , the instability generates localised vortices that subsequently break down, while at upper R e Subscript upper I upper S upper W Baseline equals 900 R e I S W = 900 $Re_{ISW}=900$ it produces sustained vortex shedding and a turbulent wake in the lee of the wave. In contrast, when the ambient flow is turbulent, the modal pathway is bypassed. Free-stream turbulence excites near-wall streamwise streaks (Klebanoff modes) beneath the front shoulder of the wave, which amplify, undergo secondary instability and break down into turbulent bursts. The resulting turbulence develops upstream of the modal-instability region. With increasing Reynolds number and stronger ambient turbulence, the onset of turbulence shifts progressively toward the ISW trough. These results show that ambient turbulence triggers a bypass mechanism fundamentally different from the modal-instability-driven transition in laminar environments. By suppressing the modal instability and shifting turbulence generation closer to the wave trough, bypass transition provides an explanation for field observations that cannot be reconciled with laminar-transition models. Accurate prediction of near-bed turbulence and sediment transport in natural environments therefore requires accounting for bypass transition.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12196",
-    "doi": "10.1017/jfm.2026.12196",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "Process-based studies of the transition to turbulence beneath internal solitary waves (ISWs) have typically assumed a laminar bottom boundary layer (BBL) and two-dimensional flow. In natural environments, however, ISWs often propagate over turbulent three-dimensional BBLs. Here, we perform three-dimensional high-resolution spectral numerical simulations of periodic ISWs of depression at momentum-thickness Reynolds n…"
-  },
-  {
     "id": "arxiv:2610.40192v1",
     "title": "Bridging Semantics and Structure: A Theoretically Grounded Framework for Link Prediction on TAGs",
     "authors": [
@@ -10568,27 +9369,6 @@
     "summary": "Video generation has progressed from isolated clips to coherent short-form audiovisual sequences, and the bottleneck is shifting from rendering to semantic control. This report summarizes the observations and insights on multimodal understanding gained from successive generations of Kling. We argue that generation quality is the projection of multimodal understanding through the entire data--conditioning--alignment-…"
   },
   {
-    "id": "doi:10.1017/jfm.2026.12220",
-    "title": "Backstress-dominated regimes of fluid-driven fractures in poroelastic media: a simplified asymptotic framework",
-    "authors": [
-      "Cexuan Liu",
-      "Egor Dontsov",
-      "Manchao He",
-      "Fengshou Zhang"
-    ],
-    "year": 2026,
-    "date": "2026-11-05",
-    "abstract": "This paper examines how poroelastic backstress induced by fluid leak-off modifies the asymptotic propagation regimes of fluid-driven fractures. We consider a simplified theoretical framework in which the diffusion zone remains small relative to the fracture size, so that Carter-type leak-off can be coupled consistently with one-dimensional fracture models. Within this setting, leak-off-induced pore-pressure diffusion generates a backstress that acts against fracture-opening and alters the classical regime structure. Three typical geometries are studied: plane strain; radial; constant-height fractures. For each geometry, we derive the corresponding backstress-dominated self-similar limit, referred to as the upper B B $B$ -vertex, and incorporate it into the classical parametric space of hydraulic fracture propagation. The analysis shows that, when poroelastic effects are sufficiently strong, the classical leak-off-dominated asymptotic regimes may cease to exist and the fracture evolves instead towards the backstress-dominated state. Transition solutions connecting the classical limiting regimes to the upper B B $B$ -vertex are also obtained. The results extend the standard asymptotic classification of hydraulic fractures by identifying a distinct regime controlled by poroelastic backstress. They also provide a simple framework for assessing when backstress is expected to play a leading role in fluid-driven fracture propagation across different geometries and scales.",
-    "source": "Journal of Fluid Mechanics",
-    "venue": "JFM",
-    "url": "https://doi.org/10.1017/jfm.2026.12220",
-    "doi": "10.1017/jfm.2026.12220",
-    "keywords": [
-      "diffusion model"
-    ],
-    "summary": "This paper examines how poroelastic backstress induced by fluid leak-off modifies the asymptotic propagation regimes of fluid-driven fractures. We consider a simplified theoretical framework in which the diffusion zone remains small relative to the fracture size, so that Carter-type leak-off can be coupled consistently with one-dimensional fracture models. Within this setting, leak-off-induced pore-pressure diffusio…"
-  },
-  {
     "id": "or:0xOj6kVMbb",
     "title": "BALLAST: Bayesian Active Learning with Look-ahead Amendment for Sea-drifter Trajectories under Spatio-Temporal Vector Fields",
     "authors": [
@@ -10677,6 +9457,31 @@
       "PINN"
     ],
     "summary": "Physics-Informed Neural Networks (PINNs) provide a powerful and general framework for solving Partial Differential Equations (PDEs) by embedding physical laws into loss functions. However, training PINNs is notoriously difficult due to the need to balance multiple loss terms, such as PDE residuals and boundary conditions, which often have conflicting objectives and vastly different curvatures. Existing methods addre…"
+  },
+  {
+    "id": "doi:10.1038/s41467-026-78748-7",
+    "title": "Author Correction: Hippocampal-prefrontal orchestration supports higher-order learning for creative ideation",
+    "authors": [
+      "Ze Zhang",
+      "Ziyi Li",
+      "Rui Ding",
+      "Guowei Wu",
+      "Xingxu Xie",
+      "Jiaqi Wu",
+      "Shaozheng Qin",
+      "Jing Luo"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "",
+    "source": "Nature Communications",
+    "venue": "Nat. Commun.",
+    "url": "https://doi.org/10.1038/s41467-026-78748-7",
+    "doi": "10.1038/s41467-026-78748-7",
+    "keywords": [
+      "其他相关"
+    ],
+    "summary": "Author Correction: Hippocampal-prefrontal orchestration supports higher-order learning for creative ideation"
   },
   {
     "id": "doi:10.1038/s41467-026-77960-9",
@@ -10916,28 +9721,6 @@
     "summary": "Visual place recognition (VPR) localises a camera by retrieving similar geo-tagged images, and current foundation-model VPR models are accurate across cities, seasons and illumination, but not robust to adversarial perturbations: under a white-box attack on the ranking at an imperceptible budget of 1/255, SuperVLAD and BoQ keep at most 0.2% top-1 recall (R@1) on four benchmarks. We propose anchored rank-adversarial…"
   },
   {
-    "id": "doi:10.1016/j.jcp.2026.115156",
-    "title": "An oscillation-free real fluid quasi-conservative finite volume method for transcritical and phase-change flows",
-    "authors": [
-      "Haotong Bai",
-      "Wenjia Xie",
-      "Yixin Yang",
-      "Ping Yi",
-      "Mingbo Sun"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115156",
-    "doi": "10.1016/j.jcp.2026.115156",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "An oscillation-free real fluid quasi-conservative finite volume method for transcritical and phase-change flows"
-  },
-  {
     "id": "doi:10.1016/j.jcp.2026.115180",
     "title": "An element-wise self-adapting enriched physics-informed neural network for solving parameter-varying two-phase flow problems in heterogeneous porous media",
     "authors": [
@@ -10981,27 +9764,6 @@
       "其他相关"
     ],
     "summary": "An efficient mass balanced and positivity-preserving high-order operator splitting FD scheme for pattern formation in polymerizing actin flocks"
-  },
-  {
-    "id": "doi:10.1016/j.jcp.2026.115125",
-    "title": "An effective and accurate semi-implicit time integration scheme for dynamics in nearly- and fully-incompressible hyperelastic solids",
-    "authors": [
-      "Edward M. Terrell",
-      "Marshall Davey",
-      "David R. Wells",
-      "Boyce E. Griffith"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115125",
-    "doi": "10.1016/j.jcp.2026.115125",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "An effective and accurate semi-implicit time integration scheme for dynamics in nearly- and fully-incompressible hyperelastic solids"
   },
   {
     "id": "arxiv:2610.41327v1",
@@ -11222,28 +9984,6 @@
     "summary": "Adapting sleep foundation models to dense electroencephalography (EEG) event localization is challenging because multi-second representations may not preserve sufficient temporal detail for precise boundary recovery. We address sleep spindle localization by adapting a frozen SleepFM encoder with a local time-frequency pathway that preserves spindle-relevant spectral content and intra-token position. The local repres…"
   },
   {
-    "id": "doi:10.1063/5.0356260",
-    "title": "Actuation to ejection transduction via multi-physics coupling and drive-waveform shaping in piezo drop-on-demand inkjet printing",
-    "authors": [
-      "Xinnian Ma",
-      "Jiacheng Zhou",
-      "Shuang Han",
-      "Zhike Peng",
-      "Bo Zhang"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "In piezoelectric drop-on-demand inkjet printing, the drive waveform is converted into the jetting response through deformation of the piezoelectric structure, pressure perturbations in the ink chamber, and nozzle flow. We have developed a dynamic model in the frequency domain that accounts for multi-physics coupling, covering the process from the onset of the drive waveform variation to the first arrival of the meniscus at the nozzle-exit plane. The model is then used to determine how individual frequency components affect meniscus motion along this transfer path. Experiments with a printhead and an equivalent time imaging system examine the effects of some general conditions. The initial jetting velocity generally decreases with increasing rise time and increases with voltage amplitude, whereas the dwell time has a weaker effect over the tested range. The model reproduces the principal experimental trends and relative ordering. Decomposition of the meniscus displacement at the theoretical ejection time into signed harmonic contributions shows that, under the conditions studied, lower-frequency components primarily promote motion toward the nozzle exit, an intermediate band produces cancellation, and contributions from higher-frequency components progressively diminish. Comparisons between furan resin and 95% ethanol show that the initial ejection velocity can be modulated by replacing the linear voltage rise with a piecewise linear rise, and the effect of rise path shaping depends on the liquid properties.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0356260",
-    "doi": "10.1063/5.0356260",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "In piezoelectric drop-on-demand inkjet printing, the drive waveform is converted into the jetting response through deformation of the piezoelectric structure, pressure perturbations in the ink chamber, and nozzle flow. We have developed a dynamic model in the frequency domain that accounts for multi-physics coupling, covering the process from the onset of the drive waveform variation to the first arrival of the meni…"
-  },
-  {
     "id": "doi:10.1038/s41467-026-79031-5",
     "title": "Active locomotion predictively rescues head direction attractor dynamics in head-fixed mice",
     "authors": [
@@ -11403,27 +10143,6 @@
     "summary": "Parametric PDEs in science and engineering are often posed on irregular meshes with geometries that may contain holes or complex boundaries, yet popular operator-surrogate architectures such as the Fourier Neural Operator (FNO) rely on structured geometries for fast computational kernels. We introduce Adaptive Modal Operator Refinement (AMOR), which replaces FNO's Fourier-based spectral convolutions with reduced-bas…"
   },
   {
-    "id": "doi:10.1038/s42256-026-01323-8",
-    "title": "AI needs meaningful versioning",
-    "authors": [
-      "Vasilios Mavroudis",
-      "Dan Ristea",
-      "Lauritz Morlock",
-      "Carlos Mougan"
-    ],
-    "year": 2026,
-    "date": "2026-11-02",
-    "abstract": "",
-    "source": "Nature Machine Intelligence",
-    "venue": "Nat. Mach. Intell.",
-    "url": "https://doi.org/10.1038/s42256-026-01323-8",
-    "doi": "10.1038/s42256-026-01323-8",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "AI needs meaningful versioning"
-  },
-  {
     "id": "arxiv:2610.40494v1",
     "title": "AI in the EGI e-infrastructure -- Past experiences and future strategies",
     "authors": [
@@ -11468,26 +10187,6 @@
       "AI for science"
     ],
     "summary": "Artificial intelligence for science (AI4S) is extending from interpretation of existing data to the design and execution of experiments. Space offers distinctive scientific opportunities while restricting physical support. Microgravity and extraterrestrial environments expose phenomena that terrestrial experiments cannot fully reproduce; finite samples, constrained resources, and limited opportunities for interventi…"
-  },
-  {
-    "id": "doi:10.1063/5.0331788",
-    "title": "A unified Eulerian formulation for immersed deformable solids",
-    "authors": [
-      "Jiazhen Qiao",
-      "Amir Riaz",
-      "Elias Balaras"
-    ],
-    "year": 2026,
-    "date": "2026-11-01",
-    "abstract": "An Eulerian methodology is formulated to model the dynamics of immersed, deformable solids using a two-way coupled approach implemented within a unified simulation framework for incompressible viscous flow. A neo-Hookean constitutive model for incompressible hyperelastic materials is used to relate solid deformations to solid stresses, and the divergence of the solid stress tensor is added as a source term to the momentum equation. The resulting unified formulation allows a single Poisson equation for pressure to be solved across both the fluid and solid domains using fast solvers. Due to the modular nature of the formulation, material models other than neo-Hookean can be incorporated. The displacement field associated with the solid domain is evolved using a set of scalar functions that form a dynamic grid, while the boundary of the immersed solid is represented by an additional signed distance function. The motion of the dynamic grid relative to the underlying Cartesian grid is used to determine the deformation gradient tensor. A hyperbolic partial differential equation extrapolation scheme, combined with topology-preserving reinitialization of the solid boundary, propagates the dynamic grid into the fluid domain. The material properties and the corresponding solid and fluid stresses are regularized across a finite-width interface using a continuous Heaviside function. For the parameter ranges examined, the formulation produces stable calculations with systematic grid convergence and permits simulations at stiffness and density contrasts extending beyond those considered in the comparison studies. A preliminary three-dimensional implementation is also demonstrated.",
-    "source": "Physics of Fluids",
-    "venue": "PoF",
-    "url": "https://doi.org/10.1063/5.0331788",
-    "doi": "10.1063/5.0331788",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "An Eulerian methodology is formulated to model the dynamics of immersed, deformable solids using a two-way coupled approach implemented within a unified simulation framework for incompressible viscous flow. A neo-Hookean constitutive model for incompressible hyperelastic materials is used to relate solid deformations to solid stresses, and the divergence of the solid stress tensor is added as a source term to the mo…"
   },
   {
     "id": "arxiv:2611.06597v1",
@@ -11554,27 +10253,6 @@
       "PINN"
     ],
     "summary": "Conventional space heating systems typically rely on single or sparse fixed-point temperature measurements, overlooking non-uniform indoor temperature distributions, transient thermal dynamics, and occupant-specific comfort requirements. This study explores an occupant-centric control strategy that aims to maintain the desired temperature around the occupant location. Spatially and temporally varying temperature fie…"
-  },
-  {
-    "id": "doi:10.1016/j.jcp.2026.115547",
-    "title": "A second order curved interface-conforming arbitrary-Lagrangian-Eulerian method for interfacial dynamics",
-    "authors": [
-      "Shiji Chen",
-      "Zekang Cheng",
-      "Jie Li",
-      "Li-Shi Luo"
-    ],
-    "year": 2026,
-    "date": "2026-11",
-    "abstract": "",
-    "source": "Journal of Computational Physics",
-    "venue": "JCP",
-    "url": "https://doi.org/10.1016/j.jcp.2026.115547",
-    "doi": "10.1016/j.jcp.2026.115547",
-    "keywords": [
-      "其他相关"
-    ],
-    "summary": "A second order curved interface-conforming arbitrary-Lagrangian-Eulerian method for interfacial dynamics"
   },
   {
     "id": "doi:10.1016/j.jcp.2026.115232",
