@@ -465,6 +465,25 @@ def save_papers(papers: list[dict]) -> None:
     _save_json(PAPERS_PATH, papers)
 
 
+def merge_papers(existing: list[dict], incoming: list[dict]) -> list[dict]:
+    """按 id 合并历史与本次检索结果，只增不减：新数据覆盖同 id 旧记录。
+
+    即使某次检索失败返回空列表，历史数据也得以保留。
+    """
+    by_id: dict[str, dict] = {}
+    for paper in existing:
+        pid = paper.get("id")
+        if pid:
+            by_id[pid] = paper
+    for paper in incoming:
+        pid = paper.get("id")
+        if pid:
+            by_id[pid] = paper
+    merged = list(by_id.values())
+    merged.sort(key=lambda p: (str(p.get("year") or ""), p.get("title") or ""), reverse=True)
+    return merged
+
+
 def load_keywords() -> list[str]:
     data = _load_json(KEYWORDS_PATH, [])
     custom = data if isinstance(data, list) else []
@@ -511,7 +530,8 @@ def state_snapshot() -> dict:
 
 def run_fetch_and_store(keywords: list[str], days: int, trigger: str) -> dict:
     papers, errors, sources = fetch_all(keywords, days)
-    save_papers(papers)
+    merged = merge_papers(load_papers(), papers)
+    save_papers(merged)
     save_keywords(keywords)
     now = datetime.now().isoformat(timespec="seconds")
     state = load_state()
@@ -525,7 +545,8 @@ def run_fetch_and_store(keywords: list[str], days: int, trigger: str) -> dict:
         "papers": papers,
         "errors": errors,
         "sources": sources,
-        "total": len(papers),
+        "total": len(merged),
+        "new_count": len(papers),
         "ran_at": now,
         "trigger": trigger,
         "window_days": days,
@@ -568,6 +589,6 @@ if __name__ == "__main__":
 
     keywords = args.keywords if args.keywords else load_keywords()
     result = run_fetch_and_store(keywords, days=args.days, trigger=args.trigger)
-    print(f"检索完成：{result['total']} 篇，命中来源 {', '.join(result['sources']) or '无'}")
+    print(f"检索完成：本次新增 {result['new_count']} 篇，累计 {result['total']} 篇，命中来源 {', '.join(result['sources']) or '无'}")
     if result["errors"]:
         print("失败来源：" + "；".join(result["errors"]))
