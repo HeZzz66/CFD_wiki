@@ -1,0 +1,7 @@
+{
+  "title": "后处理与可视化",
+  "subtitle": "Tecplot · Python · 场数据可视化",
+  "summary": "把求解器输出的网格与场数据变成可读的图表：Tecplot 操作流程、Python 读写各类 CFD 格式、常用后处理算法实现与出版级出图。",
+  "order": 6,
+  "number": "6"
+}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+      {% for crumb in breadcrumbs %}
+        {% if crumb.url %}
+          <a href="{{ crumb.url }}">{{ crumb.title }}</a>
+        {% else %}
+          <span class="crumb-current">{{ crumb.title }}</span>
+        {% endif %}
+        {% if not loop.last %}<span class="crumb-sep">/</span>{% endif %}
+      {% endfor %}
+    </nav>
+
+    <header class="page-header">
+      {% if is_chapter_index %}
+        <div class="chapter-kicker">
+          <span class="chapter-kicker-num">CHAPTER {{ chapter.number }}</span>
+          {% if chapter.subtitle %}<span class="chapter-kicker-sub">{{ chapter.subtitle }}</span>{% endif %}
+        </div>
+      {% endif %}
+      <h1 class="page-title">{{ page.title }}</h1>
+      {% if page.summary %}
+        <p class="page-summary">{{ page.summary }}</p>
+      {% endif %}
+      <div class="page-meta">
+        <span class="meta-chapter">{{ chapter.title }}</span>
+        <span class="meta-sep">·</span>
+        <span>约 {{ word_count }} 字</span>
+        {% if page.tags %}
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+            {% for tag in page.tags %}<span class="tag">#{{ tag }}</span>{% endfor %}
+          </span>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="article-body">
+      {{ body|safe }}
+    </div>
+
+    {% if is_chapter_index and chapter_pages %}
+    <section class="chapter-toc">
+      <div class="section-head compact">
+        <h2>本章内容</h2>
+        <p>{{ chapter_pages|length }} 篇文章，按建议阅读顺序排列。</p>
+      </div>
+      <div class="chapter-pages-grid">
+        {% for item in chapter_pages %}
+        <a class="chapter-page-card" href="{{ root }}{{ item.url }}">
+          <span class="cp-index">{{ "%02d"|format(loop.index) }}</span>
+          <span class="cp-text">
+            <strong>{{ item.title }}</strong>
+            {% if item.summary %}<small>{{ item.summary }}</small>{% endif %}
+          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <nav class="page-nav" aria-label="翻页">
+      {% if prev %}
+        <a class="page-nav-item is-prev" href="{{ root }}{{ prev.url }}">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">{{ prev.title }}</span>
+        </a>
+      {% else %}
+        <span class="page-nav-empty"></span>
+      {% endif %}
+      {% if next %}
+        <a class="page-nav-item is-next" href="{{ root }}{{ next.url }}">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">{{ next.title }}</span>
+        </a>
+      {% endif %}
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="{{ page.url }}" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      {% if has_toc %}
+      <div class="toc-body">{{ toc|safe }}</div>
+      {% else %}
+      <p class="rail-empty">本页暂无小节标题。</p>
+      {% endif %}
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ root }}assets/js/notes.js" defer></script>
+{% endblock %}

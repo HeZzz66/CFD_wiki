@@ -1,0 +1,18 @@
+# 构建产物（由 GitHub Actions 构建后发布到 gh-pages）
+/site/
+
+# Python 缓存与虚拟环境
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 上传文献的二进制文件（如需把文献纳入仓库，删除下面两行）
+library/files/*
+library/previews/*
+
+# 操作系统 / 编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

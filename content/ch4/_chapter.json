@@ -1,0 +1,7 @@
+{
+  "title": "湍流模型",
+  "subtitle": "DNS · LES · RANS · 多语言实现",
+  "summary": "从湍流统计与能量级串出发，讲清 DNS、fDNS、LES、RANS 的数学结构、模型假设与数值实现，并给出 Python、C++、Fortran 代码。",
+  "order": 4,
+  "number": "4"
+}

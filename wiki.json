@@ -1,0 +1,6 @@
+{
+  "title": "CFD Wiki",
+  "tagline": "计算流体力学知识库",
+  "description": "从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。",
+  "license": "内容采用 CC BY-NC-SA 4.0 许可"
+}

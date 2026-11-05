@@ -1,0 +1,59 @@
+name: Weekly Paper Search
+
+# 任务二：每周一自动检索上两周文献；也支持在 Actions 页面手动触发（任务一）。
+on:
+  schedule:
+    # 每周一 09:00（北京时间，UTC+8）→ 01:00 UTC
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-papers
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch papers (last two weeks)
+        run: python papers_fetch.py --days 14 --trigger auto
+
+      - name: Rebuild site
+        run: python build.py
+
+      - name: Commit paper data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add library/papers.json library/fetch_state.json library/fetch_keywords.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No new papers this week"
+          else
+            git commit -m "chore: weekly paper search $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      # 可选：把构建产物发布到 gh-pages 分支。若未在仓库 Settings → Pages
+      # 选择 gh-pages 分支，此步骤只会创建该分支，不影响 main。
+      - name: Deploy site to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
