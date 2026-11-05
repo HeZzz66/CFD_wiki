@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>偏微分方程基础 · CFD Wiki</title>
+  <meta name="description" content="按判别式把二阶偏微分方程分为椭圆、抛物、双曲三类，讨论特征线与 CFL 条件、守恒形式与弱解、适定性与边界条件，并把弱形式引向有限元方法。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link is-active" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch1/index.html">流体力学中的数学基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">偏微分方程基础</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">偏微分方程基础</h1>
+        <p class="page-summary">按判别式把二阶偏微分方程分为椭圆、抛物、双曲三类，讨论特征线与 CFL 条件、守恒形式与弱解、适定性与边界条件，并把弱形式引向有限元方法。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">流体力学中的数学基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 2899 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#偏微分方程</span><span class="tag">#特征线</span><span class="tag">#CFL条件</span><span class="tag">#弱解</span><span class="tag">#边界条件</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>前面的场论、张量与量纲分析都在为同一个目标服务：把流体运动写成方程。写出来的方程是偏微分方程，而能否离散、如何给边界、时间步取多大，全部由方程的类型决定。这一页只讨论 CFD 中真正会遇到的几类方程及其定性性质。</p>
+<h2 id="一阶与二阶方程的一般形式">一阶与二阶方程的一般形式</h2>
+<p>一阶拟线性方程的一般形式为</p>
+<div class="math-block">\[a(x,y,u)\,u_x+b(x,y,u)\,u_y=c(x,y,u),\]</div>
+<p>其中 \(u_x=\partial u/\partial x\)。它描述“沿某个方向的变化由源项决定”，信息沿特征线传播。线性对流方程 \(u_t+c\,u_x=0\) 是最简单的代表。</p>
+<p>二阶线性方程的一般形式为</p>
+<div class="math-block">\[A\,u_{xx}+B\,u_{xy}+C\,u_{yy}+D\,u_x+E\,u_y+F\,u=G,\]</div>
+<p>其中系数 \(A,B,C\) 可以与 \(x,y\) 有关。低阶项 \(D,E,F\) 不影响分类，分类只看二阶导数的系数组合，因为那决定了“最高阶信息如何传播”。</p>
+<h2 id="二阶方程的分类">二阶方程的分类</h2>
+<p>记判别式为</p>
+<div class="math-block">\[\Delta=B^2-4AC.\]</div>
+<p>按 \(\Delta\) 的符号分为三类：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>判别式</th>
+<th>原型方程</th>
+<th>物理行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>椭圆型</td>
+<td>\(B^2-4AC<0\)</td>
+<td>\(\nabla^2 u=0\)（Laplace）</td>
+<td>定常平衡，边界信息影响全域</td>
+</tr>
+<tr>
+<td>抛物型</td>
+<td>\(B^2-4AC=0\)</td>
+<td>\(u_t=\alpha u_{xx}\)（热传导）</td>
+<td>扩散，扰动瞬时传遍全域</td>
+</tr>
+<tr>
+<td>双曲型</td>
+<td>\(B^2-4AC>0\)</td>
+<td>\(u_{tt}=c^2u_{xx}\)（波动）</td>
+<td>有限速度传播，存在特征线与激波</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note"><div class="admonition-title">两种判别式写法</div><div class="admonition-body"><p>不少教材把一般形式写成 \(A u_{xx}+2B u_{xy}+C u_{yy}+\cdots=0\)，此时判别式是 \(B^2-AC\)。本页采用系数不带因子 2 的写法，对应 \(B^2-4AC\)。两套写法只差一个常数因子，结论完全一致，读文献时先看方程形式再套公式。</p></div></div>
+<p>三个原型分别对应三类物理问题：</p>
+<ul>
+<li><strong>Laplace 方程</strong> \(\nabla^2u=0\) 描述不可压缩势流、稳态导热与静电场。解由边界条件唯一确定，内部没有“传播”的概念。</li>
+<li><strong>热传导方程</strong> \(u_t=\alpha u_{xx}\) 描述扩散。它的解是热核与初值的卷积，任意一点的扰动在任意短的时间内都会影响到无穷远处，只是幅度按高斯衰减。</li>
+<li><strong>波动方程</strong> \(u_{tt}=c^2u_{xx}\) 描述声波、水波与压力波。扰动严格以速度 \(c\) 沿两条特征线传播，不会超出这个锥。</li>
+</ul>
+<h2 id="特征线依赖域与影响域">特征线、依赖域与影响域</h2>
+<p>对一阶方程 \(u_t+a\,u_x=0\)，沿曲线</p>
+<div class="math-block">\[\frac{\mathrm{d}x}{\mathrm{d}t}=a\]</div>
+<p>有 \(\mathrm{d}u/\mathrm{d}t=0\)，即解沿特征线保持不变。因此 \(t=0\) 上一点的值，只会沿一条直线向右传播。</p>
+<p>对二阶方程，特征线由</p>
+<div class="math-block">\[\frac{\mathrm{d}y}{\mathrm{d}x}=\frac{B\pm\sqrt{B^2-4AC}}{2A}\]</div>
+<p>给出。判别式为正时得到两条实特征线（双曲型），为零时退化为一条（抛物型），为负时没有实特征线（椭圆型）。这条公式把代数分类与几何图像联系了起来。</p>
+<p>由此可以定义两个集合：给定点 \(P\) 的<strong>依赖域</strong>是“能影响到 \(P\) 的初始数据集合”，<strong>影响域</strong>是“\(P\) 能影响到的未来区域”。双曲型方程的依赖域是有限的锥形区域，抛物型方程的依赖域是整个初始平面，椭圆型方程没有时间方向，边界上任意一点都影响内部任意一点。</p>
+<h3 id="cfl-条件的直观来源">CFL 条件的直观来源</h3>
+<p>显式格式在推进一个时间步时，只能读取有限宽度的网格邻点。以线性对流为例，若格式使用 \(j-1,j,j+1\) 三点，则一步的数值依赖域宽度为 \(2\Delta x\)。而真实解的依赖域要求 \(c\Delta t\le\Delta x\)，否则“真实信息”跑得比数值格式能读取的范围还快，格式只能凭空外推，必然失稳。这就是 CFL 条件</p>
+<div class="math-block">\[\frac{\lvert c\rvert\,\Delta t}{\Delta x}\le1\]</div>
+<p>的来源。它不是经验参数，而是因果性要求。更严格的 von Neumann 分析给出同样的界：一阶迎风格式的放大因子在 \(0\le c\Delta t/\Delta x\le1\) 时模长不超过 1。</p>
+<p>抛物型方程则没有这种“有限传播”的限制，因为它的真实依赖域本来就是整个区域。显式格式仍受限制，但形式不同：</p>
+<div class="math-block">\[\Delta t\le\frac{\Delta x^2}{2\alpha},\]</div>
+<p>它与 \(\Delta x\) 的平方成正比，网格加密一倍，时间步要缩小四倍。隐式格式（如 Crank–Nicolson）无条件稳定，可以用大时间步，代价是每步解一个线性系统。</p>
+<div class="admonition warning"><div class="admonition-title">无条件稳定不等于无条件准确</div><div class="admonition-body"><p>隐式格式可以取很大的 \(\Delta t\) 而不发散，但时间分辨率随之丧失。对非定常问题，\(\Delta t\) 仍要能分辨物理时间尺度（如涡脱落周期），否则得到的是一个“稳定的错误答案”。</p></div></div>
+<h2 id="守恒形式弱解与激波">守恒形式、弱解与激波</h2>
+<p>守恒型方程写成</p>
+<div class="math-block">\[\frac{\partial u}{\partial t}+\frac{\partial f(u)}{\partial x}=0,\]</div>
+<p>而非守恒型写成 \(u_t+a(u)u_x=0\)。两者在解光滑时等价，在出现间断时却给出不同的数值结果。原因在于：守恒型来自积分形式的守恒律</p>
+<div class="math-block">\[\frac{\mathrm{d}}{\mathrm{d}t}\int_{x_1}^{x_2}u\,\mathrm{d}x
+=f(u(x_1))-f(u(x_2)),\]</div>
+<p>它允许 \(u\) 不连续，只要跨过间断的通量差满足 Rankine–Hugoniot 关系</p>
+<div class="math-block">\[s=\frac{f(u_R)-f(u_L)}{u_R-u_L},\]</div>
+<p>其中 \(s\) 是间断传播速度，\(u_L,u_R\) 是左右状态。</p>
+<p>这样得到的解称为<strong>弱解</strong>。弱解不唯一：同一个初值可能对应多个满足 RH 关系的间断解。物理上要选“熵增”的那个，数学上用<strong>熵条件</strong>筛选。对凸通量 \(f\)，Lax 熵条件要求</p>
+<div class="math-block">\[f'(u_L)>s>f'(u_R).\]</div>
+<p>满足熵条件的间断是压缩激波；不满足的膨胀间断应被抹成连续的稀疏波。<strong>黎曼问题</strong>就是给左右两个常数状态、求自相似解 \(u(x/t)\) 的标准问题，它是 Godunov 类格式的基本构件，也是理解激波捕捉格式的入口。</p>
+<h3 id="为什么有限体积法用积分形式">为什么有限体积法用积分形式</h3>
+<p>有限体积法直接离散积分守恒律：对每个控制体写</p>
+<div class="math-block">\[\frac{\mathrm{d}}{\mathrm{d}t}\left(V\bar u\right)
++\sum_{\text{faces}}F_f=0,\]</div>
+<p>其中 \(F_f\) 是面上的数值通量。这样做的三个好处是：</p>
+<ul>
+<li>离散层面严格守恒，内部面通量成对抵消，总量只从边界流出；</li>
+<li>间断不被抹成无穷大梯度，激波可以稳定捕捉；</li>
+<li>非结构网格上只需面法向与面积，不需要坐标导数。</li>
+</ul>
+<p>具体的离散与通量构造见 <a class="wiki-link" href="../ch3/fvm.html">有限体积法</a>。</p>
+<h2 id="适定性与边界条件">适定性与边界条件</h2>
+<p>一个偏微分问题称为<strong>适定</strong>（Hadamard），需要同时满足：</p>
+<ol>
+<li>解存在；</li>
+<li>解唯一；</li>
+<li>解连续依赖于定解数据（数据微小扰动只引起解的微小扰动）。</li>
+</ol>
+<p>第三条最容易被忽视。反向热传导方程 \(u_t=-\alpha u_{xx}\) 是典型的病态问题：初值的高频微小扰动会以 \(e^{\alpha k^2t}\) 放大，任何实测数据都无法使用。CFD 中的逆问题、参数反演若不加入正则化，往往落在这类陷阱里。</p>
+<p>边界条件分三类：</p>
+<div class="math-block">\[\text{Dirichlet: }u=g,\qquad
+\text{Neumann: }\frac{\partial u}{\partial n}=g,\qquad
+\text{Robin: }a u+b\frac{\partial u}{\partial n}=g.\]</div>
+<ul>
+<li>Dirichlet 给定未知量本身，如入口速度、壁面温度；</li>
+<li>Neumann 给定法向梯度，如绝热壁面 \(\partial T/\partial n=0\)、出口充分发展；</li>
+<li>Robin 是两者的线性组合，如对流换热边界 \(k\partial T/\partial n=h(T-T_\infty)\)。</li>
+</ul>
+<h3 id="cfd-的进出口选择">CFD 的进出口选择</h3>
+<p>不可压缩流动常用“速度入口 + 压力出口”组合：入口给定速度分布，出口给定静压，其余变量外推。这样做的原因是压力在不可压缩方程中只以梯度出现，绝对值没有意义，必须在一处固定参考值，否则压力泊松方程奇异。</p>
+<p>可压缩流动则更适合<strong>特征线边界条件</strong>：按当地法向马赫数区分进入与离开的特征波，只对入射波给定信息，出射波允许自由离开。若在出口同时固定压力和速度，问题会过定，数值上表现为出口反射波与压力振荡。</p>
+<div class="admonition tip"><div class="admonition-title">一条实用检查</div><div class="admonition-body"><p>数一数边界上给定的条件个数，再数一数方程在该边界需要的个数。少了会欠定（解不唯一），多了会过定（反射、振荡）。这条检查比任何经验都可靠。</p></div></div>
+<h2 id="弱形式与变分基础">弱形式与变分基础</h2>
+<p>有限元法不直接在强形式上离散，而是先乘检验函数 \(v\) 并积分。以 Poisson 方程 \(-\nabla^2u=f\) 为例，两边乘以 \(v\)、在区域 \(\Omega\) 上积分，并用分部积分把二阶导转移到 \(v\) 上：</p>
+<div class="math-block">\[\int_\Omega\nabla u\cdot\nabla v\,\mathrm{d}x
+=\int_\Omega f v\,\mathrm{d}x+\int_{\partial\Omega}g v\,\mathrm{d}s,\]</div>
+<p>其中 \(g=\partial u/\partial n\) 是 Neumann 数据。这样只要求 \(u\) 的一阶导数平方可积，降低了对解的光滑性要求，也自然容纳了间断系数与非齐次边界。把 \(u\) 与 \(v\) 都取在同一有限维子空间中，就得到 Galerkin 离散，细节见 <a class="wiki-link" href="../ch3/fem.html">有限元法</a>。</p>
+<p>从变分角度看，上式左端是能量内积，右端是载荷泛函。椭圆型问题的弱形式对应能量泛函的极小点，这解释了为什么有限元解在能量范数下最优。双曲型与对流主导问题的弱形式不再对称正定，需要引入迎风或间断 Galerkin 修正。</p>
+<h2 id="一个最小例子一维对流与-cfl">一个最小例子：一维对流与 CFL</h2>
+<p>下面的代码用显式迎风格式推进线性对流方程，直接观察 CFL 对稳定性的影响：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">advect_upwind</span><span class="p">(</span><span class="n">nx</span><span class="o">=</span><span class="mi">201</span><span class="p">,</span> <span class="n">cfl</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""求解 u_t + c u_x = 0，c &gt; 0，显式一阶迎风。"""</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+    <span class="n">dx</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="n">cfl</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">/</span> <span class="n">c</span>                      <span class="c1"># 由 CFL 条件给出时间步</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.3</span><span class="p">)</span> <span class="o">/</span> <span class="mf">0.08</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>   <span class="c1"># 初始高斯脉冲</span>
+
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsteps</span><span class="p">):</span>
+        <span class="n">u_new</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="c1"># c &gt; 0 时信息从左来，用后向差分（迎风）</span>
+        <span class="n">u_new</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">cfl</span> <span class="o">*</span> <span class="p">(</span><span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">u</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">u_new</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>                     <span class="c1"># 入流边界</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">u_new</span>
+    <span class="k">return</span> <span class="n">u</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"CFL=0.8 峰值："</span><span class="p">,</span> <span class="n">advect_upwind</span><span class="p">(</span><span class="n">cfl</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>  <span class="c1"># 稳定，缓慢衰减</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"CFL=1.2 峰值："</span><span class="p">,</span> <span class="n">advect_upwind</span><span class="p">(</span><span class="n">cfl</span><span class="o">=</span><span class="mf">1.2</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>  <span class="c1"># 迅速发散</span>
+</code></pre></div>
+
+<p>\(CFL=0.8\) 时峰值随时间缓慢下降，这是一阶格式的数值耗散；\(CFL=1.2\) 时峰值呈指数增长，与前面的因果性分析一致。把 <code>cfl</code> 改成 1.0 可以观察“刚好稳定”的临界状态。</p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>二阶方程按 \(B^2-4AC\) 分为椭圆、抛物、双曲三类，分别对应平衡、扩散与波动。</li>
+<li>特征线决定信息传播方向；显式格式的 CFL 条件来自“数值依赖域必须覆盖真实依赖域”。</li>
+<li>守恒型方程允许弱解，激波由 Rankine–Hugoniot 关系与熵条件共同确定，这是有限体积法的立足点。</li>
+<li>适定性要求存在、唯一、连续依赖；边界条件不能欠定也不能过定。</li>
+<li>弱形式通过分部积分降低光滑性要求，是有限元法的起点。</li>
+</ul>
+<p>这些性质最终都要落到离散上：<a class="wiki-link" href="../ch3/fvm.html">有限体积法</a> 处理守恒与激波，<a class="wiki-link" href="../ch3/fem.html">有限元法</a> 处理弱形式与椭圆问题，而方程的物理来源见 <a class="wiki-link" href="../ch2/governing-equations.html">流体力学基本方程</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch1/dimensional-analysis.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">量纲分析与相似准则</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch2/index.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch1/pde-foundations.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#一阶与二阶方程的一般形式">一阶与二阶方程的一般形式</a></li>
+<li><a href="#二阶方程的分类">二阶方程的分类</a></li>
+<li><a href="#特征线依赖域与影响域">特征线、依赖域与影响域</a><ul>
+<li><a href="#cfl-条件的直观来源">CFL 条件的直观来源</a></li>
+</ul>
+</li>
+<li><a href="#守恒形式弱解与激波">守恒形式、弱解与激波</a><ul>
+<li><a href="#为什么有限体积法用积分形式">为什么有限体积法用积分形式</a></li>
+</ul>
+</li>
+<li><a href="#适定性与边界条件">适定性与边界条件</a><ul>
+<li><a href="#cfd-的进出口选择">CFD 的进出口选择</a></li>
+</ul>
+</li>
+<li><a href="#弱形式与变分基础">弱形式与变分基础</a></li>
+<li><a href="#一个最小例子一维对流与-cfl">一个最小例子：一维对流与 CFL</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

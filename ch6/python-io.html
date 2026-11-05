@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>用 Python 读写 CFD 数据 · CFD Wiki</title>
+  <meta name="description" content="覆盖 numpy 结构化数组、h5py 分块读写、PyVista 读取 OpenFOAM 与 VTK、CGNS、Fortran unformatted 记录以及 CSV 与 memmap 大文件处理，每类给出可运行代码。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link is-active" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch6/index.html">后处理与可视化</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">用 Python 读写 CFD 数据</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">用 Python 读写 CFD 数据</h1>
+        <p class="page-summary">覆盖 numpy 结构化数组、h5py 分块读写、PyVista 读取 OpenFOAM 与 VTK、CGNS、Fortran unformatted 记录以及 CSV 与 memmap 大文件处理，每类给出可运行代码。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">后处理与可视化</span>
+        <span class="meta-sep">·</span>
+        <span>约 2727 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#Python</span><span class="tag">#HDF5</span><span class="tag">#VTK</span><span class="tag">#OpenFOAM</span><span class="tag">#数据读写</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>后处理脚本的第一行不是画图，而是把数据读成 numpy 数组。读错了，后面所有的插值、积分与配色都失去意义。这一页按“内存中的表示—容器格式—求解器格式—老式二进制—大文件策略”展开，每一类都给可直接运行的代码。除特别说明外，依赖为 <code>numpy</code>、<code>scipy</code>、<code>h5py</code>、<code>pyvista</code>。</p>
+<h2 id="统一的数据视图">统一的数据视图</h2>
+<p>无论文件长什么样，读进内存后最好统一成三组数组：坐标 <code>coords</code>（形状 <code>(Np, 3)</code>）、场 <code>fields</code>（形状 <code>(Np, Nv)</code> 或 <code>(Nc, Nv)</code>）、连接关系 <code>cells</code>（形状 <code>(Nc, k)</code> 或面导向的 <code>owner/neighbour</code>）。先统一，再计算；不要把“读文件”和“画图”混在一个函数里。</p>
+<p>内存占用可以先估算。若点数为 \(N_p\)、每个点保存 \(N_v\) 个双精度变量，则</p>
+<div class="math-block">\[M = 8 N_p N_v \ \mathrm{bytes}.\]</div>
+<p>一百万点、十个变量约 80 MB，尚可放进内存；一亿点、二十个变量就是 16 GB，必须分块或内存映射。下面的每种格式，都在回答“怎样只读需要的那一块”。</p>
+<h2 id="numpy-结构化数组">numpy 结构化数组</h2>
+<p>结构化数组把一条记录的全部字段放在连续内存里，适合“一个点一行”的表格数据。它比“一个变量一个数组”更接近文件布局，读写时不需要反复拼接。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">dtype</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+    <span class="p">(</span><span class="s2">"x"</span><span class="p">,</span> <span class="s2">"&lt;f8"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"y"</span><span class="p">,</span> <span class="s2">"&lt;f8"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"z"</span><span class="p">,</span> <span class="s2">"&lt;f8"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"u"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"v"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"w"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">),</span> <span class="p">(</span><span class="s2">"p"</span><span class="p">,</span> <span class="s2">"&lt;f4"</span><span class="p">),</span>
+<span class="p">])</span>
+
+<span class="n">n</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+<span class="n">data</span><span class="p">[</span><span class="s2">"x"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">data</span><span class="p">[</span><span class="s2">"p"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"points.npy"</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="n">back</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">"points.npy"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">back</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">dtype</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">back</span><span class="p">[</span><span class="s2">"p"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">2.0</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">back</span><span class="p">[</span><span class="n">mask</span><span class="p">][</span><span class="s2">"u"</span><span class="p">])</span>
+</code></pre></div>
+
+<p><code>np.save</code> 会保留字段名、字段类型与字节序，这是 CSV 做不到的。字段访问 <code>back["p"]</code> 返回的是视图而不是拷贝，修改它会改回原数组；需要独立副本时用 <code>.copy()</code>。</p>
+<p>结构化数组的弱点是线性代数不方便。要做矩阵运算，先按字段拼成普通二维数组：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">back</span><span class="p">[</span><span class="s2">"x"</span><span class="p">],</span> <span class="n">back</span><span class="p">[</span><span class="s2">"y"</span><span class="p">],</span> <span class="n">back</span><span class="p">[</span><span class="s2">"z"</span><span class="p">]])</span>
+<span class="n">velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">back</span><span class="p">[</span><span class="s2">"u"</span><span class="p">],</span> <span class="n">back</span><span class="p">[</span><span class="s2">"v"</span><span class="p">],</span> <span class="n">back</span><span class="p">[</span><span class="s2">"w"</span><span class="p">]])</span>
+</code></pre></div>
+
+<p>反过来，从二维数组写回结构化数组时，逐字段赋值即可。字段名建议与求解器变量名一致，但不要依赖大小写：读入后统一转成小写，写文件前再映射回求解器的命名。</p>
+<h2 id="hdf5分块压缩与部分读取">HDF5：分块、压缩与部分读取</h2>
+<p>HDF5 是容器，不是 CFD 专用格式。它用“组—数据集—属性”组织任意数组，支持分块、压缩、并行 I/O。CGNS 的 HDF5 版本、很多求解器的重启文件、机器学习数据集都建立在这一层。</p>
+<p>分块（chunking）决定 I/O 的粒度。一个数据集的逻辑形状可以是 <code>(nt, np, 3)</code>，但物理上按 <code>(1, 256, 3)</code> 的小块存放。读取 <code>dset[t, 100:200, :]</code> 时，HDF5 只加载覆盖这个范围的分块，而不是整个数据集。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">nsteps</span><span class="p">,</span> <span class="n">npts</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">1000</span>
+
+<span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"flow.h5"</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"units"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"SI"</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"source"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"solver restart"</span>
+    <span class="n">dset</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span>
+        <span class="s2">"velocity"</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">npts</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="s2">"f4"</span><span class="p">,</span>
+        <span class="n">chunks</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+        <span class="n">compression</span><span class="o">=</span><span class="s2">"gzip"</span><span class="p">,</span>
+        <span class="n">compression_opts</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsteps</span><span class="p">):</span>
+        <span class="n">dset</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">npts</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"f4"</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"flow.h5"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"chunks:"</span><span class="p">,</span> <span class="n">f</span><span class="p">[</span><span class="s2">"velocity"</span><span class="p">]</span><span class="o">.</span><span class="n">chunks</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"shape:"</span><span class="p">,</span> <span class="n">f</span><span class="p">[</span><span class="s2">"velocity"</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s2">"velocity"</span><span class="p">][</span><span class="mi">5</span><span class="p">,</span> <span class="mi">100</span><span class="p">:</span><span class="mi">200</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</code></pre></div>
+
+<p>几个实践要点：</p>
+<ul>
+<li><strong>分块形状要匹配读取模式。</strong> 按时间步读就用 <code>(1, ...)</code>；按空间切片读就把空间维度分块。分块过小，元数据开销大；过大，部分读取退化为整块读取。</li>
+<li><strong>压缩不是越多越好。</strong> gzip 级别 4 左右通常够用；级别 9 省空间但显著拖慢写入。浮点场压缩率一般，别期待文本格式那种数量级的缩减。</li>
+<li><strong>属性放元数据。</strong> 单位、参考量、求解器版本、时间写进 <code>attrs</code>，不要只靠文件名。</li>
+<li><strong>并发读用 <code>swmr</code>。</strong> 写入端以 <code>libver="latest"</code> 打开并启用 <code>swmr_mode</code>，读取端可以边写边读；并行写则需要 MPI 编译的 HDF5 与 <code>mpi4py</code>。</li>
+</ul>
+<div class="admonition note"><div class="admonition-title">先看结构再读数据</div><div class="admonition-body"><p>拿到一个陌生的 <code>.h5</code>，先打印树状结构：<code>f.visititems(lambda n, o: print(n, type(o).__name__))</code>。很多“读不出来”其实是数据集名字与预期不同，例如 <code>U</code> 存在 <code>/fields/velocity</code> 下，而不是根组。</p></div></div>
+<h2 id="vtk-与-pyvista">VTK 与 PyVista</h2>
+<p>VTK 的数据模型分四层：点（points）、单元（cells）、点数据（point data）、单元数据（cell data）。PyVista 把这层包装成 Python 对象，读写 <code>.vtk</code>、<code>.vtu</code>、<code>.vtp</code>、<code>.vts</code> 都不需要记格式细节。</p>
+<p>先写一个带点数据的 <code>.vtu</code>，再读回：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyvista</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pv</span>
+
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">theta_resolution</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">phi_resolution</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
+<span class="n">mesh</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">points</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+<span class="n">mesh</span><span class="p">[</span><span class="s2">"velocity"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span>
+    <span class="o">-</span><span class="n">mesh</span><span class="o">.</span><span class="n">points</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="n">mesh</span><span class="o">.</span><span class="n">points</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">n_points</span><span class="p">),</span>
+<span class="p">])</span>
+
+<span class="n">mesh</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"sphere.vtu"</span><span class="p">)</span>
+<span class="n">back</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"sphere.vtu"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">back</span><span class="o">.</span><span class="n">n_points</span><span class="p">,</span> <span class="n">back</span><span class="o">.</span><span class="n">array_names</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">back</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span> <span class="n">back</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+</code></pre></div>
+
+<h3 id="读取-openfoam">读取 OpenFOAM</h3>
+<p>PyVista 的 <code>OpenFOAMReader</code> 直接读算例目录。它需要一个 <code>.foam</code> 标记文件，内容可以为空：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyvista</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pv</span>
+
+<span class="n">case</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"cavity"</span><span class="p">)</span>
+<span class="n">marker</span> <span class="o">=</span> <span class="n">case</span> <span class="o">/</span> <span class="s2">"cavity.foam"</span>
+<span class="k">if</span> <span class="n">marker</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">OpenFOAMReader</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">marker</span><span class="p">))</span>
+    <span class="n">reader</span><span class="o">.</span><span class="n">set_active_time_value</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="n">mesh</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">n_points</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">array_names</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"请把 case 换成实际的 OpenFOAM 算例目录"</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>set_active_time_value</code> 按物理时间选帧；也可以用 <code>set_active_time_index</code> 按序号选。读入后，内部面与边界面会按 <code>boundary</code> 名称分组，<code>mesh.array_names</code> 里能看到 <code>U</code>、<code>p</code>、<code>k</code> 等变量。OpenFOAM 的 <code>p</code> 在不可压缩算例中是运动压力，单位是 \(\mathrm{m^2/s^2}\)，不要当成 Pa。</p>
+<h3 id="点数据与单元数据">点数据与单元数据</h3>
+<p>求解器常把压力存在单元中心。VTK 允许点数据与单元数据同时存在，但画等值线需要点数据：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">point_mesh</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">cell_data_to_point_data</span><span class="p">()</span>
+<span class="n">slice_2d</span> <span class="o">=</span> <span class="n">point_mesh</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">normal</span><span class="o">=</span><span class="s2">"z"</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">))</span>
+<span class="n">slice_2d</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">"slice.vtu"</span><span class="p">)</span>
+</code></pre></div>
+
+<p>反向转换用 <code>point_data_to_cell_data()</code>。转换本身是插值，会在间断处抹平峰值；需要严格守恒的积分应在原始单元数据上做，而不是转到点数据后再积分。</p>
+<h2 id="cgns-简介">CGNS 简介</h2>
+<p>CGNS 是面向 CFD 的层次化标准，按“基—区域—网格—解—边界条件”组织，底层通常是 HDF5。它的语义比 VTK 完整：边界类型、参考量、无量纲化信息可以随文件保存。</p>
+<p>读取 CGNS 有两个层次。生产脚本优先用 <code>pycgns</code>，它按 SIDS 路径访问节点；如果只想快速查看结构，可以用 <code>h5py</code> 直接遍历 HDF5 组：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+
+<span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"case.cgns"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Dataset</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">visititems</span><span class="p">(</span><span class="n">show</span><span class="p">)</span>
+</code></pre></div>
+
+<p>输出会出现 <code>Base/Zone0/GridCoordinates/CoordinateX</code> 这类路径。节点名由 SIDS 规范定义，不能凭猜测拼路径；这也是为什么直接读 HDF5 只适合检查，不适合做稳定的生产脚本。</p>
+<p><code>meshio</code> 也能读写部分 CGNS 文件，适合在 VTK 与 CGNS 之间转换。转换后边界条件通常丢失，需要重新从求解器日志或配置文件补回。</p>
+<h2 id="fortran-unformatted-二进制记录">Fortran unformatted 二进制记录</h2>
+<p>很多老求解器用 Fortran 的 sequential unformatted 写文件。它的结构是“记录长度—数据—记录长度”：</p>
+<div class="math-block">\[\underbrace{n}_{4\ \mathrm{bytes}}\ \underbrace{a_1,\dots,a_n}_{\mathrm{payload}}\ \underbrace{n}_{4\ \mathrm{bytes}}\]</div>
+<p>前后两个长度标记用于跳过或校验。下面的代码写一个记录，再读回：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">write_record</span><span class="p">(</span><span class="n">handle</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"&lt;f4"</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">nbytes</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">nbytes</span>
+    <span class="n">handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">nbytes</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+    <span class="n">handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+    <span class="n">handle</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">(</span><span class="n">nbytes</span><span class="p">)</span><span class="o">.</span><span class="n">tobytes</span><span class="p">())</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"record.bin"</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+    <span class="n">write_record</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"&lt;f4"</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"record.bin"</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"&lt;i4"</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="n">n</span> <span class="o">//</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">trailer</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">fromfile</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"&lt;i4"</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">trailer</span><span class="p">,</span> <span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+</code></pre></div>
+
+<p>常见变体：</p>
+<ul>
+<li><strong>8 字节记录标记。</strong> 编译选项 <code>-frecord-marker=8</code> 或大文件模式下，前后标记是 8 字节整数；读之前先看文件大小与记录长度是否自洽。</li>
+<li><strong>记录长度单位。</strong> Intel Fortran 的 <code>-assume byterecl</code> 让 <code>RECL</code> 以字节计，某些老代码以 4 字节字计，差一个因子 4。</li>
+<li><strong>字节序。</strong> 大端机器写出的文件在小端机器上读，数值会变成天文数字。用 <code>array.byteswap().newbyteorder()</code> 或 <code>dtype="&gt;f4"</code> 处理。</li>
+<li><strong>列主序。</strong> Fortran 按列优先存储，<code>reshape</code> 时要写 <code>order="F"</code>，否则三维数组的 <code>i/j/k</code> 会转置。</li>
+</ul>
+<p>直接访问（direct access）unformatted 没有记录标记，每条记录长度固定。这种文件可以当作原始二进制，用 <code>np.memmap</code> 按偏移读取，比逐条 <code>read</code> 快得多。</p>
+<h2 id="csv-与大文件loadtxtmemmap">CSV 与大文件：loadtxt、memmap</h2>
+<p>CSV 可读、可 diff，但只适合小数据与交换，不适合百万行以上的场数据。<code>np.loadtxt</code> 与 <code>np.savetxt</code> 足够处理壁面曲线、监测点历史这类表格：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">wall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+<span class="p">])</span>
+<span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">"wall.csv"</span><span class="p">,</span> <span class="n">wall</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span> <span class="n">header</span><span class="o">=</span><span class="s2">"x,cp"</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+<span class="n">back</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s2">"wall.csv"</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">","</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">back</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</code></pre></div>
+
+<p>带列名的表用 <code>np.genfromtxt("wall.csv", delimiter=",", names=True)</code>，之后可按 <code>back["cp"]</code> 访问。超过几十万行时，<code>loadtxt</code> 的解析开销明显；可以改用 <code>pandas.read_csv(..., chunksize=...)</code> 分块，或直接转成二进制。</p>
+<p>二进制大文件的首选是 <code>np.memmap</code>。它把文件映射到虚拟内存，切片时只触发对应页的读取，不会一次性载入整个文件：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">nsteps</span><span class="p">,</span> <span class="n">npts</span><span class="p">,</span> <span class="n">nvar</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">20000</span><span class="p">,</span> <span class="mi">7</span>
+
+<span class="n">mm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span>
+    <span class="s2">"cube.bin"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"w+"</span><span class="p">,</span>
+    <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">npts</span><span class="p">,</span> <span class="n">nvar</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">mm</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">npts</span><span class="p">,</span> <span class="n">nvar</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">"f4"</span><span class="p">)</span>
+<span class="n">mm</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+<span class="k">del</span> <span class="n">mm</span>
+
+<span class="n">mm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">memmap</span><span class="p">(</span>
+    <span class="s2">"cube.bin"</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">"&lt;f4"</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"r"</span><span class="p">,</span>
+    <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">npts</span><span class="p">,</span> <span class="n">nvar</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="n">u</span> <span class="o">=</span> <span class="n">mm</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">u</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+</code></pre></div>
+
+<p>使用 <code>memmap</code> 时注意：</p>
+<ul>
+<li>形状与 dtype 必须与写文件时完全一致，否则读出来的数会错位。</li>
+<li>随机访问小片段会频繁触发页错误；按时间步或按块顺序处理，性能最好。</li>
+<li>写入后调用 <code>flush()</code>，再删除对象，确保数据落盘。</li>
+<li>不要在 <code>memmap</code> 上做大量临时运算；先取到内存副本，再计算。</li>
+</ul>
+<h2 id="格式选择">格式选择</h2>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>推荐</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单算例交互查看</td>
+<td><code>.vtu</code> / <code>.plt</code></td>
+<td>ParaView、Tecplot 直接打开</td>
+</tr>
+<tr>
+<td>多工况批处理</td>
+<td>HDF5 或 <code>.npz</code></td>
+<td>分块读取、元数据随文件走</td>
+</tr>
+<tr>
+<td>与求解器交换</td>
+<td>原生格式 + 转换脚本</td>
+<td>避免中间格式丢边界</td>
+</tr>
+<tr>
+<td>老求解器输出</td>
+<td>Fortran unformatted</td>
+<td>尊重原始记录结构</td>
+</tr>
+<tr>
+<td>论文附表</td>
+<td>CSV</td>
+<td>可读、可审、体积小</td>
+</tr>
+<tr>
+<td>超大瞬态</td>
+<td>HDF5 分块或 memmap</td>
+<td>只读需要的切片</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip"><div class="admonition-title">读写之后先做闭环校验</div><div class="admonition-body"><p>写完再读回，比较形状、dtype、最小最大值与若干抽样点。<code>assert np.allclose(back, original)</code> 能拦住大多数字节序、转置与精度问题。再做一次单位和量纲检查：压力是 Pa 还是 \(\mathrm{m^2/s^2}\)，速度是 m/s 还是无量纲。</p></div></div>
+<h2 id="脚本组织">脚本组织</h2>
+<p>把读取、派生量、出图拆成三个函数，数据在函数之间只以 numpy 数组与字典传递：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">load_case</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""返回 coords, fields, meta。"""</span>
+    <span class="o">...</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_metrics</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""返回 Cp、Cf、流量等派生量。"""</span>
+    <span class="o">...</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_metrics</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">outfile</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""只负责画图，不读文件。"""</span>
+    <span class="o">...</span>
+</code></pre></div>
+
+<p>这样换求解器时只改 <code>load_case</code>，换图样式时只改 <code>plot_metrics</code>。下一章 <a class="wiki-link" href="../ch6/postprocessing.html">核心算法</a> 会填充中间那层 <code>compute_metrics</code>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch6/tecplot.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">Tecplot 操作与后处理流程</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch6/postprocessing.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">流体后处理核心算法</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch6/python-io.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#统一的数据视图">统一的数据视图</a></li>
+<li><a href="#numpy-结构化数组">numpy 结构化数组</a></li>
+<li><a href="#hdf5分块压缩与部分读取">HDF5：分块、压缩与部分读取</a></li>
+<li><a href="#vtk-与-pyvista">VTK 与 PyVista</a><ul>
+<li><a href="#读取-openfoam">读取 OpenFOAM</a></li>
+<li><a href="#点数据与单元数据">点数据与单元数据</a></li>
+</ul>
+</li>
+<li><a href="#cgns-简介">CGNS 简介</a></li>
+<li><a href="#fortran-unformatted-二进制记录">Fortran unformatted 二进制记录</a></li>
+<li><a href="#csv-与大文件loadtxtmemmap">CSV 与大文件：loadtxt、memmap</a></li>
+<li><a href="#格式选择">格式选择</a></li>
+<li><a href="#脚本组织">脚本组织</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

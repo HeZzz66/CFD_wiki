@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>PINO：物理信息神经算子 · CFD Wiki</title>
+  <meta name="description" content="在算子学习的数据损失之外，用自动微分在查询点上计算 PDE 残差，使一个网络对多组输入函数都给出近似满足方程的解；讨论残差归一化、课程学习与权重平衡。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link is-active" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch5/index.html">AI for CFD</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">PINO：物理信息神经算子</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">PINO：物理信息神经算子</h1>
+        <p class="page-summary">在算子学习的数据损失之外，用自动微分在查询点上计算 PDE 残差，使一个网络对多组输入函数都给出近似满足方程的解；讨论残差归一化、课程学习与权重平衡。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">AI for CFD</span>
+        <span class="meta-sep">·</span>
+        <span>约 2244 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#PINO</span><span class="tag">#物理约束</span><span class="tag">#算子学习</span><span class="tag">#残差损失</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>PINO 可以一句话概括：把 PINN 的残差损失，从“单个解”搬到“整个算子”上。网络输入不再是坐标，而是输入函数 \(a\)；输出是整个解场；残差仍在查询点上用自动微分计算。这样训练一次，就能对一类输入函数反复推理，同时保留物理约束。</p>
+<h2 id="学习对象">学习对象</h2>
+<p>目标是逼近算子</p>
+<div class="math-block">\[G: a \mapsto u, \qquad u = G(a),\]</div>
+<p>\(a\) 可以是初始条件、边界条件、材料系数或几何参数。网络写成</p>
+<div class="math-block">\[u_\theta = \mathcal{N}_\theta(a),\]</div>
+<p>\(\mathcal{N}_\theta\) 可以是<a class="wiki-link" href="../ch5/fno.html">FNO</a>、<a class="wiki-link" href="../ch5/deeponet.html">DeepONet</a>或 U-Net。PINO 不规定主干结构，只规定损失怎么加。</p>
+<p>与 PINN 的根本差别在于：PINN 对每一组新参数都要重新训练一次；PINO 把参数变化也当成输入的一部分，训练后可直接泛化到训练分布内的新 \(a\)。</p>
+<p>训练集通常这样构造：先用求解器在若干组 \(a_i\) 上算出解 \(u_i\)；把其中一部分作为有标签样本，另一部分只保留 \(a_i\) 而不给 \(u_i\)，用于残差项；查询点在区域内随机采样。这样同一批计算既提供标签，又提供物理约束的载体。若 \(a\) 是高维随机场，采样要覆盖其协方差结构的主要模态，否则网络只见过少数纹理，泛化很差。</p>
+<h2 id="三项损失">三项损失</h2>
+<p>PINO 的总损失由数据项、残差项与边界项组成：</p>
+<div class="math-block">\[\mathcal{L}(\theta) = \mathcal{L}_{data}(\theta)
++ \lambda_r \mathcal{L}_{res}(\theta)
++ \lambda_b \mathcal{L}_{bc}(\theta).\]</div>
+<p><strong>数据项</strong>在有标签的样本上约束输出：</p>
+<div class="math-block">\[\mathcal{L}_{data} = \frac{1}{N}\sum_{i=1}^{N}
+\frac{\left\Vert u_\theta(a_i) - u_i \right\Vert_2^2}
+{\left\Vert u_i \right\Vert_2^2 + \varepsilon}.\]</div>
+<p><strong>残差项</strong>在无标签的查询点上要求方程成立。设 \(\mathcal{D}\) 是方程对应的微分算子，\(f\) 是源项，则</p>
+<div class="math-block">\[r_\theta(a,y) = \mathcal{D}\left[u_\theta(a)\right](y) - f(y),\]</div>
+<div class="math-block">\[\mathcal{L}_{res} = \frac{1}{N Q}\sum_{i=1}^{N}\sum_{q=1}^{Q}
+r_\theta(a_i, y_q)^2 .\]</div>
+<p>以二维稳态扩散为例，\(\mathcal{D}u = \partial_{xx}u + \partial_{yy}u\)；对 N-S 方程，\(\mathcal{D}\) 则包含对流项与粘性项，需要对输出场的每个分量分别求导。</p>
+<p><strong>边界项</strong>在边界点上约束边值：</p>
+<div class="math-block">\[\mathcal{L}_{bc} = \frac{1}{N_b}\sum_{i=1}^{N}\sum_{q=1}^{N_b}
+\left( u_\theta(a_i)(y_q^{b}) - g(a_i)(y_q^{b}) \right)^2 .\]</div>
+<p>三项的量级需要一起看：数据项按相对误差归一，残差项按平方均值归一，边界项按边值量级归一，否则某个量级大的项会独占梯度。</p>
+<h2 id="残差怎么算">残差怎么算</h2>
+<p>残差需要“对坐标求导”，而不是对网络参数求导。因此 \(u_\theta(a)\) 必须作为坐标的函数被求值，且计算图要保留。典型做法是把归一化坐标作为额外输入通道送进网络，输出场后对坐标通道做 <code>autograd.grad</code>。</p>
+<p>以 FNO 为骨干时，前向是</p>
+<div class="math-block">\[u_\theta(a)(\mathbf{x}) = \mathcal{P}\left(\mathcal{B}_L \circ \cdots \circ \mathcal{B}_1
+\left(\mathcal{L}(a,\mathbf{x})\right)\right),\]</div>
+<p>\(\mathcal{L}\) 是 lifting，\(\mathcal{B}_l\) 是傅里叶块，\(\mathcal{P}\) 是 projection。只要 \(\mathbf{x}\) 是叶子张量且 <code>create_graph=True</code>，就能逐点得到 \(u_x\)、\(u_y\) 与二阶项。</p>
+<div class="admonition note"><div class="admonition-title">与有限差分的区别</div><div class="admonition-body"><p>也可以用网格上的中心差分算残差，成本低、实现简单，但精度受网格限制。自动微分给出的是网络表示的解析导数，在配点处更准确，代价是反向图更深、显存更高。分辨率较低时，两者差别不大。</p></div></div>
+<h2 id="训练技巧">训练技巧</h2>
+<p><strong>残差归一化。</strong> 不同样本的残差量级可能相差几个数量级，直接取均值会被个别样本主导。常用做法是除以当前批次的残差均方：</p>
+<div class="math-block">\[\mathcal{L}_{res}^{norm} = \frac{1}{N Q}\sum_{i,q}
+\frac{r_\theta(a_i,y_q)^2}
+{\mathrm{mean}\left(r_\theta^2\right)_{\text{detach}} + \varepsilon},\]</div>
+<p>分母 detach 后不参与反传，相当于给每批残差做一次尺度对齐。</p>
+<p><strong>课程学习。</strong> 先在平滑、低幅值的输入上训练，再逐步加入高频、强梯度样本。也可以先只开数据项，等网络能复现大致结构后再加入残差项，避免早期残差噪声把网络带偏。</p>
+<p><strong>多点采样。</strong> 每批重采查询点，使残差在整个区域上均匀；在边界层、激波附近按梯度大小加密。固定网格容易让网络“记住”少数点上的残差。</p>
+<p><strong>权重平衡。</strong> \(\lambda_r\) 过大时网络会牺牲数据拟合去压残差，表现为整体偏移；过小时物理项形同虚设。常见起点是 \(\lambda_r = 10^{-2}\) 到 \(10^{-1}\)，再按验证集上的残差与相对误差同时调整。</p>
+<h2 id="pytorch-实现">PyTorch 实现</h2>
+<p>下面的片段以 FNO 为骨干、二维泊松方程为例，重点在残差与总损失的组织方式。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">poisson_residual</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""-lap(u) = f 的残差；coords 为 (B, 2, H, W) 的归一化坐标。"""</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>                      <span class="c1"># (B, 1, H, W)</span>
+
+    <span class="n">grads</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">u_x</span><span class="p">,</span> <span class="n">u_y</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">grads</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">u_xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">u_x</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u_x</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">u_yy</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">u_y</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u_y</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">u_xx</span> <span class="o">+</span> <span class="n">u_yy</span> <span class="o">-</span> <span class="n">source</span>                <span class="c1"># 残差逐点</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pino_loss</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">lam_r</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span> <span class="n">lam_b</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">u_true</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">mask_b</span> <span class="o">=</span> <span class="n">batch</span>
+
+    <span class="n">u_pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="p">((</span><span class="n">u_pred</span> <span class="o">-</span> <span class="n">u_true</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">den</span> <span class="o">=</span> <span class="n">u_true</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span>
+    <span class="n">loss_data</span> <span class="o">=</span> <span class="p">(</span><span class="n">num</span> <span class="o">/</span> <span class="n">den</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="n">r</span> <span class="o">=</span> <span class="n">poisson_residual</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">source</span><span class="p">)</span>
+    <span class="n">loss_res</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+    <span class="c1"># mask_b 标记边界点，只在这些点上算边值误差</span>
+    <span class="n">loss_bc</span> <span class="o">=</span> <span class="p">((</span><span class="n">u_pred</span> <span class="o">-</span> <span class="n">u_true</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">mask_b</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="p">(</span><span class="n">mask_b</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">loss_data</span> <span class="o">+</span> <span class="n">lam_r</span> <span class="o">*</span> <span class="n">loss_res</span> <span class="o">+</span> <span class="n">lam_b</span> <span class="o">*</span> <span class="n">loss_bc</span>
+</code></pre></div>
+
+<p>训练循环与普通监督学习相同，只是每步要多一次前向用于残差。显存紧张时可以把残差计算放在 <code>torch.no_grad()</code> 之外单独累积，或降低查询点数量。</p>
+<h2 id="三者对比">三者对比</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>PINN</th>
+<th>FNO</th>
+<th>PINO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习对象</td>
+<td>单个解</td>
+<td>算子</td>
+<td>算子</td>
+</tr>
+<tr>
+<td>输入</td>
+<td>坐标</td>
+<td>输入场</td>
+<td>输入场</td>
+</tr>
+<tr>
+<td>数据需求</td>
+<td>无标签也可</td>
+<td>需要成对数据</td>
+<td>少量数据 + 无标签残差</td>
+</tr>
+<tr>
+<td>物理一致性</td>
+<td>强约束</td>
+<td>无</td>
+<td>中等，由 \(\lambda_r\) 控制</td>
+</tr>
+<tr>
+<td>推理成本</td>
+<td>需重新训练</td>
+<td>一次前向</td>
+<td>一次前向</td>
+</tr>
+<tr>
+<td>训练成本</td>
+<td>高</td>
+<td>中</td>
+<td>高，残差反传更贵</td>
+</tr>
+<tr>
+<td>泛化</td>
+<td>单工况</td>
+<td>分布内插值</td>
+<td>分布内插值且更平滑</td>
+</tr>
+</tbody>
+</table>
+<p>PINO 并不是“必然优于 FNO”：若数据充足且分布窄，FNO 的相对误差可能更低；PINO 的优势在于数据稀疏时仍能给出物理上合理的场，并且对噪声标签更稳健。</p>
+<div class="admonition warning"><div class="admonition-title">残差不能替代数据</div><div class="admonition-body"><p>残差项只约束方程，不约束解的绝对值——常数偏移、边界层厚度都可能落在残差很小的解空间里。没有数据项或边界项时，PINO 容易收敛到平凡解。务必保留至少一种绝对约束。</p></div></div>
+<h2 id="为什么残差有用">为什么残差有用</h2>
+<p>纯数据训练的算子在训练分布内可以很准，但样本稍少时会出现两类错误：一是高频噪声被当作信号拟合，二是解在无标签区域自由漂移。残差项在无标签点上提供额外约束，相当于把方程当成“免费的标签”，因此能在数据稀疏时显著改善泛化。</p>
+<p>代价是残差对解的绝对幅值不敏感。常数平移、边界层厚度的整体偏移都可能落在低残差区域。所以数据项与边界项不能省，它们负责把解“钉”在正确的尺度和位置上。</p>
+<h2 id="实现与成本">实现与成本</h2>
+<p>残差反传的计算图比纯前向深得多：一次二阶导大约相当于多几次前向。显存紧张时可以用梯度检查点（<code>torch.utils.checkpoint</code>），用计算换显存；也可以只在部分查询点上计算残差，逐步增加点数。</p>
+<p>混合精度需要谨慎：<code>autograd.grad</code> 在 <code>float16</code> 下容易产生下溢，残差项通常保持 <code>float32</code>，其余部分用 <code>bfloat16</code>。</p>
+<p>两阶段训练在实践中很有效：第一阶段只开数据项，让网络学会大致结构；第二阶段加入残差并降低学习率。若一开始就开残差，随机初始化的输出会给出巨大的残差，梯度方向反而偏离数据。</p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>PINO 在算子学习的数据损失上追加 PDE 残差与边界损失，训练一次即可对多组输入推理。</li>
+<li>残差通过对坐标求自动微分得到，需要保留计算图，成本高于纯数据训练。</li>
+<li>残差归一化、课程学习、多点采样与权重平衡是收敛的关键。</li>
+<li>与<a class="wiki-link" href="../ch5/pinns.html">PINN</a>相比它学算子，与<a class="wiki-link" href="../ch5/fno.html">FNO</a>相比它多一层物理约束；定量比较见<a class="wiki-link" href="../ch5/benchmarks.html">数据集与评价</a>。</li>
+</ul>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch5/ifno.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">IFNO：隐式傅里叶神经算子</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch5/benchmarks.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">数据集、评价指标与训练实践</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch5/pino.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#学习对象">学习对象</a></li>
+<li><a href="#三项损失">三项损失</a></li>
+<li><a href="#残差怎么算">残差怎么算</a></li>
+<li><a href="#训练技巧">训练技巧</a></li>
+<li><a href="#pytorch-实现">PyTorch 实现</a></li>
+<li><a href="#三者对比">三者对比</a></li>
+<li><a href="#为什么残差有用">为什么残差有用</a></li>
+<li><a href="#实现与成本">实现与成本</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

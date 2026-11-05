@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>量纲分析与相似准则 · CFD Wiki</title>
+  <meta name="description" content="从量纲齐次性出发，完整推导 Buckingham π 定理，整理常用无量纲数的定义与工程含义，并说明相似准则、缩比实验与 CFD 中的无量纲化、y+ 和 CFL 条件。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link is-active" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch1/index.html">流体力学中的数学基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">量纲分析与相似准则</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">量纲分析与相似准则</h1>
+        <p class="page-summary">从量纲齐次性出发，完整推导 Buckingham π 定理，整理常用无量纲数的定义与工程含义，并说明相似准则、缩比实验与 CFD 中的无量纲化、y+ 和 CFL 条件。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">流体力学中的数学基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 2928 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#量纲分析</span><span class="tag">#相似准则</span><span class="tag">#无量纲数</span><span class="tag">#π定理</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>流体力学方程中的每一项都有量纲，而量纲必须齐次。这条看似平凡的要求，能给出方程的结构、实验的缩放规律和数值计算的参数范围。量纲分析的价值在于：在尚未求解方程之前，先用最少的信息把问题压缩成几个控制参数。</p>
+<h2 id="量纲与单位">量纲与单位</h2>
+<p>物理量由<strong>基本量纲</strong>组合而成。力学与传热问题通常取四个：</p>
+<div class="math-block">\[[M]=M,\quad [L]=L,\quad [T]=T,\quad [\Theta]=\Theta,\]</div>
+<p>任何导出量的量纲都可以写成幂次的乘积，例如</p>
+<div class="math-block">\[[\rho]=ML^{-3},\quad [\mu]=ML^{-1}T^{-1},\quad
+[k]=MLT^{-3}\Theta^{-1},\quad [c_p]=L^2T^{-2}\Theta^{-1}.\]</div>
+<p><strong>量纲齐次性</strong>要求：方程中相加的每一项、等号两边，量纲必须完全相同。由此可以立刻排除错误的公式，例如把动压 \(\rho U^2\) 与压力 \(p\) 相加是合法的（同为 \(ML^{-1}T^{-2}\)），而把 \(\rho U^2\) 直接与力 \(F\) 相加则不合法。</p>
+<div class="admonition note"><div class="admonition-title">量纲与单位</div><div class="admonition-body"><p>量纲是物理属性，单位是度量约定。\([\rho]=ML^{-3}\) 与用 \(\mathrm{kg/m^3}\) 还是 \(\mathrm{g/cm^3}\) 无关。CFD 中最常见的事故是把毫米、秒、帕混用，导致 \(Re\) 差了若干个数量级；求解器本身不会报错，只会给出错误的流场。</p></div></div>
+<h2 id="无量纲化的步骤">无量纲化的步骤</h2>
+<p>无量纲化是选取特征尺度，把有量纲方程改写成无量纲方程的过程。以不可压缩 N-S 方程为例，取特征长度 \(L\)、特征速度 \(U\)、特征时间 \(L/U\)、特征压力 \(\rho U^2\)，并令</p>
+<div class="math-block">\[x_i=Lx^*_i,\qquad u_i=Uu^*_i,\qquad t=\frac{L}{U}t^*,\qquad p=\rho U^2 p^*.\]</div>
+<p>代入动量方程并整理，得到</p>
+<div class="math-block">\[\frac{\partial u^*_i}{\partial t^*}
++u^*_j\frac{\partial u^*_i}{\partial x^*_j}
+=-\frac{\partial p^*}{\partial x^*_i}
++\frac{1}{\mathrm{Re}}\frac{\partial^2 u^*_i}{\partial x^*_j\partial x^*_j},
+\qquad
+\mathrm{Re}=\frac{\rho UL}{\mu}.\]</div>
+<p>原本方程里藏着 \(\rho,\mu,L,U\) 四个参数，现在只剩一个 \(Re\)。这一步带来三个实际好处：</p>
+<ul>
+<li><strong>参数空间降维</strong>：同一 \(Re\) 下的所有几何相似流动，无量纲解相同，不必逐个工况重算；</li>
+<li><strong>数值条件改善</strong>：无量纲量在 \(O(1)\) 附近，浮点误差与量级无关，收敛判据也更容易设定；</li>
+<li><strong>物理机制可辨</strong>：\(1/Re\) 很小时粘性项可忽略，很大时对流项可忽略，渐近分析由此展开。</li>
+</ul>
+<h2 id="buckingham-π-定理">Buckingham π 定理</h2>
+<p>定理的内容是：若一个问题涉及 \(n\) 个有量纲量，其中包含 \(r\) 个量纲独立的组合，则存在 \(n-r\) 个独立的无量纲组合（π 群），问题的解可以写成这些 π 群的函数。</p>
+<p>操作步骤：</p>
+<ol>
+<li>列出所有可能影响结果的变量，并写出各自的量纲；</li>
+<li>选定基本量纲（一般为 \(M,L,T\)，含传热时加 \(\Theta\)）；</li>
+<li>写出量纲矩阵，求其秩 \(r\)，即最大线性无关的变量个数；</li>
+<li>从变量中选 \(r\) 个<strong>重复变量</strong>，要求它们量纲独立且覆盖全部基本量纲（通常选密度、速度、长度）；</li>
+<li>用每个剩余变量与重复变量的幂次组合，构造 \(n-r\) 个 π 群；</li>
+<li>把结果写成 \(\pi_1=f(\pi_2,\ldots,\pi_{n-r})\)。</li>
+</ol>
+<h3 id="从零推导圆柱绕流阻力">从零推导圆柱绕流阻力</h3>
+<p>设流体绕过直径为 \(D\) 的圆柱，来流速度为 \(U\)，密度为 \(\rho\)，粘度为 \(\mu\)，单位展长阻力（每米柱长所受的力）为 \(F\)。五个变量，\(n=5\)。量纲为</p>
+<div class="math-block">\[[F]=MT^{-2},\quad [\rho]=ML^{-3},\quad [U]=LT^{-1},\quad [D]=L,\quad [\mu]=ML^{-1}T^{-1}.\]</div>
+<p>量纲矩阵（按 \(M,L,T\) 三行）为</p>
+<div class="math-block">\[\begin{pmatrix}
+1 & 1 & 0 & 0 & 1\\
+1 & -3 & 1 & 1 & -1\\
+-2 & 0 & -1 & 0 & -1
+\end{pmatrix},\]</div>
+<p>其秩 \(r=3\)（三行线性无关），因此 π 群个数为 \(n-r=2\)。</p>
+<p>设第一个 π 群由 \(F\) 与重复变量 \(\rho,U,D\) 组成：</p>
+<div class="math-block">\[\pi_1=F\rho^{a}U^{b}D^{c}.\]</div>
+<p>逐项比较量纲，得到三个方程</p>
+<div class="math-block">\[M:\ 1+a=0,\qquad L:\ -3a+b+c=0,\qquad T:\ -2-b=0.\]</div>
+<p>解得 \(a=-1,\ b=-2,\ c=-1\)，于是 \(\pi_1=F/(\rho U^2D)\)。第二个 π 群由 \(\mu\) 构造，同样解得 \(\pi_2=\mu/(\rho UD)\)，取其倒数即 \(Re=\rho UD/\mu\)。最终</p>
+<div class="math-block">\[\frac{F}{\rho U^2D}=f\left(\frac{\rho UD}{\mu}\right)
+\quad\Longrightarrow\quad
+F=\rho U^2D\,f(\mathrm{Re}),\]</div>
+<p>其中 \(f\) 为无量纲阻力函数，与常用的阻力系数 \(C_D=2f\) 只差一个因子 2。注意指数的求解本质上是线性方程组，重复变量的选择只影响 π 群的形式，不影响最终物理结论。</p>
+<div class="admonition tip"><div class="admonition-title">重复变量怎么选</div><div class="admonition-body"><p>重复变量必须量纲独立，且最好包含几何、运动和物性各一个。若选 \(\rho,U,D\)，长度量纲由 \(D\) 提供、时间由 \(U\) 提供、质量由 \(\rho\) 提供，覆盖完整。若误把两个速度尺度（如 \(U\) 与声速 \(a\)）都选进来，它们量纲相同、无法张成独立方向，量纲矩阵的秩会下降，π 群个数随之改变，结论也就不再等价。</p></div></div>
+<p>对泵与风机，同样的推理给出流量系数、扬程系数与功率系数：</p>
+<div class="math-block">\[\phi=\frac{Q}{nD^3},\qquad
+\psi=\frac{gH}{n^2D^2},\qquad
+\lambda=\frac{P}{\rho n^3D^5},\]</div>
+<p>三者都是 \(Re\) 与比转速的函数。工程选型曲线正是这些 π 群的等值线。</p>
+<h2 id="常用无量纲数">常用无量纲数</h2>
+<table>
+<thead>
+<tr>
+<th>无量纲数</th>
+<th>定义式</th>
+<th>物理意义</th>
+<th>典型量级与场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(Re\)</td>
+<td>\(\rho UL/\mu\)</td>
+<td>惯性力与粘性力之比</td>
+<td>\(10^3\sim10^7\)，管流、绕流</td>
+</tr>
+<tr>
+<td>\(Ma\)</td>
+<td>\(U/a\)</td>
+<td>流速与声速之比</td>
+<td>\(>0.3\) 时需考虑可压缩性</td>
+</tr>
+<tr>
+<td>\(Fr\)</td>
+<td>\(U/\sqrt{gL}\)</td>
+<td>惯性力与重力之比</td>
+<td>明渠、船舶兴波</td>
+</tr>
+<tr>
+<td>\(We\)</td>
+<td>\(\rho U^2L/\sigma\)</td>
+<td>惯性力与表面张力之比</td>
+<td>液滴、喷雾破碎</td>
+</tr>
+<tr>
+<td>\(Eu\)</td>
+<td>\(\Delta p/(\rho U^2)\)</td>
+<td>压差与动压之比</td>
+<td>阀门、管件局部损失</td>
+</tr>
+<tr>
+<td>\(Pr\)</td>
+<td>\(\mu c_p/k\)</td>
+<td>动量扩散与热扩散之比</td>
+<td>空气约 \(0.7\)，水约 \(7\)</td>
+</tr>
+<tr>
+<td>\(Pe\)</td>
+<td>\(UL/\alpha\)</td>
+<td>对流与热扩散之比</td>
+<td>等于 \(Re\cdot Pr\)</td>
+</tr>
+<tr>
+<td>\(Nu\)</td>
+<td>\(hL/k\)</td>
+<td>对流换热与导热之比</td>
+<td>换热器、电子散热</td>
+</tr>
+<tr>
+<td>\(St\)</td>
+<td>\(fL/U\)</td>
+<td>非定常与对流时间尺度之比</td>
+<td>圆柱涡脱落约 \(0.2\)</td>
+</tr>
+<tr>
+<td>\(Ro\)</td>
+<td>\(U/(\Omega L)\)</td>
+<td>惯性力与科氏力之比</td>
+<td>旋转机械、地球物理流动</td>
+</tr>
+<tr>
+<td>\(Kn\)</td>
+<td>\(\lambda_{\mathrm{mfp}}/L\)</td>
+<td>分子自由程与特征尺度之比</td>
+<td>\(>0.1\) 时连续介质失效</td>
+</tr>
+</tbody>
+</table>
+<p>其中 \(a\) 为声速，\(\sigma\) 为表面张力，\(\alpha=k/(\rho c_p)\) 为热扩散率，\(h\) 为对流换热系数，\(\lambda_{\mathrm{mfp}}\) 为分子平均自由程。表中每个数都可以读成“某两种效应的比值”，这比死记公式更有用。</p>
+<div class="admonition warning"><div class="admonition-title">无量纲数的“典型值”不是常数</div><div class="admonition-body"><p>上表的量级只针对常规工况。微通道中 \(Re\) 可能只有 \(10\)，\(Kn\) 却接近 \(0.1\)，此时连续介质假设本身失效，N-S 方程不再适用。选模型前应先估算这些数，而不是套用经验。</p></div></div>
+<h2 id="相似准则">相似准则</h2>
+<p>两个流动“相似”，指它们的无量纲解相同。完整相似包含三层：</p>
+<ul>
+<li><strong>几何相似</strong>：所有长度成同一比例 \(L_m/L_p=\lambda\)；</li>
+<li><strong>运动学相似</strong>：速度场与时间尺度成比例，流线形状相同；</li>
+<li><strong>动力相似</strong>：所有力之比相同，即各 π 群相等。</li>
+</ul>
+<p>动力相似是核心。若模型与原型的所有独立 π 群都相等，则二者动力相似，测量结果可以按比例换算。但 π 群往往互相冲突：缩比后 \(Re\propto UL\) 与 \(Fr\propto U/\sqrt{gL}\) 不能同时保持，因为</p>
+<div class="math-block">\[\frac{Re_m}{Re_p}=\frac{U_mL_m}{U_pL_p},\qquad
+\frac{Fr_m}{Fr_p}=\frac{U_m/\sqrt{gL_m}}{U_p/\sqrt{gL_p}}.\]</div>
+<p>令两者都等于 1，会得到 \(U_m/U_p=\sqrt{\lambda}\) 与 \(U_m/U_p=1/\lambda\)，仅当 \(\lambda=1\) 时相容。这就是船模试验必须另建水池、而飞机模型必须用变密度风洞的原因。</p>
+<h3 id="风洞缩比实验的换算">风洞缩比实验的换算</h3>
+<p>设原型建筑高 \(L_p=50\ \mathrm{m}\)，来流 \(U_p=10\ \mathrm{m/s}\)，空气运动粘度 \(\nu=1.5\times10^{-5}\ \mathrm{m^2/s}\)，则</p>
+<div class="math-block">\[Re_p=\frac{U_pL_p}{\nu}=\frac{10\times50}{1.5\times10^{-5}}\approx3.3\times10^{7}.\]</div>
+<p>取 \(1{:}10\) 模型，\(L_m=5\ \mathrm{m}\)。若坚持 \(Re\) 匹配，需要</p>
+<div class="math-block">\[U_m=\frac{Re_p\,\nu}{L_m}=\frac{3.3\times10^{7}\times1.5\times10^{-5}}{5}\approx100\ \mathrm{m/s},\]</div>
+<p>这不仅风机功率难以实现，\(Ma\) 也已接近 \(0.3\)，压缩性开始改变流场。工程上的处理办法有三类：</p>
+<ol>
+<li><strong>提高密度</strong>：用压力风洞把 \(\rho\) 提高数倍，可在较低 \(U\) 下达到同样的 \(Re\)；</li>
+<li><strong>改变介质</strong>：用运动粘度更小的气体或水，但介质改变会影响其它相似条件；</li>
+<li><strong>接受部分相似</strong>：在模型表面固定位置粘贴绊线（trip strip）强迫转捩，使分离点与原型一致。此时 \(Re\) 不匹配，但 \(C_p\) 分布在附着段几乎不变，阻力系数需另行修正。</li>
+</ol>
+<p>计算示例：若模型仍在 \(U_m=10\ \mathrm{m/s}\) 下运行，则 \(Re_m\approx3.3\times10^{6}\)，比原型低一个数量级。层流分离与湍流分离的分离点差异可达 \(30^\circ\) 以上，这正是缩比风洞数据不能直接外推到原型的根本原因。</p>
+<h2 id="在-cfd-中的应用">在 CFD 中的应用</h2>
+<h3 id="无量纲方程与参数选择">无量纲方程与参数选择</h3>
+<p>求解器通常允许输入有量纲量，但内部最好以无量纲形式推进。原因很实际：若直接以米、秒、帕计算，\(Re=10^7\) 的算例中粘性项系数为 \(10^{-7}\)，与对流项相差七个数量级，舍入误差会污染压力场。无量纲化后两者都是 \(O(1)\)，只是系数 \(1/Re\) 较小，数值行为更可预期。</p>
+<h3 id="y-与壁面分辨率">y+ 与壁面分辨率</h3>
+<p>壁面湍流由摩擦速度 \(u_\tau=\sqrt{\tau_w/\rho}\) 标定，第一层网格的无量纲高度为</p>
+<div class="math-block">\[y^+=\frac{y\,u_\tau}{\nu}.\]</div>
+<p>选型原则与湍流模型绑定：</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>目标 \(y^+\)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>低 \(Re\) 模型、LES</td>
+<td>\(y^+<1\)</td>
+<td>直接解析粘性底层，需 10 至 20 层边界层网格</td>
+</tr>
+<tr>
+<td>壁面函数</td>
+<td>\(30<y^+<300\)</td>
+<td>用经验律替代底层，避免落入 \(5<y^+<30\) 的缓冲层</td>
+</tr>
+<tr>
+<td>混合壁面处理</td>
+<td>\(y^+\) 连续过渡</td>
+<td>对 \(y^+\) 不敏感，但依赖实现质量</td>
+</tr>
+</tbody>
+</table>
+<p>\(y^+\) 不是网格尺寸，而是“当地摩擦速度下的雷诺数”。同一套网格在高速段与低速段会得到不同的 \(y^+\)，因此必须在流场收敛后回查，具体做法见 <a class="wiki-link" href="../ch3/mesh.html">网格生成</a>。</p>
+<h3 id="cfl-条件与-ma-的影响">CFL 条件与 Ma 的影响</h3>
+<p>显式格式的时间步受 CFL 条件限制。对可压缩流动，最快的信息是声波，特征速度为 \(U+a\)，因此</p>
+<div class="math-block">\[\mathrm{Co}=\frac{(U+a)\Delta t}{\Delta x}\le1.\]</div>
+<p>\(Ma\) 越大，\(a\) 项的相对贡献越小，但 \(U\) 本身增大，整体时间步仍会缩小；在 \(Ma>1\) 的超声速算例中，激波附近的网格若过密，\(\Delta t\) 会被压到极小，这是显式求解器的主要开销来源。工程上常改用隐式时间推进或局部时间步，以摆脱这一限制。相关的离散与稳定性分析见 <a class="wiki-link" href="../ch1/pde-foundations.html">偏微分方程基础</a>。</p>
+<div class="admonition tip"><div class="admonition-title">先用 π 群估参数</div><div class="admonition-body"><p>在动手建模前，用 π 群估一遍 \(Re\)、\(Ma\)、\(y^+\) 与 \(CFL\)，可以提前发现“网格量不可能达到”或“时间步小到无法接受”这类问题。量纲分析的收益往往在项目立项阶段最大。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>量纲齐次性是最基本的正确性检查；无量纲化把方程压缩到少数控制参数。</li>
+<li>π 定理的操作核心是量纲矩阵的秩与重复变量的选取，\(n-r\) 个 π 群构成完整的相似参数集。</li>
+<li>几何、运动学、动力相似缺一不可，但 \(Re\) 与 \(Fr\) 等准则在缩比时往往冲突，需要取舍或修正。</li>
+<li>在 CFD 中，\(Re\) 决定粘性分辨率，\(y^+\) 决定壁面处理方式，\(Ma\) 与 CFL 决定时间步。</li>
+</ul>
+<p>具体到工程选型与实验对比，可继续阅读 <a class="wiki-link" href="../ch2/engineering-applications.html">工程应用</a>；需要把无量纲参数落到网格与边界条件上时，见 <a class="wiki-link" href="../ch3/mesh.html">网格生成</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch1/tensor-analysis.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">张量分析与应力</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch1/pde-foundations.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">偏微分方程基础</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch1/dimensional-analysis.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#量纲与单位">量纲与单位</a></li>
+<li><a href="#无量纲化的步骤">无量纲化的步骤</a></li>
+<li><a href="#buckingham-π-定理">Buckingham π 定理</a><ul>
+<li><a href="#从零推导圆柱绕流阻力">从零推导圆柱绕流阻力</a></li>
+</ul>
+</li>
+<li><a href="#常用无量纲数">常用无量纲数</a></li>
+<li><a href="#相似准则">相似准则</a><ul>
+<li><a href="#风洞缩比实验的换算">风洞缩比实验的换算</a></li>
+</ul>
+</li>
+<li><a href="#在-cfd-中的应用">在 CFD 中的应用</a><ul>
+<li><a href="#无量纲方程与参数选择">无量纲方程与参数选择</a></li>
+<li><a href="#y-与壁面分辨率">y+ 与壁面分辨率</a></li>
+<li><a href="#cfl-条件与-ma-的影响">CFL 条件与 Ma 的影响</a></li>
+</ul>
+</li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

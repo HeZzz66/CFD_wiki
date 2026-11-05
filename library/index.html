@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>论文与书籍 · CFD Wiki</title>
+  <meta name="description" content="上传 PDF、DOCX、HTML 文献，在线浏览，并在右侧笔记面板记录批注；支持服务端入库与浏览器本地存储两种方式。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head is-active" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner library-inner">
+  <article class="article library-article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <a href="../index.html">首页</a>
+      <span class="crumb-sep">/</span>
+      <span class="crumb-current">论文与书籍</span>
+    </nav>
+
+    <header class="page-header">
+      <div class="chapter-kicker">
+        <span class="chapter-kicker-num">LIBRARY</span>
+<span class="chapter-kicker-sub">上传 · 阅读 · 批注</span>      </div>
+      <h1 class="page-title">论文与书籍</h1>
+<p class="page-summary">上传 PDF、DOCX、HTML 文献，在线浏览，并在右侧笔记面板记录批注；支持服务端入库与浏览器本地存储两种方式。</p>      <div class="page-meta">
+        <span class="meta-chapter">论文与书籍</span>
+        <span class="meta-sep">·</span>
+        <span id="libraryCount">0 份文献</span>
+      </div>
+    </header>
+
+    <section class="library-upload" id="libraryUpload">
+      <div class="section-head compact">
+        <h2>上传文献</h2>
+        <p>支持 PDF、DOCX、HTML。服务端模式写入 <code>library/</code> 目录，浏览器模式存入本机 IndexedDB。</p>
+      </div>
+      <div class="upload-drop" id="uploadDrop">
+        <input type="file" id="uploadInput" accept=".pdf,.docx,.html,.htm" multiple hidden>
+        <span class="upload-icon" aria-hidden="true">↑</span>
+        <div class="upload-copy">
+          <strong>拖拽文件到这里</strong>
+          <span>或 <button class="link-btn" id="uploadPick" type="button">选择文件</button></span>
+        </div>
+        <div class="upload-hint">单文件不超过 200 MB，可一次选择多个</div>
+      </div>
+
+      <div class="upload-meta" id="uploadMeta" hidden>
+        <input id="uploadTitle" type="text" placeholder="标题（默认取文件名）">
+        <input id="uploadAuthors" type="text" placeholder="作者（可选）">
+        <input id="uploadYear" type="text" placeholder="年份（可选）" inputmode="numeric">
+        <button class="btn btn-primary" id="uploadConfirm" type="button">开始上传</button>
+        <button class="btn btn-ghost" id="uploadCancel" type="button">取消</button>
+      </div>
+      <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"></div>
+    </section>
+
+    <div class="article-body"><p>前六个章节是整理好的知识，这个分区放的是<strong>原始文献</strong>：期刊论文、教材章节、软件手册、技术报告。它们不适合改写成 Wiki 词条，但正是一手推导、实验数据与实现细节的来源。把文献与词条放在同一个站点里，读公式时可以随时翻回原文核对。</p>
+<h2 id="支持的文件类型">支持的文件类型</h2>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>扩展名</th>
+<th>在线阅读方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PDF</td>
+<td><code>.pdf</code></td>
+<td>浏览器内置 PDF 阅读器（吸附式嵌入），可缩放、翻页、全文检索</td>
+</tr>
+<tr>
+<td>Word</td>
+<td><code>.docx</code></td>
+<td>上传时自动转换为 HTML（保留标题、段落、表格），在阅读器中直接浏览</td>
+</tr>
+<tr>
+<td>网页</td>
+<td><code>.html</code> / <code>.htm</code></td>
+<td>沙箱 iframe 渲染，外部脚本不会影响主站</td>
+</tr>
+</tbody>
+</table>
+<p>单文件上限 200 MB。上传时填写标题、作者与年份，列表按上传时间倒序排列。</p>
+<h2 id="两种存储方式">两种存储方式</h2>
+<p>站点是纯静态的，因此上传行为分两种情况：</p>
+<ul>
+<li><strong>本地服务模式</strong>：用 <code>python build.py --serve</code> 打开。文件写入项目根目录的 <code>library/files/</code>，元数据写入 <code>library/manifest.json</code>，转换后的 DOCX 预览写入 <code>library/previews/</code>。重新构建后依然存在，也可以随站点一起部署。</li>
+<li><strong>浏览器本地模式</strong>：直接双击 <code>site/index.html</code> 打开。文件存入浏览器的 IndexedDB，只在本机当前浏览器可见；清理浏览器数据会丢失。适合做临时书签式阅读。</li>
+</ul>
+<p>两种模式对使用者是透明的：页面会探测 <code>/api/library</code> 是否存在，有服务就走服务端，没有就退回本地存储。</p>
+<div class="admonition tip"><div class="admonition-title">建议</div><div class="admonition-body"><p>需要长期保存的文献请用 <code>--serve</code> 模式上传，文件会落在 <code>library/</code> 目录里，后续可以直接用 Git 或网盘同步。</p></div></div>
+<h2 id="阅读时做笔记">阅读时做笔记</h2>
+<p>每个文档页面的右栏都有「目录 / 笔记」两个标签。切到笔记后会出现一个可编辑的文本区：</p>
+<ul>
+<li>输入即自动保存，保存在当前页面对应的 <code>localStorage</code> 键下，刷新、切页、重启浏览器都不会丢；</li>
+<li>正文滚动时，笔记区按相同比例同步滚动，读到哪一段笔记也跟到对应位置；不需要同步可以在工具条里关掉；</li>
+<li>支持导出 Markdown，便于整理进自己的笔记软件；</li>
+<li>移动端右栏隐藏时，右下角的「笔记」浮动按钮会打开一个全屏面板。</li>
+</ul>
+<p>笔记按页面独立保存，因此同一章的不同小节可以分别记录，不会互相覆盖。</p></div>
+
+    <section class="library-search" id="librarySearch">
+      <div class="section-head compact">
+        <h2>文献检索</h2>
+        <p>检索近 1 年 arXiv、PoF、JFM、JCP、Nature Communications、Nature Machine Intelligence 与 NeurIPS / ICML / ICLR 中 AI for Science（流体力学）与神经算子论文，按关键词分类并给出简介；每周一自动更新上一周文献。</p>
+      </div>
+
+      <div class="search-keywords" id="searchKeywords"></div>
+      <div class="search-addrow">
+        <input type="text" id="searchKeywordInput" placeholder="添加自定义关键词，回车确认（如 “turbulence closure”）">
+        <button class="btn btn-ghost" id="searchKeywordAdd" type="button">添加</button>
+      </div>
+      <div class="search-actions">
+        <button class="btn btn-primary" id="searchRun" type="button">执行检索 · 近 1 年</button>
+        <span class="search-status" id="searchStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="search-meta" id="searchMeta"></div>
+
+      <div class="search-results" id="searchResults"></div>
+    </section>
+
+    <section class="library-shelf">
+      <div class="section-head compact">
+        <h2>馆藏</h2>
+        <p>点击条目进入阅读器，阅读时可在右侧面板做笔记。</p>
+      </div>
+      <div class="library-grid" id="libraryGrid">
+      </div>
+      <div class="library-empty" id="libraryEmpty" >
+        还没有文献。上传第一篇论文或教材章节，它会出现在这里。
+      </div>
+    </section>
+  </article>
+</div>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-papers.js" defer></script>
+<script src="../library-index.js" defer></script>
+<script src="../assets/js/library.js" defer></script>
+</body>
+</html>

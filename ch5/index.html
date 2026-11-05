@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>本章导览 · CFD Wiki</title>
+  <meta name="description" content="AI for CFD 的两条路线——物理约束（PINN、PINO）与数据驱动算子学习（FNO、DeepONet、U-Net）；给出方法定位表、阅读顺序与前置知识。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+  <script src="../assets/js/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'loose',
+      theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'neutral',
+      flowchart: { curve: 'basis' }
+    });
+  </script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch5/index.html">AI for CFD</a>
+    </nav>
+
+    <header class="page-header">
+        <div class="chapter-kicker">
+          <span class="chapter-kicker-num">CHAPTER 5</span>
+<span class="chapter-kicker-sub">PINN · FNO · DeepONet · U-Net · PINO</span>        </div>
+      <h1 class="page-title">本章导览</h1>
+        <p class="page-summary">AI for CFD 的两条路线——物理约束（PINN、PINO）与数据驱动算子学习（FNO、DeepONet、U-Net）；给出方法定位表、阅读顺序与前置知识。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">AI for CFD</span>
+        <span class="meta-sep">·</span>
+        <span>约 1981 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#AI4CFD</span><span class="tag">#神经算子</span><span class="tag">#学习路径</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>传统 CFD 的成本结构是“每个工况一次离散、一次迭代求解”。网格加密一倍，二维计算量约涨四倍，三维约涨八倍；而设计优化、参数反演、实时控制往往需要成百上千次求解。AI for CFD 的核心动机，是把“从输入场到解场”的映射本身学下来，用一次前向传播替代一次迭代求解。</p>
+<p>先划清边界：本章的方法都建立在数值解或实验数据之上，它们不替代离散格式与湍流模型，而是与之互补——用数值解做标签，用 PDE 做约束。对<a class="wiki-link" href="../ch2/governing-equations.html">控制方程</a>与<a class="wiki-link" href="../ch4/dns.html">直接数值模拟</a>的清楚理解，仍然是读懂本章的前提。</p>
+<h2 id="两条技术路线">两条技术路线</h2>
+<p><strong>路线一：物理约束。</strong> 把 PDE 残差写进损失函数，用自动微分在配点上求导。代表是 PINN：输入为坐标 \((\mathbf{x},t)\)，输出为该点的解，训练不需要标签，只需要方程、边界条件与初值条件。当输入从“坐标”换成“输入函数 \(a(\mathbf{x})\)”、输出换成整个解场时，就得到 PINO。</p>
+<p><strong>路线二：数据驱动算子学习。</strong> 从成对的（输入，解）数据中学习映射 \(G\)。FNO 用谱卷积在频域做全局卷积，DeepONet 用 branch/trunk 双网络分解，U-Net 用编码-解码结构做像素级的场映射。三者都可以在损失里追加物理项，因此两条路线并非对立。</p>
+<h2 id="统一记号">统一记号</h2>
+<p>本章统一用 \(a\) 表示输入函数（初始条件、边界条件、材料系数、几何参数等），\(u\) 表示对应的解，\(G\) 表示从输入函数到解函数的算子：</p>
+<div class="math-block">\[G: a \mapsto u, \qquad u = G(a).\]</div>
+<p>“学习算子”就是构造带参数 \(\theta\) 的网络 \(\mathcal{N}_\theta\)，使其在输入分布 \(\mu\) 上逼近 \(G\)：</p>
+<div class="math-block">\[\mathcal{N}_\theta \approx G \quad \text{for}\quad a \sim \mu .\]</div>
+<p>损失的一般形式是数据项与物理项的加权和：</p>
+<div class="math-block">\[\mathcal{L}(\theta) = \lambda_d\,\mathcal{L}_{data}(\theta) + \lambda_p\,\mathcal{L}_{phys}(\theta),\]</div>
+<p>其中 \(\lambda_d,\lambda_p\) 是平衡权重，\(\mathcal{L}_{phys}\) 可以取 PDE 残差、边界条件偏差或守恒量误差。几乎所有模型页的差别，都可以归结为“\(\mathcal{N}_\theta\) 长什么样”与“\(\mathcal{L}_{phys}\) 怎么算”。</p>
+<h2 id="方法定位">方法定位</h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>输入 → 输出</th>
+<th>物理损失</th>
+<th>擅长</th>
+<th>局限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="wiki-link" href="../ch5/pinns.html">PINNs</a></td>
+<td>坐标 → 该点解</td>
+<td>必需</td>
+<td>逆问题、稀疏数据、任意几何</td>
+<td>训练慢、多尺度与刚性方程困难</td>
+</tr>
+<tr>
+<td><a class="wiki-link" href="../ch5/fno.html">FNO</a></td>
+<td>网格上的场 → 网格上的场</td>
+<td>通常不含，可追加</td>
+<td>平滑周期场、分辨率泛化</td>
+<td>非周期边界与陡间断表现差</td>
+</tr>
+<tr>
+<td><a class="wiki-link" href="../ch5/deeponet.html">DeepONet</a></td>
+<td>传感器值 + 查询点 → 查询点解</td>
+<td>可追加</td>
+<td>稀疏传感器、任意查询位置</td>
+<td>传感器布置需固定，branch 容量受限</td>
+</tr>
+<tr>
+<td><a class="wiki-link" href="../ch5/unet.html">U-Net</a></td>
+<td>图像式场 → 图像式场</td>
+<td>可选</td>
+<td>稳态场回归、超分、亚格子闭合</td>
+<td>分辨率绑定、需要较多数据</td>
+</tr>
+<tr>
+<td><a class="wiki-link" href="../ch5/ifno.html">IFNO</a></td>
+<td>场 → 场，隐式深度</td>
+<td>可追加</td>
+<td>大感受野、参数高效</td>
+<td>不动点收敛与训练稳定性难调</td>
+</tr>
+<tr>
+<td><a class="wiki-link" href="../ch5/pino.html">PINO</a></td>
+<td>输入函数 → 解函数</td>
+<td>数据 + 残差</td>
+<td>多参数泛化且满足 PDE</td>
+<td>残差计算昂贵、权重敏感</td>
+</tr>
+</tbody>
+</table>
+<h2 id="一章的流程">一章的流程</h2>
+<div class="mermaid-figure"><pre class="mermaid">flowchart TD
+    A[&quot;PDE 与边界/初值条件&quot;] --&gt; B{&quot;是否有成对数据&quot;}
+    B --&gt;|&quot;有&quot;| C[&quot;数据驱动算子学习&quot;]
+    B --&gt;|&quot;很少或没有&quot;| D[&quot;物理约束训练&quot;]
+    C --&gt; E[&quot;FNO / DeepONet / U-Net&quot;]
+    D --&gt; F[&quot;PINN / PINO&quot;]
+    E --&gt; G[&quot;一次前向得到全场&quot;]
+    F --&gt; G
+    G --&gt; H[&quot;评价：相对 L2、频谱、守恒&quot;]</pre></div>
+<h2 id="建议的阅读顺序">建议的阅读顺序</h2>
+<ol>
+<li>先读 <a class="wiki-link" href="../ch5/pinns.html">PINNs</a>：它把“残差损失 + 自动微分”讲透，是后面所有物理项的基础。</li>
+<li>再读 <a class="wiki-link" href="../ch5/fno.html">FNO</a>：理解谱卷积为什么能做成离散化不变的算子层。</li>
+<li>接着读 <a class="wiki-link" href="../ch5/deeponet.html">DeepONet</a>：对照 branch/trunk 分解，体会“输入函数”可以有不同的编码方式。</li>
+<li>工程上最常见的是 <a class="wiki-link" href="../ch5/unet.html">U-Net</a>：结构简单、训练稳定，适合作为第一个可跑通的基线。</li>
+<li>有深度需求时看 <a class="wiki-link" href="../ch5/ifno.html">IFNO</a>，要把物理项加进算子时看 <a class="wiki-link" href="../ch5/pino.html">PINO</a>。</li>
+<li>最后用 <a class="wiki-link" href="../ch5/benchmarks.html">数据集与评价</a> 校准实验设计，避免“指标好看但物理不可信”。</li>
+</ol>
+<div class="admonition tip"><div class="admonition-title">先跑基线</div><div class="admonition-body"><p>新问题不要一上来就上 PINO。先用 U-Net 或 FNO 在中等分辨率上跑一个有监督基线，确认数据管线、归一化与评价指标无误，再逐步加入物理残差。多数失败来自数据与量纲，而不是网络结构。</p></div></div>
+<h2 id="三个共同问题">三个共同问题</h2>
+<p>无论哪条路线，都绕不开三件事：表示、约束与泛化。</p>
+<p><strong>表示</strong>决定网络能表达什么样的解。PINN 用 MLP 的隐式基函数；FNO 用截断的傅里叶模态；DeepONet 的基由 trunk 学出；U-Net 用局部卷积核叠加。基的选择直接决定对高频、间断与边界的表达能力：傅里叶基擅长平滑周期场，局部卷积核擅长边界与局部结构，MLP 则介于两者之间。</p>
+<p><strong>约束</strong>决定解是否可信。数据项只在观测点上起作用，物理项在配点上起作用，边界项在边界上起作用。三者缺一，网络就会在未约束的区域自由发挥：没有边界项，解在壁面附近漂移；没有物理项，网络可能拟合出违反守恒律的场。</p>
+<p><strong>泛化</strong>决定模型能否上线。分辨率变化考验离散化不变性，雷诺数变化考验参数外推，几何变化考验表示的灵活性。三者难度依次递增，报告结果时要分别说明。</p>
+<p>一个反复出现的经验是：误差通常不出在“网络不够深”，而出在“约束没写对”。边界条件漏了一个面、归一化统计量用了测试集、残差项量纲不统一，都会让最先进的架构退化到不如双线性插值。</p>
+<h2 id="与数值方法的关系">与数值方法的关系</h2>
+<p>AI 模型本身不产生新的离散格式，它的训练数据来自数值解或实验。因此更合理的定位是“代理”而非“替代”：用成熟求解器生成高质量数据，用网络做快速预测；预测结果再交给求解器做校正，或作为迭代初值加速收敛。混合方案在工程上通常比端到端替代更可靠，因为它保留了数值方法的守恒性与误差控制。</p>
+<p>数据生成成本也值得提前估算：一次三维湍流高保真计算可能要数天，而成对样本往往需要成百上千组。这个成本经常超过训练网络本身，是选型时最容易被低估的一项。</p>
+<p>另一个现实约束是训练时间：PINN 单次训练动辄数小时到数天，而一次二维 RANS 计算可能只要几分钟。因此 PINN 的优势不在“更快求解单个工况”，而在“没有网格、能融合稀疏观测、能做反演”。把两类成本放在同一张表里比较，才能做出合理选择。</p>
+<p>还有一点常被忽略：网络推理是确定性的，但训练不是。同一份数据、同一套超参数，换个随机种子可能得到误差相差一个数量级的模型。工程部署前应至少跑三次，记录均值与方差，而不是挑最好的一次。</p>
+<h2 id="本章不涉及的内容">本章不涉及的内容</h2>
+<p>强化学习控制、扩散模型生成流场、以及把大语言模型用于 CFD 工作流，都不在本章范围内。它们与本章方法有交集，但评价体系与工程成熟度差异较大，留待后续补充。</p>
+    </div>
+
+    <section class="chapter-toc">
+      <div class="section-head compact">
+        <h2>本章内容</h2>
+        <p>7 篇文章，按建议阅读顺序排列。</p>
+      </div>
+      <div class="chapter-pages-grid">
+        <a class="chapter-page-card" href="../ch5/pinns.html">
+          <span class="cp-index">01</span>
+          <span class="cp-text">
+            <strong>PINNs：物理信息神经网络</strong>
+<small>用一个 MLP 表示解 u(x,t)，用自动微分计算 PDE 残差，把数据、方程、边界与初值四项损失加权组合，并讨论软硬约束、权重平衡与训练策略。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../ch5/fno.html">
+          <span class="cp-index">02</span>
+          <span class="cp-text">
+            <strong>FNO：傅里叶神经算子</strong>
+<small>用谱卷积在频域截断低频模态，学习从输入场到解场的算子；推导傅里叶层的离散形式，给出 SpectralConv2d 的 PyTorch 实现与分辨率泛化条件。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../ch5/deeponet.html">
+          <span class="cp-index">03</span>
+          <span class="cp-text">
+            <strong>DeepONet</strong>
+<small>用 branch net 编码输入函数的传感器读数、trunk net 编码查询坐标，以两者的内积逼近算子；介绍 Chen–Chen 定理、采样策略、POD 变体与 PyTorch 实现。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../ch5/unet.html">
+          <span class="cp-index">04</span>
+          <span class="cp-text">
+            <strong>U-Net 与场映射</strong>
+<small>把 U-Net 看作像素到像素的场映射网络，说明编码-瓶颈-解码与 skip connection 的作用，给出稳态场预测、超分辨率与 LES 亚格子建模中的用法与 PyTorch 实现。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../ch5/ifno.html">
+          <span class="cp-index">05</span>
+          <span class="cp-text">
+            <strong>IFNO：隐式傅里叶神经算子</strong>
+<small>用共享权重的不动点迭代代替堆叠的傅里叶层，使有效深度不受显式层数限制；讨论隐式微分、收敛判据、稳定性与 PyTorch 示意实现。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../ch5/pino.html">
+          <span class="cp-index">06</span>
+          <span class="cp-text">
+            <strong>PINO：物理信息神经算子</strong>
+<small>在算子学习的数据损失之外，用自动微分在查询点上计算 PDE 残差，使一个网络对多组输入函数都给出近似满足方程的解；讨论残差归一化、课程学习与权重平衡。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../ch5/benchmarks.html">
+          <span class="cp-index">07</span>
+          <span class="cp-text">
+            <strong>数据集、评价指标与训练实践</strong>
+<small>汇总 PDEBench、Darcy flow、Burgers、圆柱绕流与湍流通道等常用基准，给出相对 L2、RMSE、H1、频谱与守恒误差的定义，并讨论归一化、数据泄漏与分辨率泛化。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch4/implementation.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">C++ 与 Fortran 实现</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch5/pinns.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">PINNs：物理信息神经网络</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch5/index.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#两条技术路线">两条技术路线</a></li>
+<li><a href="#统一记号">统一记号</a></li>
+<li><a href="#方法定位">方法定位</a></li>
+<li><a href="#一章的流程">一章的流程</a></li>
+<li><a href="#建议的阅读顺序">建议的阅读顺序</a></li>
+<li><a href="#三个共同问题">三个共同问题</a></li>
+<li><a href="#与数值方法的关系">与数值方法的关系</a></li>
+<li><a href="#本章不涉及的内容">本章不涉及的内容</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

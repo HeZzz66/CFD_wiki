@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>CFD Wiki · 计算流体力学知识库</title>
+  <meta name="description" content="计算流体力学开放知识库：从数学基础、控制方程、数值方法，到湍流、AI for CFD 与工程后处理。">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="assets/css/pygments.css">
+  <link rel="stylesheet" href="assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="" class="page-home">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home is-active" href="index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="home">
+  <section class="hero">
+    <div class="hero-text">
+      <span class="hero-eyebrow">OPEN KNOWLEDGE BASE FOR CFD</span>
+      <h1>把计算流体力学<br><em>拆成可以学会的每一步</em></h1>
+      <p class="hero-lead">从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="ch1/index.html">从第一章开始 <span aria-hidden="true">→</span></a>
+        <a class="btn btn-ghost" href="ch3/index.html">直达 CFD 核心</a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><strong>6</strong><span>章节</span></div>
+        <div class="hero-stat"><strong>38</strong><span>篇文章</span></div>
+        <div class="hero-stat"><strong>91,911</strong><span>字内容</span></div>
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <svg viewBox="0 0 520 430" role="img">
+        <defs>
+          <linearGradient id="flowGradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="var(--accent)"/>
+            <stop offset="1" stop-color="var(--teal)"/>
+          </linearGradient>
+          <pattern id="heroGrid" width="26" height="26" patternUnits="userSpaceOnUse">
+            <path d="M26 0H0V26" fill="none" stroke="var(--border)" stroke-width="1" opacity=".7"/>
+          </pattern>
+        </defs>
+        <rect x="0" y="0" width="520" height="430" rx="24" fill="url(#heroGrid)"/>
+        <rect x="0" y="0" width="520" height="430" rx="24" fill="none" stroke="var(--border)"/>
+
+        <g fill="none" stroke="url(#flowGradient)" stroke-linecap="round">
+          <path d="M22 118 C 130 118, 170 84, 260 82 C 350 80, 410 104, 498 96" stroke-width="2.2" opacity=".9"/>
+          <path d="M22 154 C 120 154, 180 132, 262 130 C 350 128, 404 146, 498 140" stroke-width="1.7" opacity=".72"/>
+          <path d="M22 196 C 110 196, 148 182, 190 190" stroke-width="1.5" opacity=".55"/>
+          <path d="M22 250 C 120 250, 170 246, 220 248" stroke-width="1.5" opacity=".55"/>
+          <path d="M22 292 C 130 292, 190 322, 268 326 C 350 330, 420 310, 498 302" stroke-width="1.9" opacity=".8"/>
+          <path d="M22 330 C 140 330, 200 352, 280 354 C 370 356, 430 340, 498 334" stroke-width="1.5" opacity=".55"/>
+        </g>
+
+        <path d="M126 211 C 154 187, 214 179, 284 189 C 344 198, 394 206, 424 211 C 384 221, 304 226, 224 216 C 174 210, 144 212, 126 211 Z"
+              fill="url(#flowGradient)" opacity=".92"/>
+        <path d="M126 211 C 154 187, 214 179, 284 189 C 344 198, 394 206, 424 211"
+              fill="none" stroke="var(--surface)" stroke-width="1.4" opacity=".55"/>
+
+        <g font-family="'JetBrains Mono', 'Cascadia Code', monospace" font-size="13" fill="var(--text)">
+          <rect x="32" y="30" width="126" height="38" rx="10" fill="var(--surface)" stroke="var(--border)"/>
+          <text x="46" y="54" opacity=".9">∇ · u = 0</text>
+
+          <rect x="358" y="356" width="130" height="38" rx="10" fill="var(--surface)" stroke="var(--border)"/>
+          <text x="372" y="380" opacity=".9">Re = 1.2×10⁶</text>
+
+          <rect x="336" y="230" width="112" height="34" rx="9" fill="var(--surface)" stroke="var(--border)"/>
+          <text x="349" y="252" font-size="12" opacity=".75">k–ω SST</text>
+        </g>
+
+        <g fill="var(--muted)" font-family="'JetBrains Mono', monospace" font-size="11">
+          <text x="40" y="404">x/c</text>
+          <text x="468" y="150">U∞</text>
+        </g>
+        <path d="M446 136 L 486 136 M 478 131 L 486 136 L 478 141" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>
+        <circle cx="155" cy="208" r="3.4" fill="var(--accent)"/>
+      </svg>
+    </div>
+  </section>
+
+  <section class="chapters-section">
+    <div class="section-head">
+      <div>
+        <span class="section-eyebrow">CONTENTS</span>
+        <h2>六章，从数学到后处理</h2>
+      </div>
+      <p>建议按顺序阅读；每章独立成篇，也可以按需跳读。</p>
+    </div>
+
+    <div class="chapter-grid">
+      <a class="chapter-card" href="ch1/index.html">
+        <div class="chapter-card-top">
+          <span class="chapter-number">01</span>
+          <span class="chapter-read">阅读 →</span>
+        </div>
+        <h3>流体力学中的数学基础</h3>
+        <p>先把流体力学使用的数学语言讲清楚：标量场与矢量场、梯度散度旋度、张量与应力、π 定理与相似准则，以及守恒型偏微分方程的分类与弱解。</p>
+        <div class="chapter-card-foot">
+          <span>5 篇</span>
+<span class="chapter-subtitle">场论 · 张量 · 量纲分析 · 偏微分方程</span>        </div>
+      </a>
+      <a class="chapter-card" href="ch2/index.html">
+        <div class="chapter-card-top">
+          <span class="chapter-number">02</span>
+          <span class="chapter-read">阅读 →</span>
+        </div>
+        <h3>流体力学基本概念</h3>
+        <p>从连续介质假设与流体性质出发，建立欧拉/拉格朗日描述、连续性方程、动量方程与能量方程，并落到伯努利、边界层和典型工程应用。</p>
+        <div class="chapter-card-foot">
+          <span>7 篇</span>
+<span class="chapter-subtitle">流体性质 · 运动学 · 守恒方程 · 工程应用</span>        </div>
+      </a>
+      <a class="chapter-card" href="ch3/index.html">
+        <div class="chapter-card-top">
+          <span class="chapter-number">03</span>
+          <span class="chapter-read">阅读 →</span>
+        </div>
+        <h3>CFD 数值方法基础</h3>
+        <p>从守恒方程的积分形式出发，讲清有限体积法与有限元法的离散思想、网格与误差控制、常用数据格式，以及商业软件和完整求解流程。</p>
+        <div class="chapter-card-foot">
+          <span>7 篇</span>
+<span class="chapter-subtitle">有限体积 · 有限元 · 网格 · 数据格式</span>        </div>
+      </a>
+      <a class="chapter-card" href="ch4/index.html">
+        <div class="chapter-card-top">
+          <span class="chapter-number">04</span>
+          <span class="chapter-read">阅读 →</span>
+        </div>
+        <h3>湍流模型</h3>
+        <p>从湍流统计与能量级串出发，讲清 DNS、fDNS、LES、RANS 的数学结构、模型假设与数值实现，并给出 Python、C++、Fortran 代码。</p>
+        <div class="chapter-card-foot">
+          <span>6 篇</span>
+<span class="chapter-subtitle">DNS · LES · RANS · 多语言实现</span>        </div>
+      </a>
+      <a class="chapter-card" href="ch5/index.html">
+        <div class="chapter-card-top">
+          <span class="chapter-number">05</span>
+          <span class="chapter-read">阅读 →</span>
+        </div>
+        <h3>AI for CFD</h3>
+        <p>系统梳理物理信息神经网络与神经算子：从 PINN 的残差损失，到 FNO、DeepONet、U-Net、IFNO、PINO 的数学结构、Loss 设计与 PyTorch 表达。</p>
+        <div class="chapter-card-foot">
+          <span>8 篇</span>
+<span class="chapter-subtitle">PINN · FNO · DeepONet · U-Net · PINO</span>        </div>
+      </a>
+      <a class="chapter-card" href="ch6/index.html">
+        <div class="chapter-card-top">
+          <span class="chapter-number">06</span>
+          <span class="chapter-read">阅读 →</span>
+        </div>
+        <h3>后处理与可视化</h3>
+        <p>把求解器输出的网格与场数据变成可读的图表：Tecplot 操作流程、Python 读写各类 CFD 格式、常用后处理算法实现与出版级出图。</p>
+        <div class="chapter-card-foot">
+          <span>5 篇</span>
+<span class="chapter-subtitle">Tecplot · Python · 场数据可视化</span>        </div>
+      </a>
+      <a class="chapter-card" href="library/index.html">
+        <div class="chapter-card-top">
+          <span class="chapter-number">07</span>
+          <span class="chapter-read">阅读 →</span>
+        </div>
+        <h3>论文与书籍</h3>
+        <p>把论文、书籍、技术报告与技术文档集中到一个阅读分区：支持 PDF、DOCX、HTML 上传与在线阅读，阅读时可在右侧面板随时记笔记。</p>
+        <div class="chapter-card-foot">
+          <span>1 篇</span>
+<span class="chapter-subtitle">上传 · 阅读 · 批注</span>        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="home-papers">
+    <div class="section-head">
+      <div>
+        <span class="section-eyebrow">LATEST PAPERS</span>
+        <h2>每周最新文献</h2>
+      </div>
+      <p>AI for Science（流体力学）与神经算子方向，来自 arXiv / 期刊 / 顶会的新作。<a href="library/index.html">查看全部 →</a></p>
+    </div>
+
+    <div class="home-papers-grid" id="homePapersGrid"></div>
+    <div class="home-papers-meta" id="homePapersMeta"></div>
+  </section>
+
+  <section class="home-intro article-body">
+    <h2 id="这是什么">这是什么</h2>
+<p>CFD Wiki 是一个以“可推导、可运行、可工程化”为目标的计算流体力学知识库。它不追求罗列结论，而是尽量把每个结论背后的假设、公式来源和适用边界讲清楚，并给出可以直接改写的代码。</p>
+<p>全站目前分为六章：数学基础、流体力学基本概念、CFD 数值方法、湍流模型、AI for CFD、后处理与工程实践。每一章都可以独立阅读，但整体按“先数学、再物理、后数值与工程”的顺序组织。</p>
+<h2 id="如何使用本站">如何使用本站</h2>
+<ol>
+<li><strong>按顺序读</strong>：第一次系统学习，建议从<a href="ch1/index.html">第一章</a>开始；已经具备场论基础，可以直接进入<a href="ch2/index.html">第二章</a>。</li>
+<li><strong>按问题查</strong>：用右上角搜索（<code>Ctrl + K</code>）定位术语，例如 <code>SIMPLE</code>、<code>k-ω SST</code>、<code>FNO</code>、<code>Q 判据</code>。</li>
+<li><strong>按代码改</strong>：涉及算法的页面通常同时给出数学表达与 Python / C++ / Fortran 片段，复制后替换参数即可试验。</li>
+</ol>
+<div class="admonition tip"><div class="admonition-title">阅读约定</div><div class="admonition-body"><p>公式中的矢量用粗体或指标记法表示；<code>\(\nabla\)</code> 统一表示笛卡尔坐标下的 Nabla 算子；代码块上方一般会说明依赖库与输入输出。若公式在页面中显示异常，请确认网络可访问 MathJax CDN。</p></div></div>
+<h2 id="内容地图">内容地图</h2>
+<table>
+<thead>
+<tr>
+<th>章节</th>
+<th>核心问题</th>
+<th>你会得到</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一章</td>
+<td>流体力学用到哪些数学工具？</td>
+<td>场论、张量、量纲分析、PDE 分类</td>
+</tr>
+<tr>
+<td>第二章</td>
+<td>流体如何运动、如何受力？</td>
+<td>连续性、动量、能量方程与工程应用</td>
+</tr>
+<tr>
+<td>第三章</td>
+<td>计算机如何求解这些方程？</td>
+<td>FVM、FEM、网格、数据格式与商业软件</td>
+</tr>
+<tr>
+<td>第四章</td>
+<td>湍流如何处理？</td>
+<td>DNS、LES、RANS 的公式与实现</td>
+</tr>
+<tr>
+<td>第五章</td>
+<td>神经网络如何参与 CFD？</td>
+<td>PINN、FNO、DeepONet、U-Net、PINO</td>
+</tr>
+<tr>
+<td>第六章</td>
+<td>结果如何看、如何算？</td>
+<td>Tecplot 教程与 Python 后处理代码</td>
+</tr>
+</tbody>
+</table>
+<h2 id="关于公式与代码">关于公式与代码</h2>
+<p>本站的公式使用 LaTeX 书写，由 MathJax 在浏览器端渲染；代码块由 Pygments 做语法高亮。所有代码都以“说明原理”为首要目标，生产环境使用前仍需要补充边界检查、异常处理与性能优化。</p>
+<p><a id="extend"></a></p>
+<h2 id="扩展本站">扩展本站</h2>
+<p>本站的导航由文件系统自动生成，新增内容不需要修改生成器：</p>
+<ul>
+<li>新增章节：在 <code>content/</code> 下建立目录，并添加 <code>_chapter.json</code>（标题、副标题、顺序）。</li>
+<li>新增页面：在同目录放置 <code>.md</code> 文件，用 front matter 写 <code>title</code>、<code>order</code>、<code>summary</code>、<code>tags</code>。</li>
+<li>构建预览：运行 <code>python build.py --serve</code>。</li>
+</ul>
+<p>具体规范见项目根目录的 <code>README.md</code>。</p>
+  </section>
+
+  <section class="feature-strip">
+    <div class="feature-item">
+      <span class="feature-icon">∑</span>
+      <h3>数学先行</h3>
+      <p>场论、张量、量纲分析与偏微分方程，先把符号和推导讲清楚。</p>
+    </div>
+    <div class="feature-item">
+      <span class="feature-icon">{ }</span>
+      <h3>公式配代码</h3>
+      <p>每个模型都给出数学表达与 Python / C++ / Fortran 实现，可直接改写。</p>
+    </div>
+    <div class="feature-item">
+      <span class="feature-icon">↗</span>
+      <h3>面向工程</h3>
+      <p>从网格、求解器到 Tecplot 与 Python 后处理，串起完整工作流。</p>
+    </div>
+  </section>
+</div>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="search-index.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+<script src="library-papers.js" defer></script>
+<script src="assets/js/home.js" defer></script>
+</body>
+</html>

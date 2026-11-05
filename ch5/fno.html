@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>FNO：傅里叶神经算子 · CFD Wiki</title>
+  <meta name="description" content="用谱卷积在频域截断低频模态，学习从输入场到解场的算子；推导傅里叶层的离散形式，给出 SpectralConv2d 的 PyTorch 实现与分辨率泛化条件。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link is-active" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch5/index.html">AI for CFD</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">FNO：傅里叶神经算子</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">FNO：傅里叶神经算子</h1>
+        <p class="page-summary">用谱卷积在频域截断低频模态，学习从输入场到解场的算子；推导傅里叶层的离散形式，给出 SpectralConv2d 的 PyTorch 实现与分辨率泛化条件。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">AI for CFD</span>
+        <span class="meta-sep">·</span>
+        <span>约 2435 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#FNO</span><span class="tag">#神经算子</span><span class="tag">#谱卷积</span><span class="tag">#频域</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>FNO 要学的不是某一个解，而是“给定任意输入场 \(a\)，输出对应解 \(u\)”的映射。它把卷积核搬到频域：在低频模态上做复数线性变换，再变换回物理空间。这样一次前向就能得到全场，而且同一组权重可以在不同分辨率上使用。</p>
+<h2 id="算子学习的目标">算子学习的目标</h2>
+<p>设算子 \(G\) 把输入函数 \(a\) 映到解 \(u\)：</p>
+<div class="math-block">\[G: a(\mathbf{x}) \mapsto u(\mathbf{x}), \qquad \mathbf{x} \in \Omega \subset \mathbb{R}^2 .\]</div>
+<p>训练数据是若干组离散样本 \(\{a_i, u_i\}_{i=1}^{N}\)，每组都定义在 \(n \times n\) 的规则网格上。网络 \(\mathcal{N}_\theta\) 的目标是在网格上逐点匹配：</p>
+<div class="math-block">\[\mathcal{N}_\theta(a_i)(\mathbf{x}_j) \approx u_i(\mathbf{x}_j),
+\quad j = 1,\dots,n^2 .\]</div>
+<p>与 PINN 不同，这里没有“坐标输入”，输入是整个场；与 U-Net 不同，网络层本身带全局感受野，而不是靠堆叠下采样获得。</p>
+<h2 id="谱卷积">谱卷积</h2>
+<p>设第 \(t\) 层的特征为 \(v_t:\Omega \to \mathbb{R}^{c}\)。FNO 层由三部分组成：逐点线性变换 \(W\)、谱卷积、偏置 \(b\)，再加激活 \(\sigma\)：</p>
+<div class="math-block">\[v_{t+1}(\mathbf{x}) = \sigma\left(
+W v_t(\mathbf{x})
++ \mathcal{F}^{-1}\left[ R_\phi \cdot \mathcal{F}(v_t) \right](\mathbf{x})
++ b
+\right),\]</div>
+<p>其中 \(\mathcal{F}\) 是二维傅里叶变换，\(R_\phi\) 是可学习的复数权重。关键在于 \(R_\phi\) 只作用在前 \(k_{max}\) 个低频模态上，更高频的系数被直接置零。写成离散形式：</p>
+<div class="math-block">\[\widehat{v}_{t+1}(k) = \sum_{j=1}^{c} R_{\phi,j}(k)\,\widehat{v}_{t,j}(k),
+\qquad \Vert k \Vert_\infty \le k_{max},\]</div>
+<p>\(k=(k_1,k_2)\) 是波数，\(\widehat{v}\) 是傅里叶系数。低频承载大尺度结构，高频承载小尺度细节；截断 \(k_{max}\) 相当于给算子一个可调的“带宽”。</p>
+<h3 id="与普通卷积的关系">与普通卷积的关系</h3>
+<p>由卷积定理，频域逐点相乘等价于空域的全域卷积。普通 \(3\times3\) 卷积要覆盖 \(128\times128\) 的场，需要堆叠数十层；谱卷积一次就把所有位置耦合起来，参数量只有 \(k_{max}^2\) 个模态权重。代价是权重在全域共享，无法表达“位置相关”的卷积核——对几何变化剧烈的问题，这是明显限制。</p>
+<h3 id="为什么能跨分辨率">为什么能跨分辨率</h3>
+<p>参数 \(R_\phi\) 的维度只与通道数和 \(k_{max}\) 有关，与网格数 \(n\) 无关。把同一组权重复用到 \(2n \times 2n\) 的网格上时，只需在新的频域网格上取对应的低频块。这被称为<strong>离散化不变性</strong>：算子作用在函数上，而网格只是它的一种表示。实际中高分辨率外推仍会衰减，因为训练时未见的高频模态被截断了。</p>
+<div class="admonition note"><div class="admonition-title">边界条件</div><div class="admonition-body"><p>傅里叶变换隐含周期假设。对非周期问题，通常的做法是补零（zero-padding）后变换，或额外输入坐标通道让网络自己修正边界。完全依赖谱卷积处理强非周期边界，效果通常不好。</p></div></div>
+<h2 id="网络结构">网络结构</h2>
+<p>FNO 的前向分三步。</p>
+<ol>
+<li><strong>Lifting</strong>：用 \(1\times1\) 卷积把输入通道（物理量 \(a\)，可选坐标通道）升到宽度 \(w\)，得到 \(v_0\)。</li>
+<li><strong>Fourier blocks</strong>：堆叠 \(L\) 个谱卷积层，每层保持宽度 \(w\) 不变，通道数不随深度变化。</li>
+<li><strong>Projection</strong>：用两层 \(1\times1\) 卷积（中间加激活）把 \(w\) 通道压到输出通道数，得到 \(u\)。</li>
+</ol>
+<p>投影层之后通常不再接归一化，输出直接对应物理量（或标准化后的物理量）。推理时若训练阶段对标签做过标准化，必须在这里反变换，否则误差会被整体缩放掩盖。</p>
+<table>
+<thead>
+<tr>
+<th>超参数</th>
+<th>典型取值</th>
+<th>影响</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>宽度 \(w\)</td>
+<td>32–64</td>
+<td>通道容量，过大易过拟合</td>
+</tr>
+<tr>
+<td>模态数 \(k_{max}\)</td>
+<td>8–16</td>
+<td>保留的尺度范围，决定平滑程度</td>
+</tr>
+<tr>
+<td>层数 \(L\)</td>
+<td>4–6</td>
+<td>感受野与非线性深度</td>
+</tr>
+<tr>
+<td>网格 \(n\)</td>
+<td>64–256</td>
+<td>数据分辨率，与 \(k_{max}\) 需匹配</td>
+</tr>
+</tbody>
+</table>
+<p>\(k_{max}\) 与 \(n\) 的关系值得注意：\(k_{max}\) 太接近 \(n/2\)，谱卷积退化为全局稠密变换，参数暴涨且容易过拟合；太小则连基本激波结构都表达不了。</p>
+<p>参数量可以粗略估算：每个傅里叶块约 \(2 w^2 k_{max}^2 + w^2\) 个参数，\(w\) 为宽度。宽度 32、模态 12、四层时约百万量级，远小于同等感受野的深层 CNN。这也是 FNO 在中小规模数据上不易过拟合的原因之一。</p>
+<h2 id="损失函数">损失函数</h2>
+<p>最常用的是相对 L2 损失，它对解的绝对量级不敏感：</p>
+<div class="math-block">\[\mathcal{L}_{rel} = \frac{1}{N}\sum_{i=1}^{N}
+\frac{\left\Vert \mathcal{N}_\theta(a_i) - u_i \right\Vert_2^2}
+{\left\Vert u_i \right\Vert_2^2 + \varepsilon},\]</div>
+<p>\(\varepsilon\) 是防止除零的小量。若更关心小尺度结构，可在频域加权：</p>
+<div class="math-block">\[\mathcal{L}_{spec} = \frac{1}{N}\sum_{i=1}^{N}
+\sum_{k} w(k)\,
+\left\Vert \widehat{u}_\theta(k) - \widehat{u}_i(k) \right\Vert^2,\]</div>
+<p>\(w(k)\) 随波数增大而增大，用于补偿高频能量偏小的问题。实践中更常见的是在相对 L2 上叠加一个梯度损失，形式更简单，效果也稳定。若训练集里各样本的幅值差异很大，可先对标签做标准化，再在推理时反变换，否则损失会被大幅值样本主导。</p>
+<h2 id="pytorch-实现">PyTorch 实现</h2>
+<p>核心是二维实数傅里叶变换 <code>torch.fft.rfft2</code> 与逆变换 <code>irfft2</code>。权重声明为 <code>torch.cfloat</code>，只保留低频块。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">SpectralConv2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""二维谱卷积：仅在低频模态上做复数线性变换。"""</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">modes1</span><span class="p">,</span> <span class="n">modes2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_channels</span> <span class="o">=</span> <span class="n">in_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span> <span class="o">=</span> <span class="n">out_channels</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modes1</span> <span class="o">=</span> <span class="n">modes1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modes2</span> <span class="o">=</span> <span class="n">modes2</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">in_channels</span> <span class="o">*</span> <span class="n">out_channels</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span>
+            <span class="n">scale</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span>
+                <span class="n">in_channels</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="n">modes1</span><span class="p">,</span> <span class="n">modes2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">cfloat</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># x: (B, C, H, W)</span>
+        <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">x_ft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft2</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>                 <span class="c1"># (B, C, H, W//2+1)</span>
+        <span class="n">out_ft</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+            <span class="n">b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channels</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">cfloat</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">out_ft</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">modes1</span><span class="p">,</span> <span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">modes2</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+            <span class="s2">"bixy,ioxy-&gt;boxy"</span><span class="p">,</span>
+            <span class="n">x_ft</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">modes1</span><span class="p">,</span> <span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">modes2</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft2</span><span class="p">(</span><span class="n">out_ft</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">))</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FNOBlock</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""W v + 谱卷积 + 偏置，再激活。"""</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">modes1</span><span class="p">,</span> <span class="n">modes2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec</span> <span class="o">=</span> <span class="n">SpectralConv2d</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">modes1</span><span class="p">,</span> <span class="n">modes2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pointwise</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">F</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spec</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pointwise</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">FNO2d</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modes1</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">modes2</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">layers</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                 <span class="n">in_ch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">out_ch</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lift</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_ch</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>   <span class="c1"># +2：坐标通道</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">FNOBlock</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">modes1</span><span class="p">,</span> <span class="n">modes2</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layers</span><span class="p">)]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">GELU</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="mi">128</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+        <span class="c1"># a: (B, 1, H, W)，grid: (B, 2, H, W) 归一化坐标</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lift</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">a</span><span class="p">,</span> <span class="n">grid</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">blk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">blocks</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">blk</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</code></pre></div>
+
+<p>训练时用相对 L2：</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">relative_l2</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ref</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">diff</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">ref</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">eps</span><span class="p">))</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">grid</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="n">relative_l2</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+    <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+    <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+    <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</code></pre></div>
+
+<h2 id="与-pinn-的对比">与 PINN 的对比</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>FNO</th>
+<th>PINN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学习对象</td>
+<td>算子 \(G\)</td>
+<td>单个解 \(u\)</td>
+</tr>
+<tr>
+<td>输入</td>
+<td>离散场 \(a\)</td>
+<td>坐标 \((x,t)\)</td>
+</tr>
+<tr>
+<td>是否需要标签</td>
+<td>需要成对数据</td>
+<td>不需要</td>
+</tr>
+<tr>
+<td>单次推理</td>
+<td>一次前向，毫秒级</td>
+<td>需要训练，不用于推理</td>
+</tr>
+<tr>
+<td>分辨率</td>
+<td>可跨分辨率复用权重</td>
+<td>与配点无关</td>
+</tr>
+<tr>
+<td>物理一致性</td>
+<td>无保证，可加残差项</td>
+<td>由损失直接约束</td>
+</tr>
+</tbody>
+</table>
+<p>若数据充足、工况相似，FNO 的性价比通常高于 PINN；若数据几乎没有、需要满足守恒律，则应看<a class="wiki-link" href="../ch5/pino.html">PINO</a>。想用更少的参数获得更大的感受野，可继续读<a class="wiki-link" href="../ch5/ifno.html">IFNO</a>。</p>
+<h2 id="实现细节与稳定性">实现细节与稳定性</h2>
+<p>几个容易踩的点。</p>
+<p><strong>频率存储。</strong> <code>torch.fft.rfft2</code> 只返回非负频率，最后一维长度为 \(W/2+1\)，因此 <code>modes2</code> 不能超过这个值。负频率由 <code>irfft2</code> 依据共轭对称性自动恢复，手动补齐反而会破坏实值性。</p>
+<p><strong>权重初始化。</strong> 谱权重的方差按 \(1/(c_{in}c_{out})\) 缩放，使初始输出与输入同量级。若初始化过大，前几层输出幅值爆炸，激活进入饱和区，梯度几乎为零。</p>
+<p><strong>模态与网格匹配。</strong> 截断过高会引入混叠：非线性激活产生的频率超出保留范围，折叠回低频，表现为不自然的条纹。经验上保留不超过 \(2n/3\) 的频率：</p>
+<div class="math-block">\[k_{max} \le \frac{2}{3}\cdot\frac{n}{2},\]</div>
+<p>\(n\) 是网格边长。这条规则来自伪谱法的去混叠实践，在 FNO 中同样适用。</p>
+<p><strong>归一化与学习率。</strong> 输入按通道做 z-score，输出先标准化再算损失，推理时反变换。学习率从 \(10^{-3}\) 起，配合余弦退火与梯度裁剪；谱层的复数参数对学习率比普通卷积更敏感，出现损失震荡时先降学习率，而不是加宽网络。</p>
+<h2 id="常见失败模式">常见失败模式</h2>
+<ul>
+<li><strong>边界振荡</strong>：输入非周期却直接做傅里叶变换。解决方式是补零、加坐标通道，或改用局部卷积处理边界。</li>
+<li><strong>高频缺失</strong>：\(k_{max}\) 太小或训练集分辨率太低，输出过于平滑。可提高模态数或加入梯度损失。</li>
+<li><strong>外推崩溃</strong>：训练只覆盖单一雷诺数，测试稍高就发散。这不是架构问题，而是分布问题，需要扩充数据。</li>
+<li><strong>损失停滞</strong>：检查谱权重是否为零、<code>irfft2</code> 的 <code>s</code> 是否与输入尺寸一致。</li>
+</ul>
+<h2 id="小结">小结</h2>
+<ul>
+<li>FNO 层 = 逐点线性变换 + 低频谱卷积 + 偏置 + 激活，谱卷积承担全局耦合。</li>
+<li>截断模态 \(k_{max}\) 控制带宽，权重与网格无关，因此具备离散化不变性。</li>
+<li>训练用相对 L2 即可；边界非周期时需补零或加坐标通道。</li>
+<li>输出仍是“黑箱”，物理一致性需要额外约束，这是 PINO 的出发点。</li>
+</ul>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch5/pinns.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">PINNs：物理信息神经网络</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch5/deeponet.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">DeepONet</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch5/fno.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#算子学习的目标">算子学习的目标</a></li>
+<li><a href="#谱卷积">谱卷积</a><ul>
+<li><a href="#与普通卷积的关系">与普通卷积的关系</a></li>
+<li><a href="#为什么能跨分辨率">为什么能跨分辨率</a></li>
+</ul>
+</li>
+<li><a href="#网络结构">网络结构</a></li>
+<li><a href="#损失函数">损失函数</a></li>
+<li><a href="#pytorch-实现">PyTorch 实现</a></li>
+<li><a href="#与-pinn-的对比">与 PINN 的对比</a></li>
+<li><a href="#实现细节与稳定性">实现细节与稳定性</a></li>
+<li><a href="#常见失败模式">常见失败模式</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

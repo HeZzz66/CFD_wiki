@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>张量分析与应力 · CFD Wiki</title>
+  <meta name="description" content="用指标记法与爱因斯坦求和约定建立二阶张量代数，推导 Cauchy 应力张量、变形率张量与牛顿本构关系，并给出主应力与 von Mises 等效应力的计算方法。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link is-active" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch1/index.html">流体力学中的数学基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">张量分析与应力</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">张量分析与应力</h1>
+        <p class="page-summary">用指标记法与爱因斯坦求和约定建立二阶张量代数，推导 Cauchy 应力张量、变形率张量与牛顿本构关系，并给出主应力与 von Mises 等效应力的计算方法。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">流体力学中的数学基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 3352 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#张量</span><span class="tag">#应力</span><span class="tag">#本构关系</span><span class="tag">#雷诺应力</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>场论把梯度、散度和旋度整理成一套矢量语言，但 N-S 方程中的粘性项并不只用一个方向描述：应力既取决于受力面的朝向，也取决于力的方向。描述这类“双方向”对象的工具是二阶张量。这一页从指标记法开始，依次建立应力张量、变形率张量与牛顿本构关系，最后落到主应力与屈服判据这类工程计算上。</p>
+<h2 id="为什么需要张量">为什么需要张量</h2>
+<p>在三维空间中，一个指标取 \(1,2,3\) 的对象，其分量个数为 \(3^n\)，\(n\) 就是<strong>阶数</strong>：</p>
+<ul>
+<li>0 阶张量是标量，\(3^0=1\) 个分量，例如压力 \(p\)、温度 \(T\)；</li>
+<li>1 阶张量是矢量，\(3^1=3\) 个分量，例如速度 \(u_i\)、热流 \(q_i\)；</li>
+<li>2 阶张量有 \(3^2=9\) 个分量，例如应力 \(\sigma_{ij}\)、变形率 \(S_{ij}\)。</li>
+</ul>
+<p>仅仅凑齐九个数并不构成张量。张量的定义是<strong>在坐标变换下按固定规则变换</strong>的对象。设新旧直角坐标系的基矢量满足方向余弦</p>
+<div class="math-block">\[a_{ij}=\mathbf{e}'_i\cdot\mathbf{e}_j,\]</div>
+<p>则一阶与二阶张量的变换规则为</p>
+<div class="math-block">\[T'_i=a_{ij}T_j,\qquad T'_{ij}=a_{ip}a_{jq}T_{pq}.\]</div>
+<p>这个规则说明：张量是“与坐标系无关的物理对象”，分量只是它在某一组基下的投影。由此可以预料，某些由分量组合出来的量在坐标旋转下保持不变，例如迹 \(\sigma_{kk}\) 与行列式 \(\det\sigma_{ij}\)。它们被称为<strong>不变量</strong>，后面判断应力状态时会反复用到。</p>
+<div class="admonition note"><div class="admonition-title">张量与矩阵的区别</div><div class="admonition-body"><p>矩阵只是数的排列，张量则额外要求分量服从上式变换。一个 \(3\times3\) 数组若在旋转后不按 \(a_{ip}a_{jq}\) 变换，它就不是二阶张量。编程时二者外观相同，物理含义却不同。</p></div></div>
+<h2 id="指标记法与爱因斯坦求和约定">指标记法与爱因斯坦求和约定</h2>
+<p>张量推导若逐项写开，很快会失控。指标记法用一条约定换来计算上的整洁：</p>
+<blockquote>
+<p>在同一项中，若某个指标重复出现两次，就对该指标从 1 到 3 求和；只出现一次的指标为自由指标，等式两边必须一致。</p>
+</blockquote>
+<p>例如散度写成</p>
+<div class="math-block">\[\frac{\partial u_i}{\partial x_i}
+=\sum_{i=1}^{3}\frac{\partial u_i}{\partial x_i}
+=\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}+\frac{\partial w}{\partial z}.\]</div>
+<p>重复指标 \(i\) 是哑指标，改名不影响结果；自由指标则不能被随意改名，否则等式失去意义。实践中还有两条硬规则：同一项中一个指标最多出现两次，等式两边的自由指标必须同名。</p>
+<h3 id="克罗内克-δ-与置换符号-ε">克罗内克 δ 与置换符号 ε</h3>
+<p><strong>克罗内克 δ</strong> 定义为</p>
+<div class="math-block">\[\delta_{ij}=
+\begin{cases}
+1, & i=j,\\
+0, & i\neq j.
+\end{cases}\]</div>
+<p>它相当于单位矩阵，作用是“换指标”：\(\delta_{ij}a_j=a_i\)。它的迹为 \(\delta_{ii}=3\)，这在三维空间中是一个容易被忽略但很关键的常数。</p>
+<p><strong>置换符号</strong> \(\varepsilon_{ijk}\) 定义为</p>
+<div class="math-block">\[\varepsilon_{ijk}=
+\begin{cases}
++1, & (i,j,k)\ \text{is an even permutation of } (1,2,3),\\
+-1, & \text{odd permutation},\\
+0, & \text{repeated index}.
+\end{cases}\]</div>
+<p>有了它，叉乘可以写成 \((a\times b)_i=\varepsilon_{ijk}a_jb_k\)，涡量写成 \(\omega_i=\varepsilon_{ijk}\partial u_k/\partial x_j\)。最常用的恒等式是</p>
+<div class="math-block">\[\varepsilon_{ijk}\varepsilon_{ilm}
+=\delta_{jl}\delta_{km}-\delta_{jm}\delta_{kl},\]</div>
+<p>它把“两个叉乘的乘积”化为 δ 的组合，是推导涡动力学方程与湍流输运方程时出现频率最高的公式。另一个常用结果是 \(\varepsilon_{ijk}\varepsilon_{ijk}=6\)，可直接由上式取 \(i=l\) 缩并得到。</p>
+<h2 id="二阶张量的代数">二阶张量的代数</h2>
+<p>对二阶张量 \(\sigma_{ij}\)，先定义三个基本运算：迹 \(\operatorname{tr}\sigma=\sigma_{kk}\)、转置 \(\sigma^{\mathrm{T}}_{ij}=\sigma_{ji}\)、行列式 \(\det\sigma_{ij}\)。</p>
+<p>任何二阶张量都可以唯一地分解为对称部分与反对称部分：</p>
+<div class="math-block">\[\sigma_{ij}=\sigma_{(ij)}+\sigma_{[ij]},\qquad
+\sigma_{(ij)}=\frac{1}{2}\left(\sigma_{ij}+\sigma_{ji}\right),\qquad
+\sigma_{[ij]}=\frac{1}{2}\left(\sigma_{ij}-\sigma_{ji}\right).\]</div>
+<p>对称部分有 6 个独立分量，反对称部分有 3 个，正好对应“变形”与“旋转”两类信息。反对称部分还可以用一个轴矢量表示，这就是涡量的来源。</p>
+<h3 id="主应力与三个不变量">主应力与三个不变量</h3>
+<p>对称张量的特征值问题写作</p>
+<div class="math-block">\[\sigma_{ij}n_j=\lambda n_i,\]</div>
+<p>非零解要求系数矩阵奇异，即</p>
+<div class="math-block">\[\det\left(\sigma_{ij}-\lambda\delta_{ij}\right)=0.\]</div>
+<p>展开后得到特征方程</p>
+<div class="math-block">\[\lambda^3-I_1\lambda^2+I_2\lambda-I_3=0,\]</div>
+<p>其中三个系数就是主不变量：</p>
+<div class="math-block">\[I_1=\sigma_{kk},\qquad
+I_2=\frac{1}{2}\left(\sigma_{kk}\sigma_{ll}-\sigma_{ij}\sigma_{ji}\right),\qquad
+I_3=\det\sigma_{ij}.\]</div>
+<p>三个实根 \(\lambda_1,\lambda_2,\lambda_3\) 称为<strong>主应力</strong>，按代数值从大到小记为 \(\sigma_1\ge\sigma_2\ge\sigma_3\)。对应的特征矢量两两正交（实对称张量的谱定理），它们给出三个互相垂直的<strong>主方向</strong>。在这三个方向上剪应力为零，只有正应力。</p>
+<table>
+<thead>
+<tr>
+<th>量</th>
+<th>定义</th>
+<th>工程用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>迹 \(I_1\)</td>
+<td>\(\sigma_{kk}\)</td>
+<td>三倍平均正应力，与静水压力直接相关</td>
+</tr>
+<tr>
+<td>第二不变量 \(I_2\)</td>
+<td>\(\tfrac{1}{2}\left(I_1^2-\sigma_{ij}\sigma_{ji}\right)\)</td>
+<td>构造屈服判据、判断剪应力强弱</td>
+</tr>
+<tr>
+<td>第三不变量 \(I_3\)</td>
+<td>\(\det\sigma_{ij}\)</td>
+<td>判断应力状态是否退化，用于应力空间分区</td>
+</tr>
+<tr>
+<td>主应力</td>
+<td>特征方程的根</td>
+<td>强度校核、裂纹起裂方向、莫尔圆圆心与半径</td>
+</tr>
+</tbody>
+</table>
+<h3 id="正应力剪应力与莫尔圆">正应力、剪应力与莫尔圆</h3>
+<p>在二维应力状态下，若已知 \(x\) 面与 \(y\) 面上的分量 \(\sigma_x,\sigma_y,\tau_{xy}\)，任意斜截面上的正应力与剪应力在 \(\sigma\)-\(\tau\) 平面上落在一个圆上，称为<strong>莫尔圆</strong>：</p>
+<div class="math-block">\[R=\sqrt{\left(\frac{\sigma_x-\sigma_y}{2}\right)^2+\tau_{xy}^2},\qquad
+\sigma_{1,2}=\frac{\sigma_x+\sigma_y}{2}\pm R.\]</div>
+<p>圆心位于 \((\sigma_x+\sigma_y)/2\)，半径为 \(R\)，因此最大剪应力为</p>
+<div class="math-block">\[\tau_{\max}=\frac{\sigma_1-\sigma_3}{2},\]</div>
+<p>它出现在与主方向成 \(45^\circ\) 的截面上。这解释了为什么薄板试样受拉时断口常沿 \(45^\circ\) 方向剪断：那是剪应力最大的方向，而不是正应力最大的方向。</p>
+<h2 id="连续介质中的-cauchy-应力张量">连续介质中的 Cauchy 应力张量</h2>
+<p>取一个法向为 \(n_i\) 的面元，作用在该面上的面力密度（单位面积力）记为 \(t_i\)。Cauchy 应力假设面力是法向的线性函数：</p>
+<div class="math-block">\[t_i=\sigma_{ij}n_j
+\quad\Longleftrightarrow\quad
+\mathbf{t}=\boldsymbol{\sigma}\cdot\mathbf{n}.\]</div>
+<p>这就是<strong>应力张量</strong>的定义：\(\sigma_{ij}\) 表示法向为 \(\mathbf{e}_i\) 的面上、沿 \(\mathbf{e}_j\) 方向的应力分量。第一指标是面法向，第二指标是力的方向，顺序不能随意交换。</p>
+<table>
+<thead>
+<tr>
+<th>分量类型</th>
+<th>记号</th>
+<th>几何含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正应力</td>
+<td>\(\sigma_{xx},\sigma_{yy},\sigma_{zz}\)</td>
+<td>垂直于作用面，拉为正、压为负</td>
+</tr>
+<tr>
+<td>剪应力</td>
+<td>\(\sigma_{xy},\sigma_{yx},\sigma_{xz},\ldots\)</td>
+<td>位于作用面内，引起角变形与剪切输运</td>
+</tr>
+</tbody>
+</table>
+<h3 id="应力对称性与静水压力分解">应力对称性与静水压力分解</h3>
+<p>对微元体取角动量守恒，若不存在体积力偶与偶应力，可得</p>
+<div class="math-block">\[\sigma_{ij}=\sigma_{ji}.\]</div>
+<p>这一步在推导 N-S 方程时经常被直接引用，它把 9 个未知分量减少到 6 个。若介质存在极性（如某些悬浮液、液晶），对称性会被破坏，但常规 CFD 不涉及这种情况。</p>
+<p>把应力分成各向同性与偏斜两部分：</p>
+<div class="math-block">\[p=-\frac{1}{3}\sigma_{kk},\qquad
+\sigma_{ij}=-p\,\delta_{ij}+\tau_{ij},\qquad
+\tau_{kk}=0.\]</div>
+<p>\(\tau_{ij}\) 称为<strong>偏应力</strong>，它只负责改变形状；\(-p\delta_{ij}\) 是各向同性的静水压力，只负责改变体积。这个分解是理解“压力泊松方程”和“不可压缩假设”的出发点：不可压缩流动中，压力不再是状态量，而是维持 \(\nabla\cdot\mathbf{u}=0\) 的 Lagrange 乘子。</p>
+<div class="admonition warning"><div class="admonition-title">符号约定</div><div class="admonition-body"><p>不同教材对“拉为正”还是“压为正”采用不同约定。本页统一取<strong>拉为正</strong>，因此静水压缩状态下 \(\sigma_{ij}=-p\delta_{ij}\)，\(p>0\)。阅读商用软件文档时务必先确认其约定，否则本构关系中的符号会整体反号。</p></div></div>
+<h2 id="变形率张量与旋转张量">变形率张量与旋转张量</h2>
+<p>应力描述“受了多大的力”，变形率描述“被怎样拉伸”。速度梯度张量为</p>
+<div class="math-block">\[L_{ij}=\frac{\partial u_i}{\partial x_j},\]</div>
+<p>它分解为对称的<strong>变形率张量</strong> \(S_{ij}\) 与反对称的<strong>旋转张量</strong> \(W_{ij}\)：</p>
+<div class="math-block">\[S_{ij}=\frac{1}{2}\left(L_{ij}+L_{ji}\right),\qquad
+W_{ij}=\frac{1}{2}\left(L_{ij}-L_{ji}\right).\]</div>
+<p>\(S_{ij}\) 的主方向给出局部拉伸率最大的三个方向；\(W_{ij}\) 描述局部刚体旋转，其强度与涡量 \(\omega=\nabla\times\mathbf{u}\) 只差一个因子 2。一个常被忽略的事实是：纯剪切流动的 \(S\) 与 \(W\) 模长相等，所以“剪切”既包含变形也包含旋转，两者不能混为一谈。</p>
+<h3 id="牛顿流体本构">牛顿流体本构</h3>
+<p>对牛顿流体，剪应力与变形率成正比，各向同性部分由压力承担：</p>
+<div class="math-block">\[\sigma_{ij}=-p\,\delta_{ij}+2\mu S_{ij}.\]</div>
+<p>对于可压缩流动，还需允许体积粘性：</p>
+<div class="math-block">\[\sigma_{ij}=-p\,\delta_{ij}+\lambda S_{kk}\delta_{ij}+2\mu S_{ij},
+\qquad
+\lambda=-\frac{2}{3}\mu,\]</div>
+<p>其中 \(\lambda\) 为第二粘性系数，Stokes 假设取 \(\lambda=-2\mu/3\)，使 \(\tau_{kk}=0\)。代入动量方程即得</p>
+<div class="math-block">\[\rho\frac{\mathrm{D}u_i}{\mathrm{D}t}
+=-\frac{\partial p}{\partial x_i}
++\frac{\partial}{\partial x_j}\left[\mu\left(\frac{\partial u_i}{\partial x_j}+\frac{\partial u_j}{\partial x_i}\right)\right],\]</div>
+<p>详见 <a class="wiki-link" href="../ch2/governing-equations.html">流体力学基本方程</a>。</p>
+<h3 id="非牛顿流体">非牛顿流体</h3>
+<p>很多工程流体（聚合物熔体、血液、泥浆、牙膏）不满足线性关系。最常用的一类是<strong>广义牛顿流体</strong>：仍假设应力与 \(S\) 共轴，但把粘度写成剪切率的函数。幂律模型为</p>
+<div class="math-block">\[\mu_{\mathrm{eff}}=K\dot\gamma^{\,n-1},\qquad
+\dot\gamma=\sqrt{2S_{ij}S_{ij}},\]</div>
+<p>其中 \(K\) 为稠度系数，\(n\) 为流动指数。\(n<1\) 为剪切变稀（如血液、聚合物溶液），\(n>1\) 为剪切增稠（如淀粉悬浮液），\(n=1\) 退化为牛顿流体。剪切率趋于零时幂律粘度可能发散，工程上常改用 Carreau 或 Bingham 模型加以正则化。</p>
+<h2 id="与湍流及工程实际的联系">与湍流及工程实际的联系</h2>
+<h3 id="雷诺应力的来源">雷诺应力的来源</h3>
+<p>对速度与压力做 Reynolds 分解 \(u_i=\bar u_i+u'_i\)，平均动量方程中会多出一项</p>
+<div class="math-block">\[\tau^{\mathrm{R}}_{ij}=-\rho\langle u'_i u'_j\rangle,\]</div>
+<p>它在数学上的位置与粘性应力完全相同，因此称为<strong>雷诺应力</strong>。Boussinesq 假设仿照牛顿本构，用湍流粘度 \(\mu_t\) 把它写成</p>
+<div class="math-block">\[-\rho\langle u'_i u'_j\rangle
+=2\mu_t S_{ij}-\frac{2}{3}\rho k\,\delta_{ij},\]</div>
+<p>其中 \(k=\tfrac{1}{2}\langle u'_iu'_i\rangle\) 为湍动能。这一假设是大多数工程湍流模型的基础，其局限与修正见 <a class="wiki-link" href="../ch4/rans.html">RANS 方法</a>。值得注意的是，\(\mu_t\) 是流场属性而非流体属性，这正是湍流建模困难的根本原因。</p>
+<h3 id="壁面剪应力与-von-mises-判据">壁面剪应力与 von Mises 判据</h3>
+<p>壁面处的剪应力由速度的法向梯度给出：</p>
+<div class="math-block">\[\tau_w=\mu\left.\frac{\partial u}{\partial y}\right\rvert_{\text{wall}},
+\qquad
+u_\tau=\sqrt{\frac{\tau_w}{\rho}},\]</div>
+<p>\(u_\tau\) 称为摩擦速度，是壁面湍流标度的基本量，\(y^+\) 与壁面函数都由它定义。工程上常用摩阻系数 \(C_f=\tau_w/(\tfrac{1}{2}\rho U^2)\) 比较不同方案的减阻效果。</p>
+<p>对延性材料，静水压力不引起屈服，只有偏应力起作用。<strong>von Mises 等效应力</strong>定义为</p>
+<div class="math-block">\[\sigma_{v}=\sqrt{\frac{3}{2}s_{ij}s_{ij}}
+=\sqrt{\frac{1}{2}\left[(\sigma_1-\sigma_2)^2+(\sigma_2-\sigma_3)^2+(\sigma_3-\sigma_1)^2\right]},\]</div>
+<p>其中 \(s_{ij}=\sigma_{ij}-p\delta_{ij}\) 为偏应力。当 \(\sigma_v\) 超过材料屈服强度时判定进入塑性，这一判据与坐标无关，因此可以直接用于有限元后处理。</p>
+<h2 id="用-numpy-计算主应力与等效应力">用 NumPy 计算主应力与等效应力</h2>
+<p>下面的代码对对称应力张量求主应力与 von Mises 应力，注意 <code>eigh</code> 只适用于对称矩阵，用它处理非对称输入会得到错误结果：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">principal_stresses</span><span class="p">(</span><span class="n">sigma</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""对称应力张量的主应力（降序）与对应主方向。"""</span>
+    <span class="n">lam</span><span class="p">,</span> <span class="n">vec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>   <span class="c1"># 实对称矩阵，特征值为实数</span>
+    <span class="k">return</span> <span class="n">lam</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">vec</span><span class="p">[:,</span> <span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">von_mises</span><span class="p">(</span><span class="n">sigma</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""von Mises 等效应力，仅由偏应力决定。"""</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span> <span class="o">/</span> <span class="mf">3.0</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">sigma</span> <span class="o">-</span> <span class="n">p</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>                    <span class="c1"># 偏应力 s_ij</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">s</span><span class="p">))</span>          <span class="c1"># (3/2) s_ij s_ij</span>
+
+<span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">120.0</span><span class="p">,</span> <span class="mf">40.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+                  <span class="p">[</span> <span class="mf">40.0</span><span class="p">,</span> <span class="mf">60.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+                  <span class="p">[</span>  <span class="mf">0.0</span><span class="p">,</span>  <span class="mf">0.0</span><span class="p">,</span> <span class="mf">20.0</span><span class="p">]])</span>
+
+<span class="n">lam</span><span class="p">,</span> <span class="n">vec</span> <span class="o">=</span> <span class="n">principal_stresses</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"主应力："</span><span class="p">,</span> <span class="n">lam</span><span class="p">)</span>                  <span class="c1"># 约 140, 40, 20</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"von Mises："</span><span class="p">,</span> <span class="n">von_mises</span><span class="p">(</span><span class="n">sigma</span><span class="p">))</span>  <span class="c1"># 约 111.4</span>
+
+<span class="c1"># 检验不变量：迹与主应力之和应一致</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"迹校验："</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">sigma</span><span class="p">),</span> <span class="n">lam</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+</code></pre></div>
+
+<div class="admonition tip"><div class="admonition-title">数值细节</div><div class="admonition-body"><p><code>np.linalg.eig</code> 对非对称矩阵可能返回复数特征值；应力张量理论上对称，但若数据来自实验或插值，微小非对称会被放大。工程代码中常先做 \(\tfrac{1}{2}(\sigma+\sigma^{\mathrm{T}})\) 对称化再求解。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>张量由阶数与变换规则定义，\(n\) 阶张量有 \(3^n\) 个分量；不变量（迹、行列式、主应力）与坐标无关。</li>
+<li>指标记法中重复指标求和，\(\delta_{ij}\) 换指标，\(\varepsilon_{ijk}\) 负责叉乘与涡量。</li>
+<li>应力可分解为静水压力与偏应力；对称性来自角动量守恒。</li>
+<li>速度梯度分解为变形率 \(S_{ij}\) 与旋转 \(W_{ij}\)，牛顿本构为 \(\sigma=-pI+2\mu S\)。</li>
+<li>湍流雷诺应力在方程中占据与粘性应力相同的位置，这是湍流建模的切入点。</li>
+</ul>
+<p>下一步是<a class="wiki-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a>，把方程整理成只含少数控制参数的形式；若想先看这些张量如何进入守恒方程，可直接阅读<a class="wiki-link" href="../ch2/governing-equations.html">流体力学基本方程</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch1/field-theory.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">场论基础</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch1/dimensional-analysis.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">量纲分析与相似准则</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch1/tensor-analysis.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#为什么需要张量">为什么需要张量</a></li>
+<li><a href="#指标记法与爱因斯坦求和约定">指标记法与爱因斯坦求和约定</a><ul>
+<li><a href="#克罗内克-δ-与置换符号-ε">克罗内克 δ 与置换符号 ε</a></li>
+</ul>
+</li>
+<li><a href="#二阶张量的代数">二阶张量的代数</a><ul>
+<li><a href="#主应力与三个不变量">主应力与三个不变量</a></li>
+<li><a href="#正应力剪应力与莫尔圆">正应力、剪应力与莫尔圆</a></li>
+</ul>
+</li>
+<li><a href="#连续介质中的-cauchy-应力张量">连续介质中的 Cauchy 应力张量</a><ul>
+<li><a href="#应力对称性与静水压力分解">应力对称性与静水压力分解</a></li>
+</ul>
+</li>
+<li><a href="#变形率张量与旋转张量">变形率张量与旋转张量</a><ul>
+<li><a href="#牛顿流体本构">牛顿流体本构</a></li>
+<li><a href="#非牛顿流体">非牛顿流体</a></li>
+</ul>
+</li>
+<li><a href="#与湍流及工程实际的联系">与湍流及工程实际的联系</a><ul>
+<li><a href="#雷诺应力的来源">雷诺应力的来源</a></li>
+<li><a href="#壁面剪应力与-von-mises-判据">壁面剪应力与 von Mises 判据</a></li>
+</ul>
+</li>
+<li><a href="#用-numpy-计算主应力与等效应力">用 NumPy 计算主应力与等效应力</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

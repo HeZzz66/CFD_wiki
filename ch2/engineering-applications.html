@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>典型工程应用 · CFD Wiki</title>
+  <meta name="description" content="把守恒方程与伯努利积分落到管流损失、外流阻力、泵与风机选型、对流换热四类问题上，并给出一个从几何到泵功率的完整算例。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link is-active" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch2/index.html">流体力学基本概念</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">典型工程应用</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">典型工程应用</h1>
+        <p class="page-summary">把守恒方程与伯努利积分落到管流损失、外流阻力、泵与风机选型、对流换热四类问题上，并给出一个从几何到泵功率的完整算例。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">流体力学基本概念</span>
+        <span class="meta-sep">·</span>
+        <span>约 2073 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#管流</span><span class="tag">#阻力</span><span class="tag">#泵</span><span class="tag">#换热</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>前几页给出的是通用方程与近似积分，这一页把它们组装成工程师日常真正会算的几类问题：水在管里流要多大压降，汽车与圆柱受多大阻力，泵该选多大功率，换热器需要多少面积。每类问题都只保留一个主公式加若干修正系数，重点是知道什么时候能用、系数从哪里来。</p>
+<h2 id="管内流动">管内流动</h2>
+<p>管流的第一件事是判断流态。用雷诺数</p>
+<div class="math-block">\[Re=\frac{\rho UD}{\mu},\]</div>
+<p>\(D\) 为管径、\(U\) 为截面平均速度。工程约定：\(Re<2300\) 为层流，\(2300<Re<4000\) 为过渡区，\(Re>4000\) 为湍流。层流时摩擦因子只与 \(Re\) 有关，</p>
+<div class="math-block">\[f=\frac{64}{Re},\]</div>
+<p>湍流时摩擦因子同时依赖相对粗糙度 \(\varepsilon/D\) 与 \(Re\)，由 Colebrook 方程隐式给出：</p>
+<div class="math-block">\[\frac{1}{\sqrt{f}}
+=-2\log_{10}\left(\frac{\varepsilon}{3.7D}+\frac{2.51}{Re\sqrt{f}}\right).\]</div>
+<p>该式没有显式解，通常迭代三五次即可收敛，或用 Moody 图的近似式。压降由 Darcy–Weisbach 公式计算：</p>
+<div class="math-block">\[\Delta p=f\frac{L}{D}\frac{\rho U^2}{2}.\]</div>
+<p>局部损失（弯头、阀门、突扩突缩）用系数 \(K\) 折算成等效长度：</p>
+<div class="math-block">\[\Delta p_j=K\frac{\rho U^2}{2}.\]</div>
+<table>
+<thead>
+<tr>
+<th>管件</th>
+<th>局部损失系数 \(K\)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>管道入口（锐边）</td>
+<td>0.5</td>
+<td>突缩的一种极限</td>
+</tr>
+<tr>
+<td>管道出口</td>
+<td>1.0</td>
+<td>动能全部耗散</td>
+</tr>
+<tr>
+<td>90° 标准弯头</td>
+<td>0.3–0.9</td>
+<td>与弯曲半径有关</td>
+</tr>
+<tr>
+<td>闸阀（全开）</td>
+<td>0.2</td>
+<td>部分开启时急剧增大</td>
+</tr>
+<tr>
+<td>球阀（全开）</td>
+<td>约 10</td>
+<td>流道曲折，损失大</td>
+</tr>
+<tr>
+<td>突扩（大面积比）</td>
+<td>约 1.0</td>
+<td>由 \((1-A_1/A_2)^2\) 估算</td>
+</tr>
+<tr>
+<td>突缩</td>
+<td>约 0.5</td>
+<td>与面积比和倒角有关</td>
+</tr>
+</tbody>
+</table>
+<p>注意 \(K\) 的定义基准是下游或上游动压，不同手册可能不同；查表时必须确认基准速度，否则会把损失算错一倍以上。</p>
+<h2 id="外流阻力升力与涡脱落">外流：阻力、升力与涡脱落</h2>
+<p>外流用无量纲系数描述，避免每次重算具体力：</p>
+<div class="math-block">\[C_D=\frac{F_D}{\frac{1}{2}\rho U^2 A},
+\qquad
+C_L=\frac{F_L}{\frac{1}{2}\rho U^2 A},\]</div>
+<p>\(A\) 为参考面积（翼型用弦长乘展长，钝体用迎风面积）。平板摩擦阻力直接用边界层的平均摩擦系数：层流 \(C_f=1.328/\sqrt{Re_L}\)，湍流约 \(0.074/Re_L^{1/5}\)；混合边界层需按转捩位置加权。</p>
+<p>圆柱绕流最值得记住的现象是<strong>卡门涡街</strong>。在一定 \(Re\) 范围内，尾流出现交替脱落的涡，脱落频率由 Strouhal 数描述：</p>
+<div class="math-block">\[St=\frac{f_sD}{U}.\]</div>
+<p>对圆柱，\(Re\) 在 \(10^2\) 到 \(10^5\) 之间时 \(St\approx0.2\)。这意味着 \(U=10\ \mathrm{m/s}\)、\(D=0.05\ \mathrm{m}\) 的圆柱，涡脱落频率约 40 Hz；若与结构固有频率接近，就会引发共振，烟囱、换热器管束与桥梁的振动都与此有关。\(Re\) 更高时边界层湍流化，分离点后移，阻力系数反而下降（阻力危机）。</p>
+<h2 id="泵与风机">泵与风机</h2>
+<p>泵与风机把机械能转化为流体的压力能与动能。所需扬程由能量方程给出：</p>
+<div class="math-block">\[H=\frac{p_2-p_1}{\rho g}
++\frac{U_2^2-U_1^2}{2g}
++\left(z_2-z_1\right)
++h_f+h_j.\]</div>
+<p>轴功率与扬程、流量、效率的关系为</p>
+<div class="math-block">\[P=\frac{\rho gQH}{\eta},\]</div>
+<p>\(\eta\) 为泵的总效率（含水力、容积与机械效率），小型泵常在 0.5–0.7，大型泵可超过 0.85。选型时还要核对汽蚀余量，避免入口压力低于饱和蒸气压。</p>
+<p>同一台泵改变转速时，流量、扬程与功率按相似定律变化：</p>
+<div class="math-block">\[\frac{Q_1}{Q_2}=\frac{n_1}{n_2},
+\qquad
+\frac{H_1}{H_2}=\left(\frac{n_1}{n_2}\right)^2,
+\qquad
+\frac{P_1}{P_2}=\left(\frac{n_1}{n_2}\right)^3.\]</div>
+<p>这三条是变频节能的依据：转速降到 80%，流量降 20%，功率只剩约 51%。但相似定律只在几何相似、雷诺数足够大时成立，且不能越过汽蚀与效率急剧下降的工况区。</p>
+<h2 id="管网串联并联与工作点">管网：串联、并联与工作点</h2>
+<p>多段管道连接时，先判断串并联关系。串联管路各段流量相同，总损失等于各段损失之和，等效阻力系数可以直接相加；并联管路两端压差相同，各支路流量按阻力分配，总流量为各支路之和。计算并联时不要先把 \(K\) 相加，而应先令各支路的 \(h_f+h_j\) 相等，分别解出流量再求和。</p>
+<p>泵的工作点是泵特性曲线与系统特性曲线的交点。系统曲线一般写成</p>
+<div class="math-block">\[H_{sys}=H_{st}+kQ^2,\]</div>
+<p>其中 \(H_{st}\) 为静扬程（提升高度加上两端压差），\(kQ^2\) 为全部损失随流量的二次增长。改变阀门开度会改变 \(k\)，从而移动工作点；变频则移动泵曲线本身。选型时应让工作点落在泵高效区的中间偏右，避免长期在小流量区运行导致发热与汽蚀。</p>
+<p>用阀门节流来减小流量，会把多余能量耗散在阀门上；用变频降速，则按三次方律降低轴功率。两者都能移动工作点，但能耗差别很大，这是风机水泵系统节能改造的主要依据。判断改造收益时，应先用系统曲线估算全年运行工况分布，而不是只看额定点。</p>
+<h2 id="换热与对流">换热与对流</h2>
+<p>对流换热用牛顿冷却定律描述：</p>
+<div class="math-block">\[q=hA\left(T_w-T_\infty\right),\]</div>
+<p>\(h\) 为对流换热系数，\(A\) 为换热面积。\(h\) 不是物性，而是流场的综合结果，工程上用努塞尔数关联：</p>
+<div class="math-block">\[Nu=\frac{hD}{k},
+\qquad
+Pr=\frac{\mu c_p}{k}.\]</div>
+<p>管内强制对流最常用的是 Dittus–Boelter 关联式：</p>
+<div class="math-block">\[Nu=0.023\,Re^{0.8}Pr^{n},\]</div>
+<p>加热时 \(n=0.4\)，冷却时 \(n=0.3\)，适用于充分发展的湍流管内流动（\(Re>10^4\)、\(Pr\) 在 0.7–160）。层流管内换热则常用常壁温或常热流的解析解，不能套用该式。换热与流动耦合时，物性随温度变化会改变速度剖面，高温差下需用变物性修正。</p>
+<h2 id="综合算例从几何到泵功率">综合算例：从几何到泵功率</h2>
+<p>水从低位水箱经管道送往高位设备，流量 \(Q=2\ \mathrm{L/s}=0.002\ \mathrm{m^3/s}\)，管径 \(D=0.05\ \mathrm{m}\)，管长 \(L=50\ \mathrm{m}\)，绝对粗糙度 \(\varepsilon=0.15\ \mathrm{mm}\)，提升高度 \(10\ \mathrm{m}\)，两端均为常压，局部损失系数合计 \(K=2.3\)，泵效率 \(\eta=0.65\)。水取 \(\rho=998\ \mathrm{kg/m^3}\)、\(\mu=1.0\times10^{-3}\ \mathrm{Pa\cdot s}\)。</p>
+<p>第一步算速度与雷诺数。截面积</p>
+<div class="math-block">\[A=\frac{\pi D^2}{4}=1.96\times10^{-3}\ \mathrm{m^2},
+\qquad
+U=\frac{Q}{A}\approx1.02\ \mathrm{m/s}.\]</div>
+<div class="math-block">\[Re=\frac{998\times1.02\times0.05}{1.0\times10^{-3}}\approx5.1\times10^4,\]</div>
+<p>已进入湍流。相对粗糙度 \(\varepsilon/D=0.003\)，代入 Colebrook 方程迭代得 \(f\approx0.0286\)。</p>
+<p>第二步算水头损失。沿程损失</p>
+<div class="math-block">\[h_f=f\frac{L}{D}\frac{U^2}{2g}
+=0.0286\times\frac{50}{0.05}\times\frac{1.02^2}{2\times9.81}
+\approx1.51\ \mathrm{m}.\]</div>
+<p>局部损失</p>
+<div class="math-block">\[h_j=K\frac{U^2}{2g}=2.3\times\frac{1.04}{19.62}\approx0.12\ \mathrm{m}.\]</div>
+<p>第三步算总扬程。两端常压、速度相同，静压项与速度项抵消，只剩提升高度与损失：</p>
+<div class="math-block">\[H=10+1.51+0.12\approx11.63\ \mathrm{m}.\]</div>
+<p>第四步算轴功率：</p>
+<div class="math-block">\[P=\frac{\rho gQH}{\eta}
+=\frac{998\times9.81\times0.002\times11.63}{0.65}
+\approx350\ \mathrm{W}.\]</div>
+<p>若只按提升高度估算（\(H=10\ \mathrm{m}\)），会得到约 300 W，低估约 15%。管径减半时，速度变为四倍，沿程损失约变为十六倍，功率会急剧上升，这正是“细管省材料、费运行费”的定量解释。</p>
+<div class="admonition tip"><div class="admonition-title">结果校核</div><div class="admonition-body"><p>工程估算应至少做三件事：检查 \(Re\) 落在所选关联式的适用范围；检查 \(K\) 与 \(f\) 的定义基准速度；用伯努利方程复核量级。若三者有一项对不上，先怀疑单位与基准，而不是公式本身。更严格的验证可对照 <a class="wiki-link" href="../ch5/benchmarks.html">标准算例</a> 或直接做 <a class="wiki-link" href="../ch3/fvm.html">CFD 模拟</a>。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>管流的核心是 \(Re\) 判流态、Colebrook 求 \(f\)、Darcy–Weisbach 求压降，再叠加局部损失 \(K\)。</li>
+<li>外流用 \(C_D\)、\(C_L\) 与 \(St\) 描述，圆柱的涡脱落频率由 \(St\approx0.2\) 快速估算。</li>
+<li>泵的扬程来自能量方程，功率为 \(\rho gQH/\eta\)，变频遵循三次方律。</li>
+<li>换热用 \(Nu\) 关联式，Dittus–Boelter 只适用于充分发展湍流管流。</li>
+</ul>
+<p>这些估算与 <a class="wiki-link" href="../ch2/bernoulli-integral.html">伯努利方程</a> 同源，但补上了粘性损失与设备做功；当几何复杂、分离强烈或需要局部细节时，就必须回到 <a class="wiki-link" href="../ch2/governing-equations.html">守恒方程</a> 做数值求解。工程报告中应保留至少两位有效数字，并注明所用关联式、系数基准与物性温度，否则结果无法复核。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch2/boundary-layer.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">边界层与壁面剪切</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch3/index.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch2/engineering-applications.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#管内流动">管内流动</a></li>
+<li><a href="#外流阻力升力与涡脱落">外流：阻力、升力与涡脱落</a></li>
+<li><a href="#泵与风机">泵与风机</a></li>
+<li><a href="#管网串联并联与工作点">管网：串联、并联与工作点</a></li>
+<li><a href="#换热与对流">换热与对流</a></li>
+<li><a href="#综合算例从几何到泵功率">综合算例：从几何到泵功率</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

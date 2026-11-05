@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>C++ 与 Fortran 实现 · CFD Wiki</title>
+  <meta name="description" content="把湍流模型方程落到数组与循环上：讨论内存布局、索引、边界、并行与时间步，给出 C++ 的 SST 涡粘与生产项、Fortran 的 k-ε 模块，并对照三种语言的工程取舍。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link is-active" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch4/index.html">湍流模型</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">C++ 与 Fortran 实现</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">C++ 与 Fortran 实现</h1>
+        <p class="page-summary">把湍流模型方程落到数组与循环上：讨论内存布局、索引、边界、并行与时间步，给出 C++ 的 SST 涡粘与生产项、Fortran 的 k-ε 模块，并对照三种语言的工程取舍。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">湍流模型</span>
+        <span class="meta-sep">·</span>
+        <span>约 2593 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#C++</span><span class="tag">#Fortran</span><span class="tag">#OpenMP</span><span class="tag">#内存布局</span><span class="tag">#实现</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>模型方程写在纸上是连续的偏微分方程，落到代码里则变成“某个数组的第 \(i\) 个元素等于相邻元素的和”。这一步转换最容易出两类错误：索引与物理坐标错位、边界条件与内部格式不一致。本节从工程角度讨论这些细节，并给出可直接改写的 C++ 与 Fortran 片段。</p>
+<h2 id="数组布局与索引">数组布局与索引</h2>
+<p>有限体积网格通常存成一维数组加索引映射，而不是二维 <code>[i][j]</code>。两种主流布局：</p>
+<ul>
+<li><strong>行主序</strong>（C/C++、Python/NumPy 默认）：先排 \(i\)（\(x\) 方向），后排 \(j\)（\(y\) 方向），元素 \((i,j)\) 的偏移为 \(j\cdot n_x+i\)。</li>
+<li><strong>列主序</strong>（Fortran、MATLAB）：第一个下标变化最快，元素 \((i,j)\) 的偏移为 \(i+j\cdot n_x\)。</li>
+</ul>
+<p>两者在内存里其实是同一件事：<strong>最内层循环必须沿连续方向</strong>，否则每次跳跃一个缓存行，性能可能相差数倍。C++ 中遍历应写成 <code>for j { for i }</code>，Fortran 中应写成 <code>do j; do i</code>（\(i\) 为内层）。</p>
+<p>对结构网格，还可以用“鬼网格”（ghost cell）把边界条件统一成填充操作：内部循环从 \(i=1\) 到 \(n_x-2\)，边界层由专门的函数写入。这样内部格式不需要任何 <code>if</code> 判断，既干净又利于向量化。对三维网格，偏移写成 \((k\,n_y+j)\,n_x+i\)，一旦顺序写反，程序仍能跑通，但边界条件会作用在错误的面上，这类错误往往只能靠解析解算例发现。</p>
+<div class="math-block">\[\mathrm{idx}(i,j)=j\,n_x+i\quad\text{(row-major)},\qquad
+\mathrm{idx}(i,j)=i+j\,n_x\quad\text{(column-major)}.\]</div>
+<h2 id="时间步与并行">时间步与并行</h2>
+<p>湍流模型方程的时间推进有两种选择。显式格式实现简单，但步长受 CFL 与扩散稳定性限制：</p>
+<div class="math-block">\[\Delta t\le\min\left(\frac{\Delta x}{u_{\max}},\ 
+\frac{\Delta x^2}{2\left(\nu+\nu_t\right)}\right).\]</div>
+<p>涡粘 \(\nu_t\) 往往比分子粘度大两三个数量级，因此扩散项才是真正的限制因素。隐式格式可以用更大的步长，但需要求解线性系统，且 \(k\)、\(\varepsilon\) 的强非线性会让收敛变慢。工程代码常采用“动量隐式 + 湍流量隐式”的分离求解，或用伪瞬态推进到稳态。非定常计算必须使用全局一致的时间步；只有追求稳态时才允许局部时间步加速，否则脉动的相位关系会被破坏。</p>
+<p>并行方面，<strong>OpenMP</strong> 适合单机共享内存：在单元循环外加 <code>!$omp parallel do</code> 即可，注意每个线程的临时变量必须声明为 <code>private</code>。<strong>MPI</strong> 适合分布式内存：按块划分网格，在每个时间步交换一层鬼网格数据，通信量与表面积成正比，因此立方体子域最省通信。</p>
+<h2 id="csst-涡粘与生产项">C++：SST 涡粘与生产项</h2>
+<p>下面的结构体把场量放在连续内存中，<code>idx</code> 负责行主序映射；函数用 <code>const</code> 引用保证不修改输入，返回值统一为 SI 单位。</p>
+<div class="codehilite"><pre><span></span><code><span class="c1">// sst.hpp —— k-ω SST 的涡粘与生产项（二维结构化网格，行主序）</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;algorithm&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cmath&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstddef&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+
+<span class="k">struct</span><span class="w"> </span><span class="nc">SstField</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">k</span><span class="p">;</span><span class="w">      </span><span class="c1">// 湍动能，m^2/s^2</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">omega</span><span class="p">;</span><span class="w">  </span><span class="c1">// 比耗散率，1/s</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">u</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">;</span><span class="w">   </span><span class="c1">// 平均速度，m/s</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">nx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">rho</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">;</span><span class="w">           </span><span class="c1">// 密度，kg/m^3</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">a1</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mf">0.31</span><span class="p">;</span><span class="w">          </span><span class="c1">// SST 常数</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="nf">idx</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">j</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">nx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="p">;</span><span class="w">      </span><span class="c1">// 行主序：j 为行，i 为列</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// μ_t = ρ a1 k / max(a1 ω, S F2)，返回 Pa·s</span>
+<span class="kr">inline</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="nf">eddy_viscosity</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">SstField</span><span class="o">&amp;</span><span class="w"> </span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">j</span><span class="p">,</span>
+<span class="w">                             </span><span class="kt">double</span><span class="w"> </span><span class="n">S</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">F2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">f</span><span class="p">.</span><span class="n">k</span><span class="p">[</span><span class="n">f</span><span class="p">.</span><span class="n">idx</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)];</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">w</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">f</span><span class="p">.</span><span class="n">omega</span><span class="p">[</span><span class="n">f</span><span class="p">.</span><span class="n">idx</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)],</span><span class="w"> </span><span class="mf">1e-12</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">denom</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">max</span><span class="p">(</span><span class="n">f</span><span class="p">.</span><span class="n">a1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">w</span><span class="p">,</span><span class="w"> </span><span class="n">S</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">F2</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">f</span><span class="p">.</span><span class="n">rho</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">f</span><span class="p">.</span><span class="n">a1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">denom</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// 生产项 P_k = 2 μ_t S_ij S_ij = 2 μ_t (Sxx² + Syy² + 2 Sxy²)</span>
+<span class="kr">inline</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="nf">production</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">SstField</span><span class="o">&amp;</span><span class="w"> </span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="w"> </span><span class="n">j</span><span class="p">,</span>
+<span class="w">                         </span><span class="kt">double</span><span class="w"> </span><span class="n">Sxx</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">Syy</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">Sxy</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">F2</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">S2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Sxx</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Sxx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">Syy</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Syy</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Sxy</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Sxy</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">S</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">S2</span><span class="p">);</span><span class="w">          </span><span class="c1">// |S|</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">mut</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">eddy_viscosity</span><span class="p">(</span><span class="n">f</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">,</span><span class="w"> </span><span class="n">S</span><span class="p">,</span><span class="w"> </span><span class="n">F2</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mf">2.0</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mut</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">S2</span><span class="p">;</span><span class="w">                          </span><span class="c1">// kg/(m·s^3)</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>三个容易忽略的点：<code>std::max</code> 的下限保护防止 \(k\) 或 \(\omega\) 为负时出现除零与 <code>NaN</code>；<code>S</code> 用的是张量模 \(\sqrt{2S_{ij}S_{ij}}\)，不是某个分量的绝对值；返回值 <code>mut * S2</code> 的量纲是 \(\mathrm{kg/(m\cdot s^3)}\)，与 \(k\) 方程右端其余项一致，若改用 \(\mathrm{m^2/s^3}\) 的约定则需提前除以密度。</p>
+<h2 id="fortrank-ε-模块">Fortran：k-ε 模块</h2>
+<p>Fortran 的优势是数组语法与列主序，数值计算代码通常比 C++ 更短。下面的模块只做一步显式推进，边界层不更新（由调用者填充）。</p>
+<div class="codehilite"><pre><span></span><code><span class="c">! k_eps.f90 —— 标准 k-ε 一步显式推进（列主序）</span>
+<span class="k">module </span><span class="n">k_eps</span>
+<span class="w">  </span><span class="k">implicit none</span>
+<span class="k">  </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">wp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">selected_real_kind</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="w"> </span><span class="mi">307</span><span class="p">)</span>
+<span class="w">  </span><span class="kt">real</span><span class="p">(</span><span class="n">wp</span><span class="p">),</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">Cmu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.09_wp</span><span class="p">,</span><span class="w"> </span><span class="n">C1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.44_wp</span><span class="p">,</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.92_wp</span>
+<span class="w">  </span><span class="kt">real</span><span class="p">(</span><span class="n">wp</span><span class="p">),</span><span class="w"> </span><span class="k">parameter</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">sigk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0_wp</span><span class="p">,</span><span class="w"> </span><span class="n">sige</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.3_wp</span>
+<span class="k">contains</span>
+<span class="k">  subroutine </span><span class="n">advance</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="p">,</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="n">dy</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">nu</span><span class="p">,</span><span class="w"> </span><span class="n">u</span><span class="p">,</span><span class="w"> </span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="n">k</span><span class="p">,</span><span class="w"> </span><span class="n">eps</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">integer</span><span class="p">,</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">(</span><span class="n">wp</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="n">dy</span><span class="p">,</span><span class="w"> </span><span class="n">dt</span><span class="p">,</span><span class="w"> </span><span class="n">nu</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">(</span><span class="n">wp</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">in</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">u</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="p">),</span><span class="w"> </span><span class="n">v</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">(</span><span class="n">wp</span><span class="p">),</span><span class="w"> </span><span class="k">intent</span><span class="p">(</span><span class="n">inout</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">k</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="p">),</span><span class="w"> </span><span class="n">eps</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">(</span><span class="n">wp</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">kold</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="p">),</span><span class="w"> </span><span class="n">epsold</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="p">)</span>
+<span class="w">    </span><span class="kt">real</span><span class="p">(</span><span class="n">wp</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">nut</span><span class="p">,</span><span class="w"> </span><span class="n">Pk</span><span class="p">,</span><span class="w"> </span><span class="n">dk</span><span class="p">,</span><span class="w"> </span><span class="n">de</span><span class="p">,</span><span class="w"> </span><span class="n">lapk</span><span class="p">,</span><span class="w"> </span><span class="n">lape</span>
+<span class="w">    </span><span class="kt">integer</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span>
+
+<span class="w">    </span><span class="n">kold</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">k</span><span class="p">;</span><span class="w"> </span><span class="n">epsold</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">eps</span><span class="w">        </span><span class="c">! 显式格式必须读旧值，避免原地更新串扰</span>
+
+<span class="w">    </span><span class="c">!$omp parallel do private(i, j, nut, Pk, dk, de, lapk, lape)</span>
+<span class="w">    </span><span class="k">do </span><span class="n">j</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">ny</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="w">              </span><span class="c">! 内层 i 连续，匹配列主序</span>
+<span class="w">      </span><span class="k">do </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="n">nx</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="n">nut</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cmu</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">),</span><span class="w"> </span><span class="mf">1.0e-12_wp</span><span class="p">)</span>
+<span class="w">        </span><span class="c">! 生产项：nut * (du/dy)^2，二维剪切近似</span>
+<span class="w">        </span><span class="n">Pk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nut</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">((</span><span class="n">u</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">u</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="mf">2.0_wp</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dy</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span>
+
+<span class="w">        </span><span class="n">lapk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.0_wp</span><span class="o">*</span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">             </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.0_wp</span><span class="o">*</span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">dy</span><span class="o">**</span><span class="mi">2</span>
+<span class="w">        </span><span class="n">lape</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.0_wp</span><span class="o">*</span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">j</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">dx</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">             </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">2.0_wp</span><span class="o">*</span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">dy</span><span class="o">**</span><span class="mi">2</span>
+
+<span class="w">        </span><span class="n">dk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Pk</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">nu</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">nut</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">sigk</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">lapk</span>
+<span class="w">        </span><span class="n">de</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">C1</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Pk</span><span class="w"> </span><span class="p">&amp;</span>
+<span class="w">           </span><span class="o">-</span><span class="w"> </span><span class="n">C2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">nu</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">nut</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">sige</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">lape</span>
+
+<span class="w">        </span><span class="n">k</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">kold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w">   </span><span class="o">+</span><span class="w"> </span><span class="n">dt</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">dk</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0e-12_wp</span><span class="p">)</span>
+<span class="w">        </span><span class="n">eps</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">j</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">max</span><span class="p">(</span><span class="n">epsold</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">)</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">dt</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">de</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0e-12_wp</span><span class="p">)</span>
+<span class="w">      </span><span class="k">end do</span>
+<span class="k">    end do</span>
+<span class="w">    </span><span class="c">!$omp end parallel do</span>
+<span class="w">  </span><span class="k">end subroutine </span><span class="n">advance</span>
+<span class="k">end module </span><span class="n">k_eps</span>
+</code></pre></div>
+
+<p><code>kold</code>、<code>epsold</code> 的拷贝不是多余的：若在原数组上边算边写，右侧的邻居值可能已被本步更新，格式就从显式变成了“交错更新”，结果依赖循环顺序。对稳态问题影响不大，对非定常 LES/DES 则是隐性错误。</p>
+<h2 id="从公式到代码的映射">从公式到代码的映射</h2>
+<p>以 \(\partial_t k+U_j\partial_j k=P_k-\varepsilon+\partial_j[(\nu+\nu_t/\sigma_k)\partial_j k]\) 为例，逐项对应到一维索引（\(i\) 为 \(x\) 方向）：</p>
+<table>
+<thead>
+<tr>
+<th>公式项</th>
+<th>离散形式</th>
+<th>代码中的数组访问</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>时间导数 \(\partial_t k\)</td>
+<td>\((k^{n+1}-k^n)/\Delta t\)</td>
+<td><code>(k[i] - kold[i]) / dt</code></td>
+</tr>
+<tr>
+<td>对流 \(U\partial_x k\)</td>
+<td>一阶迎风 \(U(k_i-k_{i-1})/\Delta x\)</td>
+<td><code>U * (k[i] - k[i-1]) / dx</code></td>
+</tr>
+<tr>
+<td>扩散 \(\partial_x(\Gamma\partial_x k)\)</td>
+<td>\(\Gamma_{i+1/2}(k_{i+1}-k_i)/\Delta x^2\) 减左面</td>
+<td><code>(Ge*(k[i+1]-k[i]) - Gw*(k[i]-k[i-1])) / dx**2</code></td>
+</tr>
+<tr>
+<td>生产 \(P_k\)</td>
+<td>\(2\nu_t S_{ij}S_{ij}\)</td>
+<td><code>2*nut*S2[i]</code></td>
+</tr>
+<tr>
+<td>耗散 \(\varepsilon\)</td>
+<td>单元中心值</td>
+<td><code>eps[i]</code></td>
+</tr>
+</tbody>
+</table>
+<p>面扩散系数 \(\Gamma\) 在单元界面上取调和平均（串联热阻模型），比算术平均更能处理 \(\nu_t\) 的强跳跃：</p>
+<div class="math-block">\[\Gamma_{i+1/2}=\frac{2\Gamma_i\Gamma_{i+1}}{\Gamma_i+\Gamma_{i+1}}.\]</div>
+<h2 id="通量形式与鬼网格">通量形式与鬼网格</h2>
+<p>有限体积代码通常不直接离散微分方程，而是对每个单元做通量平衡：</p>
+<div class="math-block">\[\frac{\mathrm{d}}{\mathrm{d}t}\left(k_iV_i\right)
+=\sum_{f}F_f+S_iV_i,
+\qquad
+F_f=\Gamma_f\frac{k_N-k_P}{\Delta n_f}A_f,\]</div>
+<p>其中 \(V_i\) 是单元体积，\(f\) 遍历单元的面，\(F_f\) 是穿过面 \(f\) 的扩散通量，\(A_f\) 是面积，\(\Delta n_f\) 是面法向间距，\(k_P\)、\(k_N\) 分别是本单元与邻居的中心值，\(S_i\) 是生产与耗散的体积源。代码里“面”的量通常存在独立数组（<code>face_flux[nface]</code>），这样同一份通量可以同时用于相邻两个单元，保证离散守恒。</p>
+<p>鬼网格的作用是把边界条件变成“填充一圈虚拟单元”：入口填 Dirichlet 值，壁面填镜像值，出口填外推值。填充完成后，内部循环对所有单元使用同一套格式，不需要任何分支判断。这既减少了代码路径，也让编译器更容易向量化。</p>
+<p>向量化还有两个实际建议：其一，把标量场分开存成多个数组（SoA），而不是每个单元存一个含 \(k\)、\(\omega\)、\(\mu_t\) 的结构体（AoS），前者在遍历时是连续访存；其二，避免在热循环里做 <code>if</code> 判断与函数调用，把 <code>max</code> 保护移到循环外或改用无分支写法。MPI 并行则只需在每步交换一层鬼网格，通信量与子域表面积成正比，因此接近立方体的分块最省通信。</p>
+<h2 id="三种语言的取舍">三种语言的取舍</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Python</th>
+<th>C++</th>
+<th>Fortran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>运行性能</td>
+<td>低（需 NumPy/Numba 向量化）</td>
+<td>高</td>
+<td>高</td>
+</tr>
+<tr>
+<td>可读性与开发效率</td>
+<td>高</td>
+<td>中</td>
+<td>中（数组语法简洁）</td>
+</tr>
+<tr>
+<td>生态与工具链</td>
+<td>极强（科学计算、可视化、机器学习）</td>
+<td>强（模板、库、调试器）</td>
+<td>偏弱，但 HPC 编译器成熟</td>
+</tr>
+<tr>
+<td>内存布局</td>
+<td>行主序</td>
+<td>行主序</td>
+<td>列主序</td>
+</tr>
+<tr>
+<td>典型项目</td>
+<td>PyFR、PhiFlow、各类研究脚本</td>
+<td>OpenFOAM、SU2</td>
+<td>Nek5000、OpenFOAM 的部分求解器</td>
+</tr>
+</tbody>
+</table>
+<p>实践中的组合通常是：<strong>Python 做原型与后处理，C++/Fortran 做热循环</strong>。先在小算例上用 Python 验证公式与系数，再把验证过的离散搬到编译语言，最后用同一算例逐项比对残差。若两边结果不一致，优先检查索引偏移与边界填充，而不是怀疑模型。</p>
+<div class="admonition tip"><div class="admonition-title">单位一致性</div><div class="admonition-body"><p>湍流模型常数是无量纲的，但 \(k\)、\(\varepsilon\)、\(\mu_t\) 的量纲各不相同。建议在结构体或模块注释中显式标注单位（如 <code>m^2/s^3</code>），并在入口处统一到 SI；混用 \(\mathrm{mm}\) 与 \(\mathrm{m}\) 造成的结果偏差，往往比模型误差大一个数量级。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>布局决定性能：行主序配 <code>for j { for i }</code>，列主序配 <code>do j; do i</code>。</li>
+<li>显式推进必须读旧值，原地更新会引入顺序依赖。</li>
+<li>边界用鬼网格统一处理，内部循环才可能被向量化。</li>
+<li>从公式到代码的每一步都要能指出对应的数组下标，否则调试时无从下手。</li>
+</ul>
+<p>回到 <a class="wiki-link" href="../ch4/rans.html">RANS 与涡粘模型</a> 对照方程，或到 <a class="wiki-link" href="../ch4/les.html">大涡模拟 LES</a> 看亚格子模型如何嵌入同一个求解循环；离散框架本身见 <a class="wiki-link" href="../ch3/fvm.html">有限体积法</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch4/dns.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">DNS 与 fDNS</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch5/index.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch4/implementation.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#数组布局与索引">数组布局与索引</a></li>
+<li><a href="#时间步与并行">时间步与并行</a></li>
+<li><a href="#csst-涡粘与生产项">C++：SST 涡粘与生产项</a></li>
+<li><a href="#fortrank-ε-模块">Fortran：k-ε 模块</a></li>
+<li><a href="#从公式到代码的映射">从公式到代码的映射</a></li>
+<li><a href="#通量形式与鬼网格">通量形式与鬼网格</a></li>
+<li><a href="#三种语言的取舍">三种语言的取舍</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

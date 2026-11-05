@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>CFD 常用数据格式 · CFD Wiki</title>
+  <meta name="description" content="梳理 CGNS、VTK、PLOT3D、OpenFOAM、EnSight、HDF5、STL 与 Tecplot 的组织方式、优缺点和典型工具，并给出 Python 读写示例。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link is-active" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch3/index.html">CFD 数值方法基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">CFD 常用数据格式</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">CFD 常用数据格式</h1>
+        <p class="page-summary">梳理 CGNS、VTK、PLOT3D、OpenFOAM、EnSight、HDF5、STL 与 Tecplot 的组织方式、优缺点和典型工具，并给出 Python 读写示例。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">CFD 数值方法基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 2279 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#数据格式</span><span class="tag">#CGNS</span><span class="tag">#VTK</span><span class="tag">#HDF5</span><span class="tag">#OpenFOAM</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>一次 CFD 计算至少产生两类数据：网格（点、面、单元、边界标记）与场（速度、压力、温度等）。它们既要被求解器读写，又要在后处理器中显示，还要在并行计算中高效落盘。格式选错，轻则导入导出丢边界，重则并行 I/O 成为瓶颈、时间平均算错。</p>
+<p>这一页不比较压缩率的小数点，而是讲清每种格式“装什么、怎么组织、适合谁”。掌握结构后，遇到读不进去的文件，通常能在一分钟内判断是几何、变量名还是版本的问题。</p>
+<h2 id="一个算例的数据量">一个算例的数据量</h2>
+<p>数据量可以先粗估。若单元数为 \(N_c\)、每个单元保存 \(N_v\) 个标量、每个值占 \(b\) 字节，则单个时间步的大小约为</p>
+<div class="math-block">\[S\approx N_c N_v b.\]</div>
+<p>例如 100 万单元、每个单元 10 个双精度变量，一个时间步约 80 MB；保存 100 步就是 8 GB。并行计算时，I/O 时间由有效带宽决定：</p>
+<div class="math-block">\[t_{\mathrm{IO}}\approx\frac{S}{B_{\mathrm{eff}}},\]</div>
+<p>\(B_{\mathrm{eff}}\) 是考虑文件系统与并行争用后的有效带宽。它解释了为什么大规模计算偏爱“每个进程写一个分块、再用主进程汇总”的并行格式，而不是让所有进程排队写同一个文件。</p>
+<div class="admonition note"><div class="admonition-title">网格与场是两件事</div><div class="admonition-body"><p>网格只写一次，场每个时间步都写。很多格式把两者放在同一个文件里，方便分发但不利于增量输出；HDF5、CGNS 这类容器则允许网格与场分组存放，便于只读需要的部分。</p></div></div>
+<h2 id="cgns">CGNS</h2>
+<p>CGNS（CFD General Notation System）是面向 CFD 的层次化标准，最初由 NASA 与波音推动。文件按“基（Base）—区域（Zone）—网格—解—边界条件”组织，结构化、非结构、多块与重叠网格都能表达。扩展名通常为 <code>.cgns</code>，底层可以是 HDF5，也可以是早期的 ADF。</p>
+<p>它的优势是语义完整：一个文件里同时有网格坐标、单元连接、边界条件类型、无量纲参考量，读入后不需要用户手工对应变量名。缺点是生态偏航空，部分工具只支持结构化区域，学习曲线比“一个数组一个文件”高。</p>
+<p>常用工具包括 CGNS 官方库、pycgns、Tecplot、FieldView，以及 Fluent、CFX 的导入导出。ParaView 对 CGNS 的支持依赖插件，版本兼容性需要确认。</p>
+<h2 id="vtk">VTK</h2>
+<p>VTK 有两代格式。<strong>legacy <code>.vtk</code></strong> 是早期文本格式，文件头写明 ASCII 或 BINARY、数据集类型（结构化网格、非结构网格、多块等），随后是点、单元与属性数组。它简单、易手写，但大文件读写慢，且不同工具对二进制编码的解释偶有不一致。</p>
+<p><strong>XML 系列</strong> <code>.vtu</code>（非结构网格）、<code>.vtp</code>（多边形/点云）、<code>.vts</code>（结构化网格）把元数据写成 XML，数据区可压缩、可分块。并行版本 <code>.pvtu</code> 只存索引，指向各进程的分块文件，是 ParaView 并行后处理的常用形式。</p>
+<p>VTK 的强项是可视化互操作：ParaView、Mayavi、VisIt 与 meshio 都能读写，点数据与单元数据区分清楚。弱项是缺少 CFD 语义：边界条件、参考值、单位通常丢失，需要额外约定。</p>
+<h2 id="plot3d">PLOT3D</h2>
+<p>PLOT3D 是 NASA 早期的结构化网格格式，通常由两个文件组成：<code>.xyz</code> 存多块网格坐标，<code>.q</code> 存守恒量或原始变量。它支持 Fortran 有格式与无格式读写，二进制文件常与特定编译器、字节序绑定。</p>
+<p>优点是极简、读写快，航空外流社区与许多求解器（如 OVERFLOW、SU2 的部分工具链）仍在使用。缺点是只支持结构化多块，几乎没有元数据，变量顺序与无量纲化方式要靠文档约定，单位错误很难从文件本身发现。</p>
+<h2 id="openfoam">OpenFOAM</h2>
+<p>OpenFOAM 不用单一文件，而是用目录树表达算例：</p>
+<div class="codehilite"><pre><span></span><code>case/
+├── 0/                 # 初始条件与边界条件：U、p、k、omega
+├── constant/
+│   ├── polyMesh/      # points、faces、owner、neighbour、boundary
+│   ├── transportProperties
+│   └── turbulenceProperties
+├── system/            # controlDict、fvSchemes、fvSolution
+└── 0.5/ 1.0/ ...      # 每个写出时刻一个目录
+</code></pre></div>
+
+<p><code>polyMesh</code> 采用“面导向”存储：<code>points</code> 是点坐标，<code>faces</code> 是每个面的点索引，<code>owner</code> 与 <code>neighbour</code> 说明面属于哪个单元、相邻单元是谁，<code>boundary</code> 记录边界名称、类型与面数。时间目录里是按变量拆分的文件，每个文件头部写明量纲与边界条件。</p>
+<p>这种结构的优点是文本可读、边界条件与数值设置随算例保存、脚本化容易；缺点是文件数量多、小文件 I/O 开销大，跨平台共享时需要打包。<code>foamToVTK</code> 可以把结果转成 VTK，ParaView 也有原生 OpenFOAM 读取器。</p>
+<h2 id="ensight-与-hdf5">EnSight 与 HDF5</h2>
+<p><strong>EnSight</strong> 用 <code>.case</code> 文件索引几何与变量文件（如 <code>.geo</code>、<code>.scl</code>、<code>.vel</code>），支持结构化、非结构与多体数据，二进制读写效率高，在汽车、航空的 CFD 后处理中常见。它的缺点是格式封闭、免费工具支持有限，通常需要商业后处理器。</p>
+<p><strong>HDF5</strong> 不是 CFD 专用格式，而是一个通用容器：组、数据集、属性、分块、压缩、并行 MPI-IO 都可配置。CGNS、许多求解器的重启文件、机器学习数据集都建立在 HDF5 之上。它的优势是通用与高效，缺点是“能读”不等于“懂语义”：变量名、单位、网格拓扑仍要靠约定。</p>
+<h2 id="stl-与-tecplot">STL 与 Tecplot</h2>
+<p><strong>STL</strong> 只存三角面片，分 ASCII 与二进制两种，常用于 CAD、3D 打印与快速几何交换。它没有单位、没有变量、没有拓扑连通性，因此不能作为 CFD 网格格式，只能用于表面修复或几何导入。二进制 STL 用 80 字节头加三角形数，随后每个三角形 50 字节。</p>
+<p><strong>Tecplot</strong> 的 ASCII <code>.dat</code> 用“标题—变量—区域”组织，二进制 <code>.plt</code> 读写更快。它按区域（zone）存网格与变量，适合多块结构网格与实验数据对比；Tecplot 360 与 PyTecplot 可直接读取。缺点是跨工具互操作弱，复杂非结构数据的组织不如 VTK 通用。</p>
+<h2 id="格式对比">格式对比</h2>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>主要内容</th>
+<th>压缩/分块</th>
+<th>并行 I/O</th>
+<th>常用工具</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CGNS</td>
+<td>网格、解、边界、参考量</td>
+<td>HDF5 支持压缩与分块</td>
+<td>依赖底层 HDF5</td>
+<td>pycgns、Tecplot、Fluent</td>
+</tr>
+<tr>
+<td>VTK XML</td>
+<td>网格、点/单元数据</td>
+<td>zlib 压缩、分块</td>
+<td><code>.pvtu</code> 多文件</td>
+<td>ParaView、meshio、VisIt</td>
+</tr>
+<tr>
+<td>PLOT3D</td>
+<td>结构化网格与流场</td>
+<td>无</td>
+<td>多块文件</td>
+<td>OVERFLOW、FieldView</td>
+</tr>
+<tr>
+<td>OpenFOAM</td>
+<td>网格、场、边界、设置</td>
+<td>无，按目录拆分</td>
+<td>每进程分目录</td>
+<td>OpenFOAM、ParaView</td>
+</tr>
+<tr>
+<td>EnSight</td>
+<td>几何、标量/矢量场</td>
+<td>二进制、case 索引</td>
+<td>有限</td>
+<td>EnSight、CFD-Post</td>
+</tr>
+<tr>
+<td>HDF5</td>
+<td>任意数组与元数据</td>
+<td>压缩、分块</td>
+<td>MPI-IO</td>
+<td>h5py、CGNS、PyTorch</td>
+</tr>
+<tr>
+<td>STL</td>
+<td>三角表面</td>
+<td>无</td>
+<td>不适用</td>
+<td>CAD、3D 打印</td>
+</tr>
+<tr>
+<td>Tecplot</td>
+<td>分区网格与变量</td>
+<td>二进制</td>
+<td>有限</td>
+<td>Tecplot 360、PyTecplot</td>
+</tr>
+</tbody>
+</table>
+<h2 id="python-读写示例">Python 读写示例</h2>
+<p><code>meshio</code> 提供了统一的 VTK 接口。下面的代码写一个带点数据的 <code>.vtu</code>，再读回验证：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">meshio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># 四个角点与一个四边形单元</span>
+<span class="n">points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+<span class="p">])</span>
+<span class="n">cells</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"quad"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]))]</span>
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">meshio</span><span class="o">.</span><span class="n">Mesh</span><span class="p">(</span>
+    <span class="n">points</span><span class="p">,</span>
+    <span class="n">cells</span><span class="p">,</span>
+    <span class="n">point_data</span><span class="o">=</span><span class="p">{</span><span class="s2">"pressure"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">])},</span>
+<span class="p">)</span>
+
+<span class="n">meshio</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"sample.vtu"</span><span class="p">,</span> <span class="n">mesh</span><span class="p">)</span>
+<span class="n">back</span> <span class="o">=</span> <span class="n">meshio</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"sample.vtu"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">back</span><span class="o">.</span><span class="n">point_data</span><span class="p">[</span><span class="s2">"pressure"</span><span class="p">])</span>
+</code></pre></div>
+
+<p>若文件是 HDF5 底层的 CGNS，可以用 <code>h5py</code> 先看结构：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+
+<span class="c1"># 打印 CGNS 文件中的组与数据集层级</span>
+<span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s2">"case.cgns"</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">show</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="n">kind</span> <span class="o">=</span> <span class="s2">"组"</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">h5py</span><span class="o">.</span><span class="n">Group</span><span class="p">)</span> <span class="k">else</span> <span class="s2">"数据集"</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">visititems</span><span class="p">(</span><span class="n">show</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>h5py</code> 只认识 HDF5 的组与数据集，不理解 CGNS 的区域、边界类型与变量语义；要按 CFD 语义读取，应使用 <code>pycgns</code>。同理，读 OpenFOAM 的 <code>polyMesh</code> 需要自己解析 <code>owner/neighbour</code>，或直接用 <code>foamToVTK</code>、PyVista 的 OpenFOAM 读取器。</p>
+<div class="admonition warning"><div class="admonition-title">单位与变量名</div><div class="admonition-body"><p>格式能读进来不代表物理量正确。PLOT3D 可能用英尺与英制单位，CGNS 可能存无量纲量，OpenFOAM 的 <code>p</code> 可能是运动压力 \(p/\rho\)。导入后先检查量纲、参考密度与速度，再谈后处理。</p></div></div>
+<h2 id="选型建议">选型建议</h2>
+<ul>
+<li>需要跨工具、跨平台交换网格与场：优先 VTK XML 或 CGNS；</li>
+<li>航空结构化多块、与 legacy 求解器对接：PLOT3D 仍可用，但要固定字节序与变量约定；</li>
+<li>OpenFOAM 算例：保留原生目录结构，后处理再转 VTK；</li>
+<li>大规模并行与重启：HDF5 容器加自定义布局，或 CGNS 的 HDF5 后端；</li>
+<li>只关心表面：STL 足够，但不要指望它携带边界条件。</li>
+</ul>
+<p>无论选哪种格式，都建议在算例目录里留一份说明，写明单位、变量名、参考状态与生成工具的版本。元数据再完整，也常因版本升级或导出插件而丢失；一份随算例保存的文本说明，往往比文件头更可靠，也更容易在团队之间传递。</p>
+<p>相关阅读：商业软件如何导入这些格式，见<a class="wiki-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a>；Python 读取与批量处理的更多细节，见<a class="wiki-link" href="../ch6/python-io.html">Python 数据读写</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch3/mesh.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">网格生成与质量</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch3/commercial-software.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">商业软件与开源求解器</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch3/data-formats.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#一个算例的数据量">一个算例的数据量</a></li>
+<li><a href="#cgns">CGNS</a></li>
+<li><a href="#vtk">VTK</a></li>
+<li><a href="#plot3d">PLOT3D</a></li>
+<li><a href="#openfoam">OpenFOAM</a></li>
+<li><a href="#ensight-与-hdf5">EnSight 与 HDF5</a></li>
+<li><a href="#stl-与-tecplot">STL 与 Tecplot</a></li>
+<li><a href="#格式对比">格式对比</a></li>
+<li><a href="#python-读写示例">Python 读写示例</a></li>
+<li><a href="#选型建议">选型建议</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

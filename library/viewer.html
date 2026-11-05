@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>文献阅读器 · CFD Wiki</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="viewer-page">
+  <header class="viewer-bar">
+    <a class="viewer-back" href="index.html">← 文献列表</a>
+    <div class="viewer-heading">
+      <div class="viewer-title" id="viewerTitle">正在加载…</div>
+      <div class="viewer-meta" id="viewerMeta"></div>
+    </div>
+    <div class="viewer-actions">
+      <a class="btn btn-ghost" id="viewerRaw" target="_blank" rel="noopener" hidden>原始文件</a>
+      <a class="btn btn-ghost" id="viewerDownload" hidden>下载</a>
+    </div>
+  </header>
+
+  <main class="viewer-body">
+    <section class="viewer-doc" id="viewerDoc" aria-label="文献正文">
+      <div class="viewer-loading" id="viewerLoading">正在加载文献…</div>
+      <div class="doc-mount" id="docMount"></div>
+    </section>
+
+    <aside class="viewer-notes" aria-label="阅读笔记">
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="笔记随正文同步滚动">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+        </span>
+      </div>
+      <div class="notes-tools" role="toolbar" aria-label="笔记格式">
+        <button class="note-tool" type="button" data-note-cmd="bold" title="加粗"><strong>B</strong></button>
+        <button class="note-tool" type="button" data-note-cmd="italic" title="倾斜"><em>I</em></button>
+        <button class="note-tool" type="button" data-note-cmd="underline" title="下划线"><span class="u-mark">U</span></button>
+        <button class="note-tool" type="button" data-note-cmd="formatBlock" data-note-value="h2" title="设为标题">H</button>
+        <button class="note-tool" type="button" data-note-cmd="insertUnorderedList" title="无序列表">•</button>
+        <button class="note-tool" type="button" data-note-cmd="insertOrderedList" title="有序列表">1.</button>
+        <button class="note-tool" type="button" data-note-cmd="removeFormat" title="清除格式">A</button>
+        <button class="note-tool note-tool-image" type="button" id="notesImageBtn" title="插入截图或图片">图</button>
+      </div>
+      <div class="notes-editor" id="notesEditor" contenteditable="true" spellcheck="false"
+           data-placeholder="记录这篇文献的批注、公式与疑问……支持 Ctrl+V 粘贴截图，或直接拖入图片"></div>
+      <input type="file" id="notesImageInput" accept="image/*" hidden>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </aside>
+  </main>
+
+  <script src="../library-index.js" defer></script>
+  <script src="../assets/js/pdf.min.js" defer></script>
+  <script src="../assets/js/mammoth.browser.min.js" defer></script>
+  <script src="../assets/js/viewer.js" defer></script>
+</body>
+</html>

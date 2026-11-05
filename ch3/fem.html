@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>有限元法 FEM · CFD Wiki</title>
+  <meta name="description" content="从强形式、加权残差到 Galerkin 弱形式，推导一维 Poisson 的单元刚度矩阵，并讨论等参元、数值积分、边界条件、时间推进与对流稳定化。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link is-active" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch3/index.html">CFD 数值方法基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">有限元法 FEM</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">有限元法 FEM</h1>
+        <p class="page-summary">从强形式、加权残差到 Galerkin 弱形式，推导一维 Poisson 的单元刚度矩阵，并讨论等参元、数值积分、边界条件、时间推进与对流稳定化。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">CFD 数值方法基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 2903 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#有限元法</span><span class="tag">#弱形式</span><span class="tag">#Galerkin</span><span class="tag">#刚度矩阵</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>有限元法（Finite Element Method，FEM）与有限体积法一样，都是把连续方程变成代数方程，但它的出发点不是“面通量守恒”，而是“残差在某种加权意义下为零”。这套语言最初为结构力学设计，如今已扩展到传热、电磁、流固耦合与多物理场。对 CFD 读者来说，FEM 至少有两个用途：理解弱形式与边界条件的自然处理方式，以及在复杂几何、共轭传热、流固耦合问题中选择合适的工具。</p>
+<p>这一页用一维 Poisson 方程走完整个推导，再把它推广到二维单元、时间依赖问题与不可压流动。</p>
+<h2 id="从强形式到弱形式">从强形式到弱形式</h2>
+<p>考虑一维 Poisson 方程</p>
+<div class="math-block">\[-\frac{\mathrm{d}^2u}{\mathrm{d}x^2}=f(x),
+\qquad 0<x<1,\]</div>
+<p>边界条件 \(u(0)=u(1)=0\)。这是“强形式”：要求 \(u\) 二阶可导，且逐点满足方程。真实解在角点、材料界面附近往往不满足这么强的光滑性，弱形式则把要求降低到一阶导数平方可积。</p>
+<p>取任意检验函数 \(v\)，在定义域上积分：</p>
+<div class="math-block">\[\int_0^1\left(-u''-f\right)v\,\mathrm{d}x=0.\]</div>
+<p>对第一项分部积分：</p>
+<div class="math-block">\[\int_0^1 u'v'\,\mathrm{d}x
+-\left[u'v\right]_0^1
+=\int_0^1 fv\,\mathrm{d}x.\]</div>
+<p>若检验函数在边界上为零，边界项消失，得到弱形式：求 \(u\in H_0^1\)，使</p>
+<div class="math-block">\[\int_0^1 u'v'\,\mathrm{d}x
+=\int_0^1 fv\,\mathrm{d}x,
+\qquad \forall v\in H_0^1.\]</div>
+<p>\(H_0^1\) 表示一阶导数平方可积、在边界取零的函数空间。这个式子只含一阶导数，因此分片线性函数也可以代入。Galerkin 方法进一步把 \(u\) 与 \(v\) 都限制在同一个有限维子空间中，这就是“试函数与检验函数同空间”。</p>
+<h2 id="形函数与单元刚度矩阵">形函数与单元刚度矩阵</h2>
+<p>把区间分成 \(n\) 个单元，节点为 \(0=x_0<x_1<\cdots<x_n=1\)，单元长度 \(h_e=x_{e+1}-x_e\)。在每个节点放一个“帽子函数” \(N_j\)：在节点 \(j\) 取 1，在相邻节点取 0，其余为零。于是近似解为</p>
+<div class="math-block">\[u_h(x)=\sum_{j=0}^{n}u_jN_j(x),\]</div>
+<p>\(u_j\) 是节点值，也是未知量。取 \(v=N_i\)，代入弱形式：</p>
+<div class="math-block">\[\sum_{j=0}^{n}u_j\int_0^1 N_i'N_j'\,\mathrm{d}x
+=\int_0^1 fN_i\,\mathrm{d}x.\]</div>
+<p>写成矩阵形式</p>
+<div class="math-block">\[\mathbf{K}\mathbf{u}=\mathbf{F},\]</div>
+<p>其中</p>
+<div class="math-block">\[K_{ij}=\int_0^1 N_i'N_j'\,\mathrm{d}x,
+\qquad
+F_i=\int_0^1 fN_i\,\mathrm{d}x.\]</div>
+<p>\(K\) 就是刚度矩阵，\(F\) 是载荷向量。逐个单元积分，单元 \(e\) 上的局部矩阵为</p>
+<div class="math-block">\[\mathbf{K}^e=\frac{1}{h_e}
+\begin{bmatrix}
+1 & -1\\
+-1 & 1
+\end{bmatrix},
+\qquad
+\mathbf{F}^e=\frac{h_e}{2}
+\begin{bmatrix}
+1\\1
+\end{bmatrix}\]</div>
+<p>后者对应 \(f=1\) 的一致载荷。局部矩阵对所有单元都相同（均匀网格），组装时按节点编号叠加到全局矩阵的对角块，相邻单元在共享节点上的贡献自动相加。这正是“单元刚度矩阵组装成整体刚度矩阵”的过程。</p>
+<h2 id="等参元jacobian-与数值积分">等参元、Jacobian 与数值积分</h2>
+<p>二维问题很少是规则矩形。等参元把物理坐标与参考坐标用同一组形函数联系起来：</p>
+<div class="math-block">\[x(\xi,\eta)=\sum_{a}N_a(\xi,\eta)x_a,
+\qquad
+y(\xi,\eta)=\sum_{a}N_a(\xi,\eta)y_a.\]</div>
+<p>积分从物理单元换到参考单元（例如 \([-1,1]^2\)）时，面积元要乘上 Jacobian 行列式：</p>
+<div class="math-block">\[\int_{\Omega_e}g(x,y)\,\mathrm{d}x\,\mathrm{d}y
+=\int_{-1}^{1}\int_{-1}^{1}
+g\left(x(\xi,\eta),y(\xi,\eta)\right)
+\lvert J(\xi,\eta)\rvert\,\mathrm{d}\xi\,\mathrm{d}\eta,\]</div>
+<p>\(J\) 是坐标变换的 Jacobian 矩阵，\(\lvert J\rvert\) 是其行列式。形函数对物理坐标的导数则为</p>
+<div class="math-block">\[\frac{\partial N_a}{\partial x}
+=\frac{\partial N_a}{\partial \xi}\frac{\partial \xi}{\partial x}
++\frac{\partial N_a}{\partial \eta}\frac{\partial \eta}{\partial x},\]</div>
+<p>实际实现中通过 \(J^{-1}\) 一次性计算两个方向的导数。</p>
+<p>积分通常用 Gauss 求积：</p>
+<div class="math-block">\[\int_{-1}^{1}g(\xi)\,\mathrm{d}\xi
+\approx\sum_{q=1}^{n_q}w_qg(\xi_q),\]</div>
+<p>\(n_q\) 个 Gauss 点可以精确积分 \(2n_q-1\) 次多项式。线性三角形用 1 点（形心），二次三角形常用 3 点或 6 点；四边形常用 \(2\times2\) Gauss。积分点不足会导致“沙漏”模式，过多则浪费计算。</p>
+<p>二维常用单元包括：</p>
+<ul>
+<li><strong>三角形</strong>：适应任意边界，线性元 3 节点、二次元 6 节点；</li>
+<li><strong>四边形</strong>：结构化区域精度高，但扭曲过大时 Jacobian 可能为负；</li>
+<li><strong>混合单元</strong>：边界用三角形、内部用四边形，兼顾贴合与效率。</li>
+</ul>
+<p>若某个单元的 \(\lvert J\rvert\) 为负，说明单元节点顺序反了或单元被压扁，刚度矩阵会出现负贡献，求解必然出错。这是网格检查中最先要看的一项。</p>
+<h2 id="组装边界条件与稀疏求解">组装、边界条件与稀疏求解</h2>
+<p>组装后的 \(\mathbf{K}\) 是稀疏、对称、正定的（在正确边界条件下）。整体规模可能达到百万未知量，不能存成稠密矩阵。常用格式是压缩稀疏行（CSR），配合共轭梯度、GMRES 与代数多重网格预条件。</p>
+<p>Dirichlet 边界条件有两种施加方式。</p>
+<p><strong>消元法</strong>把已知节点集合记为 \(c\)、自由节点记为 \(f\)，把方程分块：</p>
+<div class="math-block">\[\mathbf{K}_{ff}\mathbf{u}_f
+=\mathbf{F}_f-\mathbf{K}_{fc}\mathbf{u}_c,\]</div>
+<p>\(\mathbf{u}_c\) 是已知边界值。只需求解自由部分的子系统，数值上最干净。</p>
+<p><strong>置大数法</strong>把对角元乘上一个极大数、右端项改为“极大数乘给定值”，强迫该节点近似取给定值。实现简单，但会破坏矩阵条件数，且在大规模并行中不如消元稳定。</p>
+<p>Neumann 边界条件不需要修改未知量：在弱形式分部积分时，边界项 \(\int_{\partial\Omega}v\nabla u\cdot\mathbf{n}\) 会自然出现，把给定的热流或面力代入即可。这是 FEM 相对 FDM 的一个优势：通量边界是“自然边界条件”，无需虚拟节点。</p>
+<h2 id="时间依赖与对流主导问题">时间依赖与对流主导问题</h2>
+<p>瞬态扩散方程</p>
+<div class="math-block">\[\frac{\partial u}{\partial t}=\nabla\cdot\left(\Gamma\nabla u\right)+s\]</div>
+<p>经空间离散后得到</p>
+<div class="math-block">\[\mathbf{M}\dot{\mathbf{u}}+\mathbf{K}\mathbf{u}=\mathbf{F},\]</div>
+<p>\(\mathbf{M}\) 是质量矩阵。时间方向可用 \(\theta\) 格式：</p>
+<div class="math-block">\[\mathbf{M}\frac{\mathbf{u}^{n+1}-\mathbf{u}^{n}}{\Delta t}
++\theta\mathbf{K}\mathbf{u}^{n+1}
++(1-\theta)\mathbf{K}\mathbf{u}^{n}
+=\mathbf{F}^{n+\theta},\]</div>
+<p>\(\theta=0\) 为显式 Euler，\(\theta=1\) 为隐式 Euler，\(\theta=1/2\) 为 Crank–Nicolson。显式格式受网格与扩散系数限制，隐式格式稳定但每步要解线性系统。</p>
+<p>对流主导时，标准 Galerkin 解会出现跨节点的非物理振荡，因为中心型权函数无法识别流动方向。稳定化方法是在弱形式中加入沿流线的残差项，例如 SUPG：</p>
+<div class="math-block">\[\sum_{e}\int_{\Omega_e}
+\tau_e\left(\mathbf{b}\cdot\nabla\mathbf{w}\right)
+\mathcal{R}(u_h)\,\mathrm{d}\Omega,
+\qquad
+\tau_e\approx\frac{h_e}{2\lVert\mathbf{b}\rVert},\]</div>
+<p>\(\mathbf{b}\) 是流速，\(\mathcal{R}(u_h)\) 是方程残差，\(\tau_e\) 是单元时间尺度。它相当于在流线方向引入可控的数值扩散，而不污染横向。</p>
+<p>不可压 N-S 的混合元还要满足 Ladyzhenskaya–Babuška–Brezzi（LBB）条件：</p>
+<div class="math-block">\[\inf_{q\ne0}\sup_{\mathbf{v}\ne0}
+\frac{\int_\Omega q\,\nabla\cdot\mathbf{v}\,\mathrm{d}\Omega}
+{\lVert\mathbf{v}\rVert_1\lVert q\rVert_0}
+\ge\beta>0.\]</div>
+<p>它要求速度空间足够丰富，才能对每一个压力模式产生非零的散度响应。同阶的 \(P_1/P_1\) 单元不满足该条件，会出现棋盘压力；Taylor–Hood 元（速度 \(P_2\)、压力 \(P_1\)）满足，或改用同阶元加压力稳定化。</p>
+<h2 id="fvm-与-fem-的对比">FVM 与 FEM 的对比</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>有限体积法</th>
+<th>有限元法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>守恒性</td>
+<td>局部逐面守恒，天然保守恒</td>
+<td>弱形式意义下守恒，需构造守恒通量</td>
+</tr>
+<tr>
+<td>复杂几何</td>
+<td>非结构网格适应性强</td>
+<td>等参元适应性强，边界贴合好</td>
+</tr>
+<tr>
+<td>激波与间断</td>
+<td>限制器、Riemann 求解器成熟</td>
+<td>需间断 Galerkin 或强稳定化</td>
+</tr>
+<tr>
+<td>结构/多物理耦合</td>
+<td>较弱</td>
+<td>强，同一弱形式可耦合多场</td>
+</tr>
+<tr>
+<td>矩阵性质</td>
+<td>常为非对称，迎风带来对角占优</td>
+<td>扩散问题对称正定</td>
+</tr>
+<tr>
+<td>典型软件</td>
+<td>Fluent、CFX、STAR-CCM+、OpenFOAM</td>
+<td>COMSOL、Abaqus、ANSYS Mechanical</td>
+</tr>
+</tbody>
+</table>
+<p>两者并非替代关系。内流、外流、湍流的大规模计算仍以 FVM 为主；需要精确贴合边界、耦合结构变形或电磁场时，FEM 更自然。近年来间断 Galerkin（DG）把两者的优点结合：单元内用高阶多项式，单元间用数值通量，既有高阶精度又有局部守恒。</p>
+<h2 id="一维-poisson-的-python-实现">一维 Poisson 的 Python 实现</h2>
+<p>取 \(f(x)=\pi^2\sin(\pi x)\)，精确解为 \(u=\sin(\pi x)\)，边界为零。用线性单元、2 点 Gauss 积分组装全局矩阵，消去边界节点后求解：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">gp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.0</span><span class="p">)</span>   <span class="c1"># Gauss 点</span>
+<span class="n">gw</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">])</span>                    <span class="c1"># Gauss 权重</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fem_poisson</span><span class="p">(</span><span class="n">n_elem</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""-u'' = pi^2 sin(pi x)，u(0)=u(1)=0，线性单元 + 2 点 Gauss 积分。"""</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">n_elem</span>
+    <span class="n">n_node</span> <span class="o">=</span> <span class="n">n_elem</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_node</span><span class="p">,</span> <span class="n">n_node</span><span class="p">))</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_node</span><span class="p">)</span>
+
+    <span class="n">ke</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]])</span> <span class="o">/</span> <span class="n">h</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gp</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">gp</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">])</span>  <span class="c1"># 形函数在 Gauss 点取值</span>
+
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_elem</span><span class="p">):</span>
+        <span class="n">xc</span> <span class="o">=</span> <span class="p">(</span><span class="n">e</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">h</span>
+        <span class="n">xq</span> <span class="o">=</span> <span class="n">xc</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="n">gp</span>
+        <span class="n">fq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">xq</span><span class="p">)</span>
+        <span class="c1"># 载荷积分：sum_q w_q f(x_q) N_a(xi_q) * (h/2)</span>
+        <span class="n">fe</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="p">(</span><span class="n">N</span> <span class="o">*</span> <span class="p">(</span><span class="n">gw</span> <span class="o">*</span> <span class="n">fq</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span><span class="p">,</span> <span class="n">e</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">K</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">idx</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">ke</span>
+        <span class="n">F</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">fe</span>
+
+    <span class="n">free</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_node</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n_node</span><span class="p">)</span>
+    <span class="n">u</span><span class="p">[</span><span class="n">free</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">K</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">free</span><span class="p">,</span> <span class="n">free</span><span class="p">)],</span> <span class="n">F</span><span class="p">[</span><span class="n">free</span><span class="p">])</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">n_node</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">l2_error</span><span class="p">(</span><span class="n">n_elem</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""用 2 点 Gauss 积分计算全场 L2 误差。"""</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">n_elem</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">fem_poisson</span><span class="p">(</span><span class="n">n_elem</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_elem</span><span class="p">):</span>
+        <span class="n">xq</span> <span class="o">=</span> <span class="p">(</span><span class="n">e</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">h</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="n">gp</span>
+        <span class="n">uq</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">gp</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="p">[</span><span class="n">e</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">gp</span><span class="p">)</span> <span class="o">*</span> <span class="n">u</span><span class="p">[</span><span class="n">e</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">exact</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">xq</span><span class="p">)</span>
+        <span class="n">total</span> <span class="o">+=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">h</span> <span class="o">*</span> <span class="p">(</span><span class="n">gw</span> <span class="o">*</span> <span class="p">(</span><span class="n">uq</span> <span class="o">-</span> <span class="n">exact</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">total</span><span class="p">)</span>
+
+<span class="n">prev</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">64</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">exact</span> <span class="o">=</span> <span class="n">fem_poisson</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">exact</span><span class="p">))</span>
+    <span class="n">l2</span> <span class="o">=</span> <span class="n">l2_error</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">rate</span> <span class="o">=</span> <span class="s2">""</span> <span class="k">if</span> <span class="n">prev</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"  L2收敛阶=</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">prev</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">l2</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"单元数=</span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  节点max|err|=</span><span class="si">{</span><span class="n">err</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">  L2=</span><span class="si">{</span><span class="n">l2</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}{</span><span class="n">rate</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">prev</span> <span class="o">=</span> <span class="n">l2</span>
+</code></pre></div>
+
+<p>运行结果会显示 L2 误差随单元数加倍按约四倍下降，即 \(O(h^2)\)；节点最大误差下降得更快，这是线性元在节点上的超收敛，不能据此认为全场精度也达到了四阶。这里还有两个细节值得注意：第一，载荷向量用 Gauss 积分而不是简单地取单元中点乘长度，否则右端项的误差会污染收敛阶；第二，边界节点虽然被消去，但在组装时仍保留在全局矩阵中，最后只取自由子块求解。</p>
+<div class="admonition note"><div class="admonition-title">为什么节点值看起来“特别准”</div><div class="admonition-body"><p>对一维常系数 Poisson 问题，线性单元的节点值往往具有超收敛性，甚至与精确解在节点上一致。但单元内部的解仍是分片线性的，整体 \(L^2\) 误差依然按 \(h^2\) 下降。不要用节点误差代替全场误差。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>弱形式把二阶导数降为一阶，使分片线性函数成为合法近似；Galerkin 让试函数与检验函数同空间。</li>
+<li>单元刚度矩阵来自形函数导数的积分，组装就是把局部矩阵按节点编号叠加。</li>
+<li>等参元用 Jacobian 把任意单元映射到参考单元，Gauss 积分负责数值求积；负 Jacobian 是网格错误。</li>
+<li>对流主导时需要 SUPG 等稳定化，不可压混合元需要满足 LBB 条件。</li>
+<li>FEM 与 FVM 的差异主要在守恒性、间断处理与多物理耦合，选择取决于问题而不是“哪个更先进”。</li>
+</ul>
+<p>相关阅读：弱形式背后的分类与边界条件，见<a class="wiki-link" href="../ch1/pde-foundations.html">偏微分方程基础</a>；面通量视角的对照，见<a class="wiki-link" href="../ch3/fvm.html">有限体积法</a>；单元形状与质量如何影响 Jacobian，见<a class="wiki-link" href="../ch3/mesh.html">网格生成与质量</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch3/fvm.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">有限体积法 FVM</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch3/mesh.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">网格生成与质量</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch3/fem.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#从强形式到弱形式">从强形式到弱形式</a></li>
+<li><a href="#形函数与单元刚度矩阵">形函数与单元刚度矩阵</a></li>
+<li><a href="#等参元jacobian-与数值积分">等参元、Jacobian 与数值积分</a></li>
+<li><a href="#组装边界条件与稀疏求解">组装、边界条件与稀疏求解</a></li>
+<li><a href="#时间依赖与对流主导问题">时间依赖与对流主导问题</a></li>
+<li><a href="#fvm-与-fem-的对比">FVM 与 FEM 的对比</a></li>
+<li><a href="#一维-poisson-的-python-实现">一维 Poisson 的 Python 实现</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

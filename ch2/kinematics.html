@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>流动的运动学描述 · CFD Wiki</title>
+  <meta name="description" content="介绍拉格朗日与欧拉两种描述、物质导数的推导、流线/迹线/脉线的区别，以及速度梯度张量的变形率-旋转分解与涡量、环量、速度势。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link is-active" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch2/index.html">流体力学基本概念</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">流动的运动学描述</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">流动的运动学描述</h1>
+        <p class="page-summary">介绍拉格朗日与欧拉两种描述、物质导数的推导、流线/迹线/脉线的区别，以及速度梯度张量的变形率-旋转分解与涡量、环量、速度势。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">流体力学基本概念</span>
+        <span class="meta-sep">·</span>
+        <span>约 2263 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#运动学</span><span class="tag">#物质导数</span><span class="tag">#流线</span><span class="tag">#涡量</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>上一页把流体当作连续介质，并给出了物性参数。这一页只做一件事：描述它怎么动。同一股水流，可以跟着一个质点走，也可以站在岸边看固定位置的速度变化。两种视角及其换算，构成了运动学的全部内容；守恒方程中的对流项、涡量动力学与湍流中的旋转结构，都建立在这里。</p>
+<h2 id="拉格朗日描述与欧拉描述">拉格朗日描述与欧拉描述</h2>
+<p><strong>拉格朗日描述</strong>给每个流体质点贴一个永久标签 \(\mathbf{a}=(a,b,c)\)（通常是初始位置），再用它的位置函数描述运动：</p>
+<div class="math-block">\[\mathbf{x}=\mathbf{X}(\mathbf{a},t),
+\qquad
+\mathbf{u}(\mathbf{a},t)=\frac{\partial\mathbf{X}(\mathbf{a},t)}{\partial t}.\]</div>
+<p>这种描述像“跟踪每个乘客”，适合固体力学、质点轨迹与粒子追踪，但在流体中要跟踪无穷多质点，实际很少直接使用。</p>
+<p><strong>欧拉描述</strong>不关心质点身份，只在固定空间点上记录场量：</p>
+<div class="math-block">\[\mathbf{u}=\mathbf{u}(\mathbf{x},t),\qquad p=p(\mathbf{x},t),\qquad \rho=\rho(\mathbf{x},t).\]</div>
+<p>CFD 几乎全部采用欧拉描述，因为网格固定在空间，求解器只需要知道每个网格点上的值。代价是：欧拉场看不到“这个质点从哪里来”。</p>
+<p>两者通过<strong>物质导数</strong>连接。设某个质点当前位于 \(\mathbf{x}\)，其标签为 \(\mathbf{a}\)，则标量 \(\phi\) 沿质点轨迹的变化率为</p>
+<div class="math-block">\[\frac{D\phi}{Dt}
+=\frac{\partial\phi}{\partial t}
++u_j\frac{\partial\phi}{\partial x_j}
+=\frac{\partial\phi}{\partial t}+\mathbf{u}\cdot\nabla\phi.\]</div>
+<p>推导只需对 \(\phi(\mathbf{X}(\mathbf{a},t),t)\) 用链式法则：固定标签 \(\mathbf{a}\) 时，\(\partial\mathbf{x}/\partial t=\mathbf{u}\)，于是位置变化项就变成对流项。第一项是当地变化率（站在岸边看到的），第二项是对流变化率（被水流带到新位置看到的不同值）。两者相加才是质点自身的感受。</p>
+<p>对速度本身取物质导数，得到加速度：</p>
+<div class="math-block">\[\mathbf{a}=\frac{D\mathbf{u}}{Dt}
+=\frac{\partial\mathbf{u}}{\partial t}+(\mathbf{u}\cdot\nabla)\mathbf{u}.\]</div>
+<p>注意对流项 \((\mathbf{u}\cdot\nabla)\mathbf{u}\) 对速度是二次的，这是 N-S 方程非线性的来源，也是湍流、激波与涡破碎的数学根源。</p>
+<h2 id="流线迹线脉线">流线、迹线、脉线</h2>
+<p>三种曲线常被混淆，区别在于“描的是谁的历史”。</p>
+<p><strong>流线</strong>在某一瞬间与当地速度矢量相切，方程为一阶常微分方程组：</p>
+<div class="math-block">\[\frac{dx}{u}=\frac{dy}{v}=\frac{dz}{w}.\]</div>
+<p>流线是“瞬时照片”，同一时刻不同流线上的点没有时间关联。</p>
+<p><strong>迹线</strong>是单个质点在一段时间内的运动轨迹，满足</p>
+<div class="math-block">\[\frac{d\mathbf{x}}{dt}=\mathbf{u}(\mathbf{x},t),\]</div>
+<p>初值是该质点在起始时刻的位置。</p>
+<p><strong>脉线</strong>（streakline）是先后经过同一固定点的所有质点在同一时刻的连线，例如烟囱冒出的烟柱、风洞中从排烟针头流出的烟线。</p>
+<table>
+<thead>
+<tr>
+<th>曲线</th>
+<th>定义</th>
+<th>依赖时间</th>
+<th>何时三者重合</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>流线</td>
+<td>瞬时速度场的切线</td>
+<td>只取某一时刻</td>
+<td>定常流动</td>
+</tr>
+<tr>
+<td>迹线</td>
+<td>单个质点的轨迹</td>
+<td>需要一段历史</td>
+<td>定常流动</td>
+</tr>
+<tr>
+<td>脉线</td>
+<td>经过同一点的所有质点当前位置</td>
+<td>需要一段历史</td>
+<td>定常流动</td>
+</tr>
+</tbody>
+</table>
+<p>在定常流动中，流线形状不随时间变化，质点必然沿流线运动，因此三者重合；在非定常流动中，流线会随时间变形，质点轨迹与瞬时流线不再相同。实验中向流场注入示踪剂拍到的多是脉线，数值后处理画出的多是流线，比较两者时要注意这一差别。</p>
+<p>由相邻流线围成的管状区域称为<strong>流管</strong>。定常流动中流管壁面与速度相切，没有质量穿过，因此管内质量流量守恒：</p>
+<div class="math-block">\[\dot{m}=\int_A\rho\,\mathbf{u}\cdot\mathbf{n}\,dA.\]</div>
+<p>对不可压缩、截面积 \(A_1,A_2\) 的流管，\(\dot{m}=\rho A_1u_1=\rho A_2u_2\)，这就是连续性方程的一维形式，也是文丘里流量计的出发点。</p>
+<h2 id="速度梯度张量的分解">速度梯度张量的分解</h2>
+<p>速度场的一阶信息全部包含在速度梯度张量 \(\nabla\mathbf{u}\) 中，其分量为 \(L_{ij}=\partial u_i/\partial x_j\)。把它拆成对称与反对称两部分：</p>
+<div class="math-block">\[\nabla\mathbf{u}=\mathbf{S}+\mathbf{W},\]</div>
+<div class="math-block">\[S_{ij}=\frac{1}{2}\left(\frac{\partial u_i}{\partial x_j}+\frac{\partial u_j}{\partial x_i}\right),
+\qquad
+W_{ij}=\frac{1}{2}\left(\frac{\partial u_i}{\partial x_j}-\frac{\partial u_j}{\partial x_i}\right).\]</div>
+<p>\(\mathbf{S}\) 称为<strong>变形率张量</strong>，对称，描述流体微元如何被拉长、压扁与剪切；\(\mathbf{W}\) 称为<strong>旋转率张量</strong>，反对称，描述微元如何刚体旋转。它们的迹满足</p>
+<div class="math-block">\[\mathrm{tr}(\mathbf{S})=\nabla\cdot\mathbf{u},\]</div>
+<p>即体积膨胀率。不可压缩时 \(\nabla\cdot\mathbf{u}=0\)，微元体积不变，但形状可以任意变化。</p>
+<p>一个容易误解的例子是简单剪切流 \(u=\dot\gamma y,\ v=0\)，其中 \(\dot\gamma\) 为剪切率。此时</p>
+<div class="math-block">\[S_{12}=S_{21}=\frac{\dot\gamma}{2},\qquad
+W_{12}=-W_{21}=-\frac{\dot\gamma}{2},\qquad
+\omega_z=-\dot\gamma.\]</div>
+<p>也就是说，纯剪切同时包含“角变形”和“旋转”两部分，且各占一半。这解释了为什么剪切流有涡量却不一定是“看得见的旋涡”：涡量度量的是微元的平均旋转，而不是流线的弯曲程度。</p>
+<h2 id="涡量环量与速度势">涡量、环量与速度势</h2>
+<p><strong>涡量</strong>定义为速度的旋度：</p>
+<div class="math-block">\[\boldsymbol{\omega}=\nabla\times\mathbf{u}.\]</div>
+<p><strong>环量</strong>是速度沿闭合曲线的线积分，由斯托克斯定理与涡量联系起来：</p>
+<div class="math-block">\[\Gamma=\oint_C\mathbf{u}\cdot d\mathbf{l}
+=\int_S\boldsymbol{\omega}\cdot\mathbf{n}\,dS.\]</div>
+<p>若流场处处无旋（\(\boldsymbol{\omega}=0\)），则环量为零，速度可以写成某个标量的梯度：</p>
+<div class="math-block">\[\mathbf{u}=\nabla\phi,\]</div>
+<p>\(\phi\) 称为<strong>速度势</strong>。代入不可压缩连续性方程 \(\nabla\cdot\mathbf{u}=0\)，得到拉普拉斯方程</p>
+<div class="math-block">\[\nabla^2\phi=0.\]</div>
+<p>势流理论因此只需要解一个线性方程，这是它在大飞机气动初步设计、地下水渗流与电渗流中仍然好用的原因。但势流无法产生阻力与边界层，真实流动的壁面剪切必须回到 <a class="wiki-link" href="../ch2/boundary-layer.html">边界层</a> 中处理。</p>
+<p>两个标准例子可以校准对涡量的直觉。刚体旋转 \(u_\theta=\Omega r\) 的涡量为 \(2\Omega\)，处处非零；自由涡 \(u_\theta=\Gamma/(2\pi r)\) 在 \(r>0\) 处涡量为零，但包围原点的环量为 \(\Gamma\)，涡量集中在原点，这正是 <a class="wiki-link" href="../ch1/field-theory.html">场论</a> 中讨论过的奇异涡量。CFD 后处理中的 Q 判据、λ₂ 判据，本质上都是在速度梯度张量上寻找“旋转强于变形”的区域，见 <a class="wiki-link" href="../ch4/les.html">大涡模拟</a>。</p>
+<h2 id="二维算例驻点流">二维算例：驻点流</h2>
+<p>考虑平面驻点流</p>
+<div class="math-block">\[u=ax,\qquad v=-ay,\qquad a>0.\]</div>
+<p>先算散度与涡量：</p>
+<div class="math-block">\[\nabla\cdot\mathbf{u}=\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}=a-a=0,\]</div>
+<div class="math-block">\[\omega_z=\frac{\partial v}{\partial x}-\frac{\partial u}{\partial y}=0.\]</div>
+<p>流场不可压缩且无旋，因此存在速度势 \(\phi=\frac{a}{2}(x^2-y^2)\)。流线满足</p>
+<div class="math-block">\[\frac{dx}{ax}=\frac{dy}{-ay}
+\quad\Longrightarrow\quad
+\frac{dy}{dx}=-\frac{y}{x}
+\quad\Longrightarrow\quad
+xy=C.\]</div>
+<p>流线是双曲线族：沿 \(x\) 轴流体冲向原点后向两侧分流，沿 \(y\) 轴则被拉伸，这正是“驻点”名称的来源。</p>
+<p>下面的代码用 <code>numpy</code> 与 <code>matplotlib</code> 画出这组流线，只需几行：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="c1"># 平面驻点流 u = a*x, v = -a*y，散度与涡量均为零</span>
+<span class="n">a</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+<span class="n">U</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">X</span><span class="p">,</span> <span class="o">-</span><span class="n">a</span> <span class="o">*</span> <span class="n">Y</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">streamplot</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="mf">1.3</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"steelblue"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">"equal"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">"y"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+
+<p>若把速度场改成 \(u=-ay,\ v=ax\)，散度仍为零但涡量变为 \(2a\)，<code>streamplot</code> 画出的图案会是同心圆：流线弯曲，但每个微元也在绕自身中心旋转。把两幅图放在一起看，就能直观区分“流线弯”与“流体转”。</p>
+<div class="admonition note"><div class="admonition-title">数值涡量的精度</div><div class="admonition-body"><p>用差分从离散速度场计算涡量时，结果对网格尺度敏感。粗网格会把集中的涡量抹平，壁面附近则容易受单侧差分影响。做涡结构识别前，应先确认网格分辨率足以解析目标涡的直径，否则 Q 判据给出的只是数值噪声。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>拉格朗日跟踪质点，欧拉观察空间点；物质导数 \(\mathrm{D}/\mathrm{D}t=\partial_t+\mathbf{u}\cdot\nabla\) 是两者之间的翻译器。</li>
+<li>流线是瞬时照片，迹线与脉线包含历史；定常流动中三者重合。</li>
+<li>速度梯度分解为变形率 \(\mathbf{S}\) 与旋转率 \(\mathbf{W}\)，涡量是 \(\mathbf{W}\) 的直接体现。</li>
+<li>无旋流动可引入速度势，把连续性方程化为拉普拉斯方程。</li>
+</ul>
+<p>这些量下一步会直接进入 <a class="wiki-link" href="../ch2/governing-equations.html">守恒方程</a>：物质导数给出加速度，\(\nabla\cdot\mathbf{u}\) 进入连续性方程，\(\mathbf{S}\) 进入牛顿本构关系。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch2/fluid-properties.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">流体性质与连续介质假设</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch2/governing-equations.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">守恒方程与 N-S 方程</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch2/kinematics.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#拉格朗日描述与欧拉描述">拉格朗日描述与欧拉描述</a></li>
+<li><a href="#流线迹线脉线">流线、迹线、脉线</a></li>
+<li><a href="#速度梯度张量的分解">速度梯度张量的分解</a></li>
+<li><a href="#涡量环量与速度势">涡量、环量与速度势</a></li>
+<li><a href="#二维算例驻点流">二维算例：驻点流</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>有限体积法 FVM · CFD Wiki</title>
+  <meta name="description" content="从积分守恒律出发，讲清控制体、面通量、扩散与对流离散、Riemann 求解器、压力速度耦合与时间推进，并给出一维对流扩散的完整 Python 实现。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link is-active" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch3/index.html">CFD 数值方法基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">有限体积法 FVM</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">有限体积法 FVM</h1>
+        <p class="page-summary">从积分守恒律出发，讲清控制体、面通量、扩散与对流离散、Riemann 求解器、压力速度耦合与时间推进，并给出一维对流扩散的完整 Python 实现。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">CFD 数值方法基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 3654 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#有限体积法</span><span class="tag">#迎风格式</span><span class="tag">#SIMPLE</span><span class="tag">#Riemann 求解器</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>有限体积法（Finite Volume Method，FVM）的核心只有一句话：守恒律在任意控制体上都成立，离散时只需保证每个面上的通量“进多少、出多少”。这条性质使它天然守恒，也让它在激波、自由面、强源项问题上比有限差分更稳健。工程上常见的 Fluent、CFX、STAR-CCM+、OpenFOAM 的有限体积求解器，都是这一思想的实现。</p>
+<p>这一页从积分形式出发，依次讨论扩散项、对流项、通量分裂、压力速度耦合与时间推进，最后用一个一维对流扩散算例把格式、稳定性与误差串起来。</p>
+<h2 id="从积分守恒律到半离散形式">从积分守恒律到半离散形式</h2>
+<p>对固定控制体 \(V\)，边界为 \(\partial V\)，外法向为 \(\mathbf{n}\)，守恒律的积分形式为</p>
+<div class="math-block">\[\frac{\mathrm{d}}{\mathrm{d}t}\int_V \mathbf{U}\,\mathrm{d}V
++\oint_{\partial V}\mathbf{F}(\mathbf{U})\cdot\mathbf{n}\,\mathrm{d}S
+=\int_V\mathbf{S}(\mathbf{U})\,\mathrm{d}V,\]</div>
+<p>其中 \(\mathbf{U}\) 是守恒量向量，\(\mathbf{F}\) 是通量张量（对 N-S 方程包含无粘与粘性两部分），\(\mathbf{S}\) 是源项。\(V\) 可以是任意形状，这一点很关键：FVM 不要求网格是笛卡尔矩形，只要求能算出每个面的面积、法向与几何中心。</p>
+<p>把单元 \(P\) 的体积记为 \(V_P\)，单元平均守恒量记为 \(\mathbf{U}_P\)，面 \(f\) 的通量记为 \(\Phi_f\)，则</p>
+<div class="math-block">\[V_P\frac{\mathrm{d}\mathbf{U}_P}{\mathrm{d}t}
++\sum_{f\in\mathcal{F}_P}\Phi_f
+=V_P\mathbf{S}_P,\]</div>
+<p>\(\mathcal{F}_P\) 是单元 \(P\) 的所有面。这就是半离散形式：空间导数被换成了面的面积分，未知量存放在单元中心或顶点。</p>
+<p>按未知量位置，FVM 分为两类。</p>
+<ul>
+<li><strong>单元中心（cell-centered）</strong>：未知量存在单元形心，面通量由相邻两个单元的值构造。绝大多数商业软件与 OpenFOAM 采用这种布局，边界条件通过虚拟单元或面值施加。</li>
+<li><strong>顶点中心（vertex-centered）</strong>：未知量存在网格节点，控制体由围绕节点的单元拼成（对偶网格）。它在非结构网格上精度略好，但控制体构造与并行分区更复杂。</li>
+</ul>
+<h2 id="扩散项离散">扩散项离散</h2>
+<p>扩散通量是</p>
+<div class="math-block">\[\Phi_f^{\mathrm{diff}}
+=\int_{A_f}\Gamma\nabla\phi\cdot\mathbf{n}\,\mathrm{d}A
+\approx \Gamma_f\left(\nabla\phi\right)_f\cdot\mathbf{n}_f A_f,\]</div>
+<p>其中 \(\Gamma\) 是扩散系数（粘性、导热或组分扩散），\(A_f\) 是面面积，\(\mathbf{n}_f\) 是单位外法向。难点在于面法向梯度。若连接单元中心 \(P,N\) 的向量 \(\mathbf{d}_{PN}\) 与 \(\mathbf{n}_f\) 平行（正交网格），可以直接写成</p>
+<div class="math-block">\[\left(\nabla\phi\right)_f\cdot\mathbf{n}_f
+\approx\frac{\phi_N-\phi_P}{d_{PN}},\]</div>
+<p>\(d_{PN}\) 是两中心在法向上的投影距离。这一步把扩散项化成了“相邻值之差”，系数为正，天然满足最大值原理。</p>
+<p>实际网格很少完全正交。非正交时把法向分解为</p>
+<div class="math-block">\[\mathbf{n}_f=\frac{\mathbf{d}_{PN}}{\mathbf{d}_{PN}\cdot\mathbf{n}_f}+\mathbf{k}_f,\]</div>
+<p>\(\mathbf{k}_f\) 是剩余的“非正交矢量”。于是面梯度写成两项</p>
+<div class="math-block">\[\left(\nabla\phi\right)_f\cdot\mathbf{n}_f
+\approx\frac{\phi_N-\phi_P}{d_{PN}}
++\mathbf{k}_f\cdot\overline{\nabla\phi}_f,\]</div>
+<p>第二项称为非正交修正，\(\overline{\nabla\phi}_f\) 是面两侧梯度的平均。修正项显式处理时会使矩阵失去严格对角占优，因此常配合迭代或延迟修正。正交性差、修正过大时，计算容易发散，这也是网格质量页反复强调正交性的原因。</p>
+<h2 id="对流项离散">对流项离散</h2>
+<p>对流项需要面值 \(\phi_f\)。不同的取值方式，决定了格式的精度、稳定性与数值扩散。</p>
+<p><strong>中心差分</strong>取两侧平均：</p>
+<div class="math-block">\[\phi_f=\frac{1}{2}\left(\phi_P+\phi_N\right).\]</div>
+<p>它二阶精度，但在对流主导时会产生非物理振荡，单元 Péclet 数超过 2 后解可能完全失真。</p>
+<p><strong>一阶迎风</strong>按流动方向取上游值：</p>
+<div class="math-block">\[\phi_f=
+\begin{cases}
+\phi_P, & \mathbf{u}_f\cdot\mathbf{n}_f>0,\\
+\phi_N, & \text{otherwise}.
+\end{cases}\]</div>
+<p>它绝对有界、不会振荡，代价是严重的数值扩散：在均匀网格上相当于把扩散系数人为增加</p>
+<div class="math-block">\[\Gamma_{\mathrm{num}}=\frac{\rho u\Delta x}{2}.\]</div>
+<p>网格越粗、速度越大，抹平越厉害。激波会被抹成好几层单元，边界层厚度也会被高估。</p>
+<p><strong>二阶迎风</strong>用上游两个单元做线性外推：</p>
+<div class="math-block">\[\phi_f=\frac{3}{2}\phi_P-\frac{1}{2}\phi_W,\]</div>
+<p>其中 \(W\) 是 \(P\) 的上游邻居。它精度更高，但仍有振荡风险。</p>
+<p><strong>QUICK</strong> 用上游两点与下游一点做二次插值，在面位于两单元中点时</p>
+<div class="math-block">\[\phi_f=\frac{3}{4}\phi_P+\frac{3}{8}\phi_N-\frac{1}{8}\phi_W.\]</div>
+<p>它对涡与边界层的分辨更好，但同样需要限制器才能保证有界。</p>
+<table>
+<thead>
+<tr>
+<th>格式</th>
+<th>名义精度</th>
+<th>有界性</th>
+<th>数值扩散</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>中心差分</td>
+<td>二阶</td>
+<td>差</td>
+<td>无</td>
+<td>扩散主导、LES 的低耗散需求</td>
+</tr>
+<tr>
+<td>一阶迎风</td>
+<td>一阶</td>
+<td>好</td>
+<td>大</td>
+<td>初值、强对流、鲁棒性优先</td>
+</tr>
+<tr>
+<td>二阶迎风</td>
+<td>二阶</td>
+<td>一般</td>
+<td>中</td>
+<td>一般内流、稳态计算</td>
+</tr>
+<tr>
+<td>QUICK</td>
+<td>二阶（三点）</td>
+<td>一般</td>
+<td>小</td>
+<td>旋转机械、分离流</td>
+</tr>
+<tr>
+<td>受限高阶</td>
+<td>二阶</td>
+<td>好</td>
+<td>小</td>
+<td>激波、自由面、输运标量</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tvd-与限制器">TVD 与限制器</h3>
+<p>要同时获得高阶精度与有界性，需要让格式在光滑区取高阶、在极值附近退化为一阶。总变差递减（TVD）条件提供了这个框架。面值写成</p>
+<div class="math-block">\[\phi_f=\phi_P+\frac{1}{2}\psi(r_f)\left(\phi_P-\phi_W\right),\]</div>
+<div class="math-block">\[r_f=\frac{\phi_P-\phi_W}{\phi_N-\phi_P},\]</div>
+<p>\(\psi(r)\) 是限制器。\(r\) 接近 1 表示单调光滑，\(\psi\) 接近 1 保留二阶；\(r\) 为负或很小表示出现极值，\(\psi\) 趋于 0 退回迎风。常用的 minmod 限制器为</p>
+<div class="math-block">\[\psi(r)=\max\left(0,\min(1,r)\right),\]</div>
+<p>van Leer 限制器为</p>
+<div class="math-block">\[\psi(r)=\frac{r+\lvert r\rvert}{1+\lvert r\rvert}.\]</div>
+<p>限制器把格式降到一阶极值点附近，因此激波后仍会有一层过渡，但不会出现负密度或负压力。</p>
+<h2 id="通量分裂与近似-riemann-求解器">通量分裂与近似 Riemann 求解器</h2>
+<p>可压缩流动的对流通量依赖左右两个状态。把面左右两侧的重构值记为 \(\mathbf{U}_L,\mathbf{U}_R\)，Godunov 型格式通过求解局部 Riemann 问题得到通量。精确解太贵，工程上多用近似求解器。</p>
+<p><strong>Roe 格式</strong>把通量差分解到特征空间：</p>
+<div class="math-block">\[\mathbf{F}_f=\frac{1}{2}\left(\mathbf{F}_L+\mathbf{F}_R\right)
+-\frac{1}{2}\sum_{k}\lvert\lambda_k\rvert\alpha_k\mathbf{r}_k,\]</div>
+<p>\(\lambda_k\) 是 Roe 平均后的特征值，\(\alpha_k\) 是波强，\(\mathbf{r}_k\) 是右特征向量。它的分辨率高，但在跨声速点附近特征值趋零，会产生膨胀激波，需要熵修正。</p>
+<p><strong>HLLC</strong> 用两层波与一个接触波近似 Riemann 扇：</p>
+<div class="math-block">\[\mathbf{F}_{\mathrm{HLLC}}=
+\begin{cases}
+\mathbf{F}_L, & S_L\ge 0,\\
+\mathbf{F}_L+S_L\left(\mathbf{U}^{*}_L-\mathbf{U}_L\right), & S_L<0\le S_M,\\
+\mathbf{F}_R+S_R\left(\mathbf{U}^{*}_R-\mathbf{U}_R\right), & S_M<0<S_R,\\
+\mathbf{F}_R, & S_R\le 0,
+\end{cases}\]</div>
+<p>\(S_L,S_R\) 是左右波速估计，\(S_M\) 是接触波速度，\(\mathbf{U}^{*}_L,\mathbf{U}^{*}_R\) 是星区状态。HLLC 保正、鲁棒，适合激波与强膨胀，是许多可压缩求解器的默认选择；代价是接触面与剪切层分辨率不如 Roe。</p>
+<p>可压缩与不可压缩的差异不只在通量形式。可压缩求解器以密度为基本变量，用状态方程闭合压力，时间推进受声速 CFL 限制；不可压缩求解器把压力当作约束乘子，需要解压力泊松方程，密度不随压力变化。低速可压缩流动若直接用密度基求解器，会遇到刚性问题，因此常改用压力基或预处理。</p>
+<div class="admonition note"><div class="admonition-title">什么时候需要 Riemann 求解器</div><div class="admonition-body"><p>只有可压缩、以密度为变量的求解器才需要。不可压缩 FVM 的对流项本质是“输运已知标量”，用迎风或限制器即可，不需要求解 Riemann 问题。</p></div></div>
+<h2 id="压力-速度耦合">压力-速度耦合</h2>
+<p>不可压缩 N-S 方程没有压力的时间导数，连续性方程只是一个约束。若把压力和速度都存放在单元中心，会出现棋盘压力：相邻单元压力高低交替，中心差分的压力梯度在单元中心恰好为零，动量方程感知不到压力，解却满足离散连续性。这就是同位网格的棋盘问题。</p>
+<p>Rhie-Chow 动量插值通过构造面法向速度来抑制该模式：</p>
+<div class="math-block">\[u_{f,n}=\overline{u}_{f,n}
+-\frac{V_f}{a_P}\left[
+\frac{p_N-p_P}{d_{PN}}
+-\left(\overline{\nabla p}\right)_f\cdot\mathbf{n}_f
+\right],\]</div>
+<p>\(\overline{u}_{f,n}\) 是动量插值得到的面速度，\(a_P\) 是动量方程主对角系数，方括号内是“面压力梯度减去插值压力梯度”。它在面通量中重新引入压力差，使棋盘模式无法零能耗散。</p>
+<p>SIMPLE 算法在此基础上迭代：</p>
+<ol>
+<li>给定初始压力场 \(p^{*}\)，求解动量方程得到 \(u^{*}\)；</li>
+<li>用 \(u^{*}\) 计算各面质量通量，得到连续性误差；</li>
+<li>解压力修正方程</li>
+</ol>
+<div class="math-block">\[\nabla\cdot\left(\frac{V_P}{a_P}\nabla p'\right)=\nabla\cdot\mathbf{u}^{*},\]</div>
+<ol start="4">
+<li>用 \(p'\) 修正压力与速度，并更新面通量；</li>
+<li>更新物性、检查残差与监测量，未收敛则回到第 1 步。</li>
+</ol>
+<p>压力与速度通常需要欠松弛（例如压力 0.3、动量 0.7），否则修正量过大会导致振荡。PISO 在同一个时间步内做两次或更多压力修正，且去掉了 SIMPLE 的部分欠松弛，适合瞬态问题；代价是每步计算量更大。</p>
+<h2 id="时间推进与收敛">时间推进与收敛</h2>
+<p>半离散方程是一个常微分方程组。隐式欧拉写成</p>
+<div class="math-block">\[V_P\frac{\mathbf{U}^{n+1}_P-\mathbf{U}^{n}_P}{\Delta t}
++\mathbf{R}_P\left(\mathbf{U}^{n+1}\right)=0,\]</div>
+<p>\(\mathbf{R}_P\) 是空间残差（面通量之和减去源项）。隐式格式无条件稳定，但每步要解大型线性系统，时间精度只有一阶；二阶向后差分或 Crank–Nicolson 可以提高时间精度。</p>
+<p>显式格式受 CFL 条件限制：</p>
+<div class="math-block">\[\mathrm{CFL}=\frac{\lVert\mathbf{u}\rVert\Delta t}{\Delta x}\le 1,\]</div>
+<p>可压缩流动还要把声速算进去：</p>
+<div class="math-block">\[\Delta t\le\frac{V_P}{\sum_f\left(\lvert u_n\rvert+c\right)A_f},\]</div>
+<p>\(u_n\) 是面法向速度，\(c\) 是当地声速。显式格式每步便宜但步数多，适合 LES 与强非定常问题；隐式格式适合稳态与长时间平均。</p>
+<p>稳态计算常用伪时间推进：在方程中加一个伪时间导数，用局部时间步长把不同尺寸的单元“拉平”，加速收敛到定常解。收敛判据不能只看残差，还要看监测量：</p>
+<div class="math-block">\[R_{\mathrm{rms}}=\sqrt{\frac{1}{N}\sum_{i=1}^{N}r_i^2},\]</div>
+<p>\(r_i\) 是第 \(i\) 个单元的归一化残差，\(N\) 是单元数。工程上常要求残差下降三到四个数量级，同时进出口质量流量不平衡小于千分之一、关键监测量（升力、压降、壁面热流）趋于平稳。残差曲线变成一条水平线但监测量仍在漂移，通常说明还有未收敛的低频模态。</p>
+<h2 id="一维稳态对流-扩散的-python-示例">一维稳态对流-扩散的 Python 示例</h2>
+<p>考虑</p>
+<div class="math-block">\[u\frac{\mathrm{d}\phi}{\mathrm{d}x}
+=\Gamma\frac{\mathrm{d}^2\phi}{\mathrm{d}x^2},
+\qquad \phi(0)=0,\ \phi(1)=1,\]</div>
+<p>取 \(u=1\)、\(\Gamma=0.1\)、\(L=1\)，则 Péclet 数 \(\mathrm{Pe}=uL/\Gamma=10\)。解析解为</p>
+<div class="math-block">\[\phi(x)=\frac{e^{\mathrm{Pe}\,x}-1}{e^{\mathrm{Pe}}-1}.\]</div>
+<p>在均匀网格上做单元中心 FVM：对流项用一阶迎风，扩散项用中心差分，边界用半格距离施加 Dirichlet 条件。组装得到三对角系统，用 Thomas 算法求解：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">thomas</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""三对角求解：a 为下对角（长度 n-1），b 主对角，c 上对角，d 右端。"""</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">a</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">b</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">m</span> <span class="o">*</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-=</span> <span class="n">m</span> <span class="o">*</span> <span class="n">d</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">b</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">solve_upwind</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">u</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""一维稳态对流-扩散，一阶迎风 + 中心差分扩散。"""</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">length</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+    <span class="c1"># 西边界：入口 phi=0，扩散项用半格距离</span>
+    <span class="n">b</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span>
+    <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span>
+
+    <span class="c1"># 内部单元：迎风对流 + 两侧扩散</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">a</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">u</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span><span class="p">)</span>
+        <span class="n">b</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span>
+        <span class="n">c</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span>
+
+    <span class="c1"># 东边界：出口 phi=1，扩散项用半格距离</span>
+    <span class="n">a</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">u</span> <span class="o">+</span> <span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="mf">3.0</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span>
+    <span class="n">d</span><span class="p">[</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">/</span> <span class="n">h</span>
+
+    <span class="k">return</span> <span class="n">thomas</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+<span class="n">pe</span> <span class="o">=</span> <span class="mf">10.0</span>
+<span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">80</span><span class="p">):</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">n</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">solve_upwind</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">h</span>
+    <span class="n">exact</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pe</span> <span class="o">*</span> <span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">pe</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">phi</span> <span class="o">-</span> <span class="n">exact</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"N=</span><span class="si">{</span><span class="n">n</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2">  h=</span><span class="si">{</span><span class="n">h</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  max|err|=</span><span class="si">{</span><span class="n">err</span><span class="si">:</span><span class="s2">.4e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">40</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">"   x       数值解      解析解"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">phi</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">exact</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+
+<p>运行后可以看到两点。第一，数值解整体跟着解析曲线，但在 \(x\) 接近 1 的薄边界层内被迎风格式抹平：\(\Gamma_{\mathrm{num}}=uh/2\) 在 \(N=10\) 时为 \(0.05\)，相当于把真实扩散系数放大了一半。第二，最大误差随 \(N\) 加倍近似减半，体现一阶格式的收敛速率。</p>
+<p>若把对流项换成中心差分，\(\mathrm{Pe}\) 较大时解会在边界层前出现振荡，甚至出现负值；这正是单元 Péclet 数超过 2 的典型症状。实际计算中，二阶格式必须配合限制器，或改用足够细的网格。</p>
+<div class="admonition warning"><div class="admonition-title">边界条件的半格距离</div><div class="admonition-body"><p>边界单元只有一个内部邻居，扩散通量的距离是 \(h/2\) 而不是 \(h\)。漏掉这个半格因子会使壁面通量偏差接近一倍，且网格越细偏差越隐蔽。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>FVM 守恒性来自“面通量成对出现”，同一面在两侧单元符号相反，内部面自动抵消。</li>
+<li>扩散项的核心是面法向梯度，非正交网格需要修正；对流项的核心是面值重构，精度与有界性需要折中。</li>
+<li>可压缩流动用 Riemann 型通量，不可压缩流动用压力修正与 Rhie–Chow 插值解决棋盘问题。</li>
+<li>时间推进的稳定条件、残差判据与监测量必须一起看。网格质量与工作流分别决定了离散误差与设置误差。</li>
+</ul>
+<p>进一步阅读：网格如何影响这些格式，见<a class="wiki-link" href="../ch3/mesh.html">网格生成与质量</a>；如何把一次计算组织成可复现的流程，见<a class="wiki-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch3/index.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch3/fem.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">有限元法 FEM</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch3/fvm.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#从积分守恒律到半离散形式">从积分守恒律到半离散形式</a></li>
+<li><a href="#扩散项离散">扩散项离散</a></li>
+<li><a href="#对流项离散">对流项离散</a><ul>
+<li><a href="#tvd-与限制器">TVD 与限制器</a></li>
+</ul>
+</li>
+<li><a href="#通量分裂与近似-riemann-求解器">通量分裂与近似 Riemann 求解器</a></li>
+<li><a href="#压力-速度耦合">压力-速度耦合</a></li>
+<li><a href="#时间推进与收敛">时间推进与收敛</a></li>
+<li><a href="#一维稳态对流-扩散的-python-示例">一维稳态对流-扩散的 Python 示例</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>CFD 工作流与验证确认 · CFD Wiki</title>
+  <meta name="description" content="把前处理、求解、后处理组织成可复现的流程，讲清验证与确认、GCI、Richardson 外推、收敛判据、常见错误与参数化 DOE。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link is-active" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch3/index.html">CFD 数值方法基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">CFD 工作流与验证确认</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">CFD 工作流与验证确认</h1>
+        <p class="page-summary">把前处理、求解、后处理组织成可复现的流程，讲清验证与确认、GCI、Richardson 外推、收敛判据、常见错误与参数化 DOE。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">CFD 数值方法基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 2283 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#CFD工作流</span><span class="tag">#验证与确认</span><span class="tag">#GCI</span><span class="tag">#收敛判据</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>一次可信的 CFD 计算，和一次“跑出彩色图片”的计算，差别通常不在求解器，而在流程：几何有没有清理干净、网格有没有做无关性、边界条件是否与物理一致、收敛判据是否只看残差、后处理有没有把变量定义搞混。这一页把这些环节整理成清单，并给出量化判据。</p>
+<h2 id="完整流程清单">完整流程清单</h2>
+<p><strong>前处理</strong>包括几何、网格与物理设置。</p>
+<ul>
+<li>几何：统一单位与坐标系；修复破面、自由边、重复面；确认实体是“水密”的；按需简化圆角、螺纹、薄壁与内部构件。</li>
+<li>网格：确定计算域（内流是否加入口段、外流是否留足够远场）；设置边界层首层与增长率；检查负体积、正交性、长宽比与光滑度；做局部加密（尾迹、剪切层、分离区）。</li>
+<li>物理：选择层流/湍流、可压缩/不可压缩、稳态/瞬态；设定入口、出口、壁面、对称、周期边界；给出参考密度、参考速度、参考面积与参考长度。</li>
+</ul>
+<p><strong>求解</strong>包括格式、代数与监控。</p>
+<ul>
+<li>格式：对流项阶数与限制器、扩散项非正交修正、时间格式；初场尽量合理，避免“从零场硬冲”。</li>
+<li>代数：线性求解器、多重网格、松弛因子、Courant 数；先稳后快，先用一阶迎风起算再切二阶，是常见策略。</li>
+<li>监控：残差、进出口质量流量、关键截面压降、升阻力、壁面热流、最大 \(y^+\)；设置自动保存与重启。</li>
+</ul>
+<p><strong>后处理</strong>包括提取与判断。</p>
+<ul>
+<li>派生量：总压、总温、涡量、Q 判据、壁面剪切、热流；注意参考状态与符号约定。</li>
+<li>平均：稳态看收敛后的迭代平均；瞬态看时间平均与脉动 RMS；统计窗口要覆盖足够多的特征时间。</li>
+<li>呈现：云图、等值面、流线、矢量图、剖面曲线；图要有色标、单位、坐标与工况说明。</li>
+</ul>
+<h2 id="验证与确认">验证与确认</h2>
+<p>验证（Verification）回答“方程解得对不对”，确认（Validation）回答“模型选得对不对”。两者常被混为一谈，但判据完全不同。</p>
+<p><strong>代码验证</strong>用制造解（MMS）：人为给定一个光滑解 \(u_{\mathrm{MMS}}\)，代回方程得到源项，再让代码求解该源项问题，比较数值解与人为解。若网格加密后误差按理论阶数下降，说明代码实现正确。观测阶数用</p>
+<div class="math-block">\[p=\frac{\log\left(\lVert e_{h}\rVert/\lVert e_{h/2}\rVert\right)}{\log 2},\]</div>
+<p>\(e_h\) 是尺度 \(h\) 下的误差范数。代码验证与具体物理无关，是排查“符号错、系数错、边界实现错”的最有效手段。</p>
+<p><strong>方程验证</strong>检查离散方程与连续方程是否一致：守恒性、边界通量、源项线性化。它通常通过单元测试与解析解完成。</p>
+<p><strong>网格与时间步验证</strong>检查离散误差是否进入渐近区。三套网格用 Richardson 外推估计极限值：</p>
+<div class="math-block">\[f_{\mathrm{ext}}=f_1+\frac{f_1-f_2}{r^{p}-1},\]</div>
+<p>\(f_1\) 是细网格监测量，\(f_2\) 是较粗网格值，\(r\) 是细化因子，\(p\) 是观测阶数。再定义网格收敛指数</p>
+<div class="math-block">\[\mathrm{GCI}=\frac{F_s\left\lvert\frac{f_2-f_1}{f_1}\right\rvert}{r^{p}-1},\]</div>
+<p>\(F_s\) 是安全因子，常取 1.25。GCI 给出的是一个保守误差带，而不是严格上界；当三套网格不单调收敛时，不应继续外推，而应检查网格质量或格式。</p>
+<p><strong>确认</strong>把计算结果与实验、解析解或高保真数据对比。对比量必须定义一致：同一个截面、同一种平均、同一参考状态。若实验给的是壁面静压，计算却提取总压，误差再小也没有意义。</p>
+<p><strong>保守性检查</strong>是最便宜的验证：</p>
+<div class="math-block">\[\epsilon_m=\frac{\lvert\dot m_{\mathrm{in}}-\dot m_{\mathrm{out}}\rvert}{\dot m_{\mathrm{in}}},\]</div>
+<p>稳态内流通常要求 \(\epsilon_m<10^{-3}\)；能量方程还要检查总焓通量平衡。质量不守恒而残差很低，说明边界通量或源项有问题。</p>
+<p>误差可以粗略分解为</p>
+<div class="math-block">\[e_{\mathrm{total}}
+=e_{\mathrm{model}}
++e_{\mathrm{discretization}}
++e_{\mathrm{iteration}}
++e_{\mathrm{input}},\]</div>
+<p>模型误差来自湍流、多相、燃烧等闭合假设；离散误差来自网格与格式；迭代误差来自未完全收敛；输入误差来自几何、边界与物性。四者量级不同，优化顺序也应不同：先消除输入与迭代误差，再谈网格加密，最后才考虑换模型。</p>
+<table>
+<thead>
+<tr>
+<th>V&amp;V 活动</th>
+<th>目的</th>
+<th>典型判据</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>代码验证（MMS）</td>
+<td>确认实现无误</td>
+<td>观测阶数接近理论阶数</td>
+</tr>
+<tr>
+<td>方程验证</td>
+<td>确认离散一致、守恒</td>
+<td>内部面通量成对抵消，源项可追溯</td>
+</tr>
+<tr>
+<td>网格无关性</td>
+<td>量化离散误差</td>
+<td>三套网格单调收敛，GCI 小于目标</td>
+</tr>
+<tr>
+<td>时间步无关性</td>
+<td>量化时间离散误差</td>
+<td>步长减半后监测量变化小于阈值</td>
+</tr>
+<tr>
+<td>确认（Validation）</td>
+<td>确认模型适用</td>
+<td>与实验误差在不确定度范围内</td>
+</tr>
+<tr>
+<td>保守性检查</td>
+<td>确认全局平衡</td>
+<td>质量、动量、能量不平衡小于千分之一</td>
+</tr>
+</tbody>
+</table>
+<h2 id="收敛判据">收敛判据</h2>
+<p>残差是最常用的判据，但不是唯一判据。工程上常要求连续性与动量残差下降三到四个数量级，能量与湍流量下降更多；同时要求：</p>
+<ul>
+<li>监测量（压降、升力、热流）在若干百步内变化小于设定阈值；</li>
+<li>进出口质量流量不平衡小于千分之一；</li>
+<li>关键截面剖面不再变化；</li>
+<li>最大 \(y^+\) 落在所选壁面处理的范围内。</li>
+</ul>
+<p><strong>伪收敛</strong>指残差曲线很漂亮、解却没有收敛。常见原因包括松弛因子过小、监测点位于滞止区、局部区域出现分离或回流而全局平均掩盖了它。判断方法是看监测量曲线与局部剖面，而不是只看残差对数图。</p>
+<p><strong>局部不收敛</strong>常发生在激波、分离泡、小间隙或质量极差的单元。全局残差可能被大量“好单元”拉低，坏单元仍在振荡。可以画残差的空间分布，或提高局部网格质量。</p>
+<h2 id="常见错误清单">常见错误清单</h2>
+<ul>
+<li><strong>边界条件类型错</strong>：压力出口在回流时未设总温/组分；壁面误设滑移；对称面用在非对称几何。</li>
+<li><strong>参考值错</strong>：升力系数用错参考面积，压降用错参考密度，\(y^+\) 用错参考速度。</li>
+<li><strong>单位错</strong>：毫米当米、表压当绝对压力、运动粘度与动力粘度混用。</li>
+<li><strong>湍流入口错</strong>：只给湍流强度不给长度尺度；入口 \(k\)、\(\omega\) 与目标粘度比不一致；入口湍流长度大于流道。</li>
+<li><strong>\(y^+\) 与壁面处理不匹配</strong>：壁面函数配 \(y^+<5\)，低雷诺数模型配 \(y^+>30\)。</li>
+<li><strong>后处理平均错</strong>：把瞬态某一帧当时间平均；把表压当总压；把运动压力 \(p/\rho\) 当压力。</li>
+<li><strong>几何简化过度</strong>：删掉了产生分离的台阶、密封间隙或冷却孔，却希望得到相同的压降。</li>
+</ul>
+<div class="admonition warning"><div class="admonition-title">收敛不等于正确</div><div class="admonition-body"><p>残差下降只说明代数方程被解得更彻底，不说明方程、边界与模型是对的。一个边界条件写错的算例，可以收敛得非常干净。</p></div></div>
+<h2 id="参数化与-doe">参数化与 DOE</h2>
+<p>当计算进入设计阶段，单个算例不够，需要参数扫描。基本流程是：确定设计变量与范围，采样，批量计算，建立响应面，再做优化或敏感性分析。</p>
+<p>全因子采样随变量个数指数增长，变量多时不可行。常用替代方案是拉丁超立方采样（LHS），它在每个维度上分层，用较少的样本覆盖设计空间。样本数通常取设计变量数的五到十倍，再根据响应面的交叉验证误差补充样本。</p>
+<p>得到样本后可以拟合代理模型（Kriging、径向基函数、多项式回归），在代理模型上做全局优化或蒙特卡洛分析。代理模型的精度必须用留出样本验证，否则优化结果只是“代理模型的解”，不是 CFD 的解。最终候选点仍要回到高保真计算确认。</p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>可信的计算 = 干净的几何 + 质量合格的网格 + 物理一致的边界 + 明确的收敛判据 + 一致的后处理定义。</li>
+<li>验证与确认是两条线：前者查实现与离散，后者查模型与物理。</li>
+<li>GCI 与 Richardson 外推把“网格够不够细”变成可量化的误差带。</li>
+<li>残差、监测量与守恒性要一起看；伪收敛与局部不收敛是常见陷阱。</li>
+</ul>
+<p>相关阅读：网格质量与边界层设置见<a class="wiki-link" href="../ch3/mesh.html">网格生成与质量</a>；软件中的具体设置见<a class="wiki-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a>；后处理的平均与派生量见<a class="wiki-link" href="../ch6/postprocessing.html">后处理与数据分析</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch3/commercial-software.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">商业软件与开源求解器</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch4/index.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch3/cfd-workflow.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#完整流程清单">完整流程清单</a></li>
+<li><a href="#验证与确认">验证与确认</a></li>
+<li><a href="#收敛判据">收敛判据</a></li>
+<li><a href="#常见错误清单">常见错误清单</a></li>
+<li><a href="#参数化与-doe">参数化与 DOE</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

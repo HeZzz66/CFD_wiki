@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>U-Net 与场映射 · CFD Wiki</title>
+  <meta name="description" content="把 U-Net 看作像素到像素的场映射网络，说明编码-瓶颈-解码与 skip connection 的作用，给出稳态场预测、超分辨率与 LES 亚格子建模中的用法与 PyTorch 实现。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link is-active" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch5/index.html">AI for CFD</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">U-Net 与场映射</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">U-Net 与场映射</h1>
+        <p class="page-summary">把 U-Net 看作像素到像素的场映射网络，说明编码-瓶颈-解码与 skip connection 的作用，给出稳态场预测、超分辨率与 LES 亚格子建模中的用法与 PyTorch 实现。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">AI for CFD</span>
+        <span class="meta-sep">·</span>
+        <span>约 2370 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#U-Net</span><span class="tag">#场映射</span><span class="tag">#超分辨率</span><span class="tag">#亚格子</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>如果只想要一个能在一周内跑通的神经场模型，U-Net 通常是首选。它没有算子学习的理论包装，本质是一个“图像进、图像出”的卷积网络，但在稳态场预测、网格超分辨率与亚格子闭合上表现稳定，训练也远比 PINN 省心。</p>
+<h2 id="场映射的视角">场映射的视角</h2>
+<p>把流场当成多通道图像：每个通道是一个物理量（\(u\)、\(v\)、\(p\)、\(T\)），像素是网格单元。网络学习映射</p>
+<div class="math-block">\[\mathcal{N}_\theta: \mathbb{R}^{c_{in}\times H\times W}
+\to \mathbb{R}^{c_{out}\times H\times W},\]</div>
+<p>输入与输出的空间尺寸相同，通道数可以不同。与<a class="wiki-link" href="../ch5/fno.html">FNO</a>的差别在于：FNO 在频域做全局卷积，U-Net 靠下采样扩大感受野，两者都能“看见”全局，但方式不同。</p>
+<p>这类映射适合三类任务：</p>
+<ul>
+<li><strong>稳态场预测</strong>：给定几何与边界条件编码，直接输出收敛后的压力、速度场。</li>
+<li><strong>超分辨率</strong>：低分辨率解映射到高分辨率，学习缺失的高频结构。</li>
+<li><strong>亚格子建模</strong>：从可解尺度场预测未解析的应力张量，替代<a class="wiki-link" href="../ch4/les.html">LES</a>中的 Smagorinsky 类模型。</li>
+</ul>
+<p>与全卷积网络相比，U-Net 的下采样不只是为了省显存，更是为了构造多尺度表示。全局平均池化能带来全局感受野，但会丢掉空间位置；U-Net 通过 skip 把位置信息重新注入，因此在“既要全局压力分布、又要局部涡结构”的任务上表现均衡。一个 base=32 的四级 U-Net 约 7M 参数，\(256\times256\) 的前向在消费级显卡上只需几十毫秒。</p>
+<h2 id="编码器瓶颈与解码器">编码器、瓶颈与解码器</h2>
+<p>U-Net 的形状像字母 U，分三段。</p>
+<ol>
+<li><strong>编码器</strong>：反复“卷积 + 池化”，空间尺寸减半、通道数加倍。特征从像素级细节逐渐变为语义级结构。</li>
+<li><strong>瓶颈</strong>：最低分辨率的特征，感受野覆盖整幅图，承担全局信息。</li>
+<li><strong>解码器</strong>：反复“转置卷积（或上采样）+ 拼接 skip + 卷积”，把尺寸恢复到输入分辨率。</li>
+</ol>
+<p><strong>skip connection</strong> 把编码器同层的特征直接拼到解码器，使解码器同时拿到“深层语义”和“浅层细节”。没有 skip，高频结构会在下采样中丢失，输出会明显模糊。</p>
+<p>感受野可以递推计算。设第 \(l\) 层卷积核为 \(k_l\)、步长为 \(s_l\)，则到第 \(L\) 层的等效感受野为</p>
+<div class="math-block">\[R_L = 1 + \sum_{l=1}^{L}(k_l - 1)\prod_{i=1}^{l-1} s_i .\]</div>
+<p>以四次 \(2\times2\) 池化、每级两个 \(3\times3\) 卷积为例，\(R\) 约为 \(140\) 像素；这解释了为什么 U-Net 在 \(128\times128\) 或 \(256\times256\) 的场上够用，而对更大尺度仍需更深结构或注意力。</p>
+<h2 id="卷积与上采样">卷积与上采样</h2>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>API</th>
+<th>作用</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通卷积</td>
+<td><code>nn.Conv2d(k=3, p=1)</code></td>
+<td>提取局部特征，保持尺寸</td>
+<td>padding 决定边界行为</td>
+</tr>
+<tr>
+<td>池化</td>
+<td><code>nn.MaxPool2d(2)</code></td>
+<td>降采样，扩大感受野</td>
+<td>丢失精确位置信息</td>
+</tr>
+<tr>
+<td>转置卷积</td>
+<td><code>nn.ConvTranspose2d(k=2, s=2)</code></td>
+<td>可学习的上采样</td>
+<td>易产生棋盘格伪影</td>
+</tr>
+<tr>
+<td>插值上采样</td>
+<td><code>nn.Upsample(scale_factor=2)</code></td>
+<td>固定插值，参数少</td>
+<td>表达力弱于转置卷积</td>
+</tr>
+<tr>
+<td>拼接</td>
+<td><code>torch.cat</code></td>
+<td>融合多尺度特征</td>
+<td>通道数翻倍，后续卷积要匹配</td>
+</tr>
+</tbody>
+</table>
+<p>棋盘格伪影来自转置卷积的核重叠不均匀。缓解办法是用 <code>kernel_size=4, stride=2</code> 的转置卷积，或先 <code>Upsample</code> 再跟一个普通卷积。后者参数更少，在数据量有限时往往更稳。</p>
+<h2 id="损失函数">损失函数</h2>
+<p>最直接的是逐像素均方误差：</p>
+<div class="math-block">\[\mathcal{L}_{mse} = \frac{1}{N\,c\,H\,W}
+\sum_{i=1}^{N}\sum_{j=1}^{c}\sum_{\mathbf{x}}
+\left( \hat u_{i,j}(\mathbf{x}) - u_{i,j}(\mathbf{x}) \right)^2 .\]</div>
+<p>物理量量级差异大时（压力与速度可差几个数量级），逐通道归一化后再算 MSE 更合理。另一种常用形式是相对 L2：</p>
+<div class="math-block">\[\mathcal{L}_{rel} = \frac{1}{N}\sum_{i=1}^{N}
+\frac{\left\Vert \hat u_i - u_i \right\Vert_2^2}
+{\left\Vert u_i \right\Vert_2^2 + \varepsilon},\]</div>
+<p>它对整体幅值不敏感，适合比较不同工况。若希望边界严格满足，可追加边界损失：</p>
+<div class="math-block">\[\mathcal{L}_{bc} = \frac{1}{N_b}\sum_{\mathbf{x}\in\partial\Omega}
+\left( \hat u(\mathbf{x}) - g(\mathbf{x}) \right)^2 ,\]</div>
+<p>\(g\) 是给定的边界值。对不可压场，还可以加连续性残差，用有限差分代替自动微分，代价很低：</p>
+<div class="math-block">\[\mathcal{L}_{div} = \frac{1}{N}\sum_{\mathbf{x}}
+\left( \partial_x \hat u + \partial_y \hat v \right)^2 .\]</div>
+<p>这一项对超分辨率任务尤其有用，因为纯 MSE 往往学不出无散度结构。</p>
+<div class="admonition warning"><div class="admonition-title">归一化的坑</div><div class="admonition-body"><p>输入各通道若不做标准化，卷积核会偏向大量级通道，小量级通道（如压力脉动）几乎学不到。建议按训练集统计量做逐通道标准化，并把统计量随模型一起保存，推理时复用。</p></div></div>
+<h2 id="pytorch-实现">PyTorch 实现</h2>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">DoubleConv</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""两次 3x3 卷积，保持空间尺寸。"""</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">block</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">out_ch</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">out_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="n">out_ch</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">block</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Down</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool2d</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">DoubleConv</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Up</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ConvTranspose2d</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">in_ch</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">DoubleConv</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">skip</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">up</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="c1"># 奇数分辨率下尺寸可能差 1 像素，先补齐再拼接</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="n">skip</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">-</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">skip</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">dx</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dx</span> <span class="o">-</span> <span class="n">dx</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dy</span> <span class="o">//</span> <span class="mi">2</span><span class="p">,</span> <span class="n">dy</span> <span class="o">-</span> <span class="n">dy</span> <span class="o">//</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">skip</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">UNet</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_ch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">out_ch</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">32</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inc</span> <span class="o">=</span> <span class="n">DoubleConv</span><span class="p">(</span><span class="n">in_ch</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d1</span> <span class="o">=</span> <span class="n">Down</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">base</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d2</span> <span class="o">=</span> <span class="n">Down</span><span class="p">(</span><span class="n">base</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">base</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d3</span> <span class="o">=</span> <span class="n">Down</span><span class="p">(</span><span class="n">base</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">base</span> <span class="o">*</span> <span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u1</span> <span class="o">=</span> <span class="n">Up</span><span class="p">(</span><span class="n">base</span> <span class="o">*</span> <span class="mi">8</span><span class="p">,</span> <span class="n">base</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u2</span> <span class="o">=</span> <span class="n">Up</span><span class="p">(</span><span class="n">base</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">base</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u3</span> <span class="o">=</span> <span class="n">Up</span><span class="p">(</span><span class="n">base</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">outc</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">out_ch</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>          <span class="c1"># H x W</span>
+        <span class="n">x2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">d1</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>          <span class="c1"># H/2</span>
+        <span class="n">x3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">d2</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>          <span class="c1"># H/4</span>
+        <span class="n">x4</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">d3</span><span class="p">(</span><span class="n">x3</span><span class="p">)</span>          <span class="c1"># H/8</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u1</span><span class="p">(</span><span class="n">x4</span><span class="p">,</span> <span class="n">x3</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x2</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">u3</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">outc</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+</code></pre></div>
+
+<p>一个 2D 场回归的训练骨架：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">model</span> <span class="o">=</span> <span class="n">UNet</span><span class="p">(</span><span class="n">in_ch</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">out_ch</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">cuda</span><span class="p">()</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">AdamW</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">weight_decay</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">targets</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>       <span class="c1"># 形状 (B, C, H, W)</span>
+        <span class="n">pred</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">relative_l2</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span> <span class="c1"># 可再加 0.1 * divergence_loss(pred)</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+</code></pre></div>
+
+<h2 id="与-fno-的适用差异">与 FNO 的适用差异</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>U-Net</th>
+<th>FNO</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>感受野来源</td>
+<td>下采样堆叠</td>
+<td>频域全局卷积</td>
+</tr>
+<tr>
+<td>分辨率绑定</td>
+<td>强，换分辨率常需重训</td>
+<td>较弱，权重可复用</td>
+</tr>
+<tr>
+<td>高频细节</td>
+<td>skip 保留较好</td>
+<td>受 \(k_{max}\) 截断限制</td>
+</tr>
+<tr>
+<td>非周期边界</td>
+<td>靠 padding 与数据学习</td>
+<td>谱方法隐含周期，需补零</td>
+</tr>
+<tr>
+<td>数据需求</td>
+<td>中等，图像增强可用</td>
+<td>较大，需覆盖多种输入</td>
+</tr>
+<tr>
+<td>训练难度</td>
+<td>低，容易收敛</td>
+<td>对学习率与模态数敏感</td>
+</tr>
+</tbody>
+</table>
+<p>经验上，几何固定、边界复杂、追求稳定复现的任务先用 U-Net；输入是大量相似场、需要跨分辨率泛化的任务用 FNO。若要在 U-Net 之上加物理约束，残差写法与<a class="wiki-link" href="../ch5/pino.html">PINO</a>一致。</p>
+<h2 id="多尺度与工程细节">多尺度与工程细节</h2>
+<p>标准 U-Net 的感受野靠池化扩展，代价是位置信息丢失。几种常见补足方式：</p>
+<ul>
+<li><strong>空洞卷积</strong>：在不降分辨率的前提下扩大感受野，适合保留薄边界层。</li>
+<li><strong>注意力门</strong>：在 skip 拼接前对编码器特征加权，抑制与目标无关的区域。</li>
+<li><strong>部分卷积</strong>：输入含掩膜（如几何内部）时，只在有效像素上卷积，避免边界被零值污染。</li>
+</ul>
+<p>训练大尺寸场时，整图送入显存往往不够。常用做法是切 patch：从 \(256^2\) 的场中随机裁 \(64^2\) 或 \(128^2\) 的小块训练，推理时再滑窗拼接。切 patch 要注意边界效应——卷积在 patch 边缘看到的上下文不完整，拼接后可能出现接缝。缓解办法是重叠裁剪，或在 patch 内随机偏移采样位置。</p>
+<p>另一个容易被忽略的点是数据增强的物理合法性。水平翻转对周期或对称几何有效，对带明确来流方向的绕流则不合理；旋转同理。错误的增强会让网络学到不存在的对称性，验证误差反而上升。</p>
+<h2 id="常见失败模式">常见失败模式</h2>
+<ul>
+<li><strong>过度平滑</strong>：损失只看 MSE，高频结构被平均掉。加梯度损失或 H1 项可缓解。</li>
+<li><strong>边界外推失败</strong>：训练集的边界条件单一，测试换成出口压力边界后误差骤增。</li>
+<li><strong>几何敏感</strong>：把几何作为额外通道输入时，若几何编码分辨率过低，网络无法区分相近外形。</li>
+<li><strong>通道串扰</strong>：多物理量未归一化，网络把容量都花在大量级通道上。</li>
+</ul>
+<h2 id="小结">小结</h2>
+<ul>
+<li>U-Net 是像素到像素的场映射，编码器降维、解码器复原，skip connection 保留高频。</li>
+<li>感受野由卷积核与步长递推决定，\(128\) 到 \(256\) 的场通常四到五级足够。</li>
+<li>损失以相对 L2 为主，按需追加边界项与散度项；归一化对多物理量场至关重要。</li>
+<li>工程上先用小 base（16 或 32）跑通全流程，再按验证误差加宽，比一开始堆大模型更可靠。</li>
+<li>它适合稳态场、超分与亚格子建模，跨分辨率泛化不如 FNO。</li>
+</ul>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch5/deeponet.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">DeepONet</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch5/ifno.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">IFNO：隐式傅里叶神经算子</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch5/unet.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#场映射的视角">场映射的视角</a></li>
+<li><a href="#编码器瓶颈与解码器">编码器、瓶颈与解码器</a></li>
+<li><a href="#卷积与上采样">卷积与上采样</a></li>
+<li><a href="#损失函数">损失函数</a></li>
+<li><a href="#pytorch-实现">PyTorch 实现</a></li>
+<li><a href="#与-fno-的适用差异">与 FNO 的适用差异</a></li>
+<li><a href="#多尺度与工程细节">多尺度与工程细节</a></li>
+<li><a href="#常见失败模式">常见失败模式</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

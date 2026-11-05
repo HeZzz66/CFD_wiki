@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>大涡模拟 LES · CFD Wiki</title>
+  <meta name="description" content="用滤波把尺度分离，得到亚格子应力；介绍 Smagorinsky、动态 Smagorinsky 与 WALE 三种闭合，给出 Python 计算变形率、涡粘与亚格子应力的实现，以及 LES 时间推进骨架。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link is-active" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch4/index.html">湍流模型</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">大涡模拟 LES</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">大涡模拟 LES</h1>
+        <p class="page-summary">用滤波把尺度分离，得到亚格子应力；介绍 Smagorinsky、动态 Smagorinsky 与 WALE 三种闭合，给出 Python 计算变形率、涡粘与亚格子应力的实现，以及 LES 时间推进骨架。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">湍流模型</span>
+        <span class="meta-sep">·</span>
+        <span>约 2560 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#LES</span><span class="tag">#亚格子模型</span><span class="tag">#Smagorinsky</span><span class="tag">#WALE</span><span class="tag">#滤波</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>LES 的出发点是一个折中：DNS 太贵，RANS 把全部湍流都模化又太粗。既然大尺度涡携带了大部分能量、且受几何边界控制，而小尺度涡近似各向同性、行为更“普适”，那就只解析大尺度，把小尺度的影响压缩成一个应力项。这个“压缩”动作就是滤波。</p>
+<h2 id="滤波与滤波后方程">滤波与滤波后方程</h2>
+<p><strong>滤波</strong>是把瞬时场与一个核函数做空间卷积：</p>
+<div class="math-block">\[\bar{u}_i(\mathbf{x},t)=\int G_\Delta(\mathbf{x}-\mathbf{r})\,u_i(\mathbf{r},t)\,\mathrm{d}\mathbf{r},\]</div>
+<p>其中 \(G_\Delta\) 是宽度为 \(\Delta\) 的滤波核（盒式、高斯或谱截断），\(\Delta\) 通常取网格尺度的量级，例如 \(\Delta=(\Delta x\Delta y\Delta z)^{1/3}\)。滤波与雷诺平均的根本区别在于：滤波保留了大尺度的非定常性，因此 LES 的解仍是随时间演化的三维流场。</p>
+<p>对不可压 N-S 方程逐项滤波，连续性方程保持 \(\partial_i\bar u_i=0\)，动量方程变为</p>
+<div class="math-block">\[\frac{\partial \bar u_i}{\partial t}
++\bar u_j\frac{\partial \bar u_i}{\partial x_j}
+=-\frac{1}{\rho}\frac{\partial \bar p}{\partial x_i}
++\nu\frac{\partial^2 \bar u_i}{\partial x_j\partial x_j}
+-\frac{\partial \tau_{ij}}{\partial x_j},\]</div>
+<p>多出的项是<strong>亚格子应力</strong>（SGS stress）：</p>
+<div class="math-block">\[\tau_{ij}=\overline{u_i u_j}-\bar u_i\bar u_j.\]</div>
+<p>它表示“被滤掉的小尺度脉动对已解析大尺度动量的输运”。注意 \(\tau_{ij}\) 与雷诺应力不同：它只在滤波宽度 \(\Delta\) 附近起作用，且 \(\Delta\to0\) 时趋于零。对可压缩流动，通常改用 Favre 滤波 \(\tilde u_i=\overline{\rho u_i}/\bar\rho\)，形式更简洁，但会引入额外的亚格子通量（如 \(\tau_{ij}\)、热流与组分通量），需要一并模化。</p>
+<h3 id="可压缩情形">可压缩情形</h3>
+<p>对密度变化的流动，Favre 滤波把密度并进平均，动量方程与不可压形式同构，但会额外产生亚格子热流与组分通量：</p>
+<div class="math-block">\[\tau_{ij}^{\mathrm{F}}=\widetilde{u_iu_j}-\tilde u_i\tilde u_j,
+\qquad
+q_j^{\mathrm{sgs}}=\widetilde{u_jT}-\tilde u_j\tilde T,\]</div>
+<p>其中 \(\tilde{\cdot}\) 表示 Favre 滤波，\(T\) 是温度，\(q_j^{\mathrm{sgs}}\) 是亚格子热流。后者通常用梯度扩散假设 \(q_j^{\mathrm{sgs}}=-\alpha_t\,\partial_j\tilde T\) 闭合，\(\alpha_t=\nu_t/Pr_t\)，\(Pr_t\approx0.6\sim0.9\)。燃烧问题还需要亚格子组分与反应速率的闭合，难度远高于不可压情形。</p>
+<h2 id="smagorinsky-模型">Smagorinsky 模型</h2>
+<p>最早的 SGS 模型由 Smagorinsky 于 1963 年提出，直接借用 Boussinesq 假设：</p>
+<div class="math-block">\[\tau_{ij}-\frac{1}{3}\tau_{kk}\delta_{ij}
+=-2\nu_t\bar S_{ij},
+\qquad
+\nu_t=(C_s\Delta)^2\left\Vert\bar S\right\Vert,\]</div>
+<p>其中 \(C_s\) 是 Smagorinsky 常数（通常取 \(0.1\sim0.2\)），\(\bar S_{ij}\) 是解析尺度的变形率张量，其模定义为</p>
+<div class="math-block">\[\left\Vert\bar S\right\Vert=\sqrt{2\bar S_{ij}\bar S_{ij}}.\]</div>
+<p>这个模型只有一行代码，计算便宜、鲁棒，适合初始开发与教学。但它的缺陷同样明显：</p>
+<ul>
+<li>\(C_s\) 是常数，无法同时适应层流区与湍流区；在层流或强剪切但无湍流的地方，\(\nu_t\) 仍然非零，造成过度耗散。</li>
+<li>它假设局部平衡（生产 = 耗散），无法描述能量反向传递（backscatter）。</li>
+<li>壁面附近 \(\nu_t\) 不自动衰减到零，需要额外的阻尼函数或壁面模型。</li>
+</ul>
+<p>常配合<strong>湍流 Prandtl 数</strong> \(Pr_t\approx0.9\) 用于标量输运：\(\alpha_t=\nu_t/Pr_t\)，其中 \(\alpha_t\) 是亚格子热扩散系数。</p>
+<h2 id="动态-smagorinsky-与-germano-恒等式">动态 Smagorinsky 与 Germano 恒等式</h2>
+<p>Germano 等人（1991）提出用两个滤波尺度来“动态”确定 \(C_s\)。在网格滤波 \(\Delta\) 之上再施加一次<strong>测试滤波</strong>（宽度 \(\hat\Delta=2\Delta\)），记测试滤波为 \(\hat{\cdot}\)，则存在精确的代数恒等式</p>
+<div class="math-block">\[L_{ij}=\widehat{\bar u_i\bar u_j}-\hat{\bar u}_i\hat{\bar u}_j,\]</div>
+<p>其中 \(L_{ij}\) 称为 Leonard 应力。它只依赖已解析的速度场，因此可以数值计算。把 Smagorinsky 形式代入，可得</p>
+<div class="math-block">\[M_{ij}=2\Delta^2\left(\widehat{\left\Vert\bar S\right\Vert\bar S_{ij}}
+-\alpha^2\widehat{\left\Vert\bar S\right\Vert}\widehat{\bar S}_{ij}\right),
+\qquad
+\tau_{ij}=-2C_s^2\Delta^2\left\Vert\bar S\right\Vert\bar S_{ij},\]</div>
+<p>其中 \(\alpha=\hat\Delta/\Delta=2\)。于是 \(L_{ij}=C_s^2M_{ij}\)，在最小二乘意义下（Lilly 1992）解出</p>
+<div class="math-block">\[C_s^2\Delta^2=\frac{\langle L_{ij}M_{ij}\rangle}{\langle M_{kl}M_{kl}\rangle},\]</div>
+<p>尖括号表示对统计均匀方向做平均（或沿流线平均）。动态模型的好处是系数随流场自适应：层流区自动趋近零，转捩与分离区能给出较大的 \(\nu_t\)。代价是需要额外一次滤波，且 \(C_s\) 可能为负（backscatter），需要截断以保证数值稳定。</p>
+<h2 id="wale-模型">WALE 模型</h2>
+<p>WALE（Wall-Adapting Local Eddy-viscosity）模型不用 \(C_s\) 的常数假设，而是从速度梯度张量的局部结构构造涡粘：</p>
+<div class="math-block">\[\nu_t=(C_w\Delta)^2
+\frac{\left(S_{ij}^{d}S_{ij}^{d}\right)^{3/2}}
+{\left(\bar S_{ij}\bar S_{ij}\right)^{5/2}
++\left(S_{ij}^{d}S_{ij}^{d}\right)^{5/4}},\]</div>
+<p>其中 \(C_w\approx0.325\)，\(S_{ij}^{d}\) 是速度梯度张量的对称部分去掉变形率后的“迹为零”张量：</p>
+<div class="math-block">\[S_{ij}^{d}=\frac{1}{2}\left(g_{ij}^2+g_{ji}^2\right)
+-\frac{1}{3}\delta_{ij}g_{kk}^2,
+\qquad
+g_{ij}=\frac{\partial \bar u_i}{\partial x_j}.\]</div>
+<p>它的优点是：在纯剪切流中自动给出接近零的 \(\nu_t\)（避免 Smagorinsky 的过度耗散），在壁面处按 \(y^3\) 衰减到零，因此对壁面边界层更友好，常用于复杂几何的工程 LES。</p>
+<p>动态模型在实践中还需要两处工程处理：对 \(C_s\) 施加上下限截断（如 \(0\sim0.2\)），并沿统计均匀方向做平均，以抑制负涡粘引起的数值不稳定。WALE 则不存在这个问题，但它的常数 \(C_w\) 对网格分辨率仍有一定敏感性。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>待定系数</th>
+<th>壁面行为</th>
+<th>优点</th>
+<th>缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Smagorinsky</td>
+<td>\(C_s\) 常数</td>
+<td>不自动归零</td>
+<td>简单、便宜、稳定</td>
+<td>过度耗散，层流区不消失</td>
+</tr>
+<tr>
+<td>动态 Smagorinsky</td>
+<td>由 Germano 恒等式动态求出</td>
+<td>随流动自适应</td>
+<td>系数自适应，可处理转捩</td>
+<td>需测试滤波，可能负涡粘</td>
+</tr>
+<tr>
+<td>WALE</td>
+<td>\(C_w\) 常数</td>
+<td>按 \(y^3\) 衰减</td>
+<td>剪切流正确，壁面友好</td>
+<td>仍有常数，极端网格下敏感</td>
+</tr>
+</tbody>
+</table>
+<h2 id="网格要求与壁面处理">网格要求与壁面处理</h2>
+<p>LES 对网格的要求比 RANS 严格得多。经验规则是：滤波尺度 \(\Delta\) 应落在惯性子区内，通常要求 \(\Delta/\eta\gtrsim 10\)；壁面解析 LES（WRLES）要求第一层网格 \(y^+<1\)，并在边界层内布置约 10～20 层网格；若网格不够，就必须引入<strong>壁面模型</strong>（WMLES），用 RANS 或壁面律在近壁区提供剪切应力。若 \(\Delta/\eta>100\)，亚格子承担的能流已经很小，LES 退化为“昂贵的 DNS 预处理”；反之 \(\Delta/\eta<5\) 时滤波落在耗散区，Smagorinsky 的局部平衡假设不再成立。</p>
+<div class="math-block">\[y^+=\frac{u_\tau y}{\nu},\qquad
+u_\tau=\sqrt{\frac{\tau_w}{\rho}},\]</div>
+<p>其中 \(u_\tau\) 是摩擦速度，\(\tau_w\) 是壁面剪切应力，\(y\) 是到壁面的距离。\(y^+\) 是判断近壁分辨率的第一指标，也是选择壁面处理方式的依据。</p>
+<div class="admonition tip"><div class="admonition-title">DES 与 DDES</div><div class="admonition-body"><p>分离涡模拟（DES）在边界层内用 RANS、在分离区用 LES，通过比较 \(\Delta\) 与壁面距离来切换。延迟 DES（DDES）加入屏蔽函数，防止网格过细时把边界层误判为分离区。它们本质上是“分区混合”，不是纯粹的 LES。</p></div></div>
+<h2 id="python计算亚格子应力">Python：计算亚格子应力</h2>
+<p>下面的函数从给定的二维解析速度场出发，用中心差分求变形率、涡粘与亚格子应力，可用于后处理或模型对比：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sgs_smagorinsky</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">Cs</span><span class="o">=</span><span class="mf">0.15</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""二维 Smagorinsky：返回 S_ij、|S|、mu_sgs 与 tau_ij（偏应力部分）。"""</span>
+    <span class="n">dudx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dudy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">dvdx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">dvdy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">Sxx</span> <span class="o">=</span> <span class="n">dudx</span>
+    <span class="n">Syy</span> <span class="o">=</span> <span class="n">dvdy</span>
+    <span class="n">Sxy</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">dudy</span> <span class="o">+</span> <span class="n">dvdx</span><span class="p">)</span>
+    <span class="n">Smag</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="p">(</span><span class="n">Sxx</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">Syy</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">Sxy</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">Delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">dx</span> <span class="o">*</span> <span class="n">dy</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span>
+    <span class="n">nu_t</span> <span class="o">=</span> <span class="p">(</span><span class="n">Cs</span> <span class="o">*</span> <span class="n">Delta</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">Smag</span>          <span class="c1"># 涡粘 m^2/s</span>
+    <span class="n">mu_sgs</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">nu_t</span>                    <span class="c1"># 动力涡粘 Pa·s</span>
+
+    <span class="n">tau_xx</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">mu_sgs</span> <span class="o">*</span> <span class="n">Sxx</span>
+    <span class="n">tau_yy</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">mu_sgs</span> <span class="o">*</span> <span class="n">Syy</span>
+    <span class="n">tau_xy</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">mu_sgs</span> <span class="o">*</span> <span class="n">Sxy</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">Sxx</span><span class="p">,</span> <span class="n">Syy</span><span class="p">,</span> <span class="n">Sxy</span><span class="p">),</span> <span class="n">Smag</span><span class="p">,</span> <span class="n">mu_sgs</span><span class="p">,</span> <span class="p">(</span><span class="n">tau_xx</span><span class="p">,</span> <span class="n">tau_yy</span><span class="p">,</span> <span class="n">tau_xy</span><span class="p">)</span>
+
+<span class="c1"># 验证：简单剪切流 u = S*y，v = 0，则 Sxy = S/2，|S| = S</span>
+<span class="n">n</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">endpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">"xy"</span><span class="p">)</span>
+<span class="n">S</span><span class="p">,</span> <span class="n">rho</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">1.0</span>
+<span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">S</span> <span class="o">*</span> <span class="n">Y</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="n">_</span><span class="p">,</span> <span class="n">Smag</span><span class="p">,</span> <span class="n">mu_sgs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sgs_smagorinsky</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">rho</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"|S| 内部均值："</span><span class="p">,</span> <span class="n">Smag</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="s2">" 理论值："</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+</code></pre></div>
+
+<p>要注意的边界处理与 <code>np.gradient</code> 一致：壁面处用单侧差分，得到的 \(\mu_{sgs}\) 在壁面不会严格为零，这正是 Smagorinsky 需要额外阻尼的原因。</p>
+<h2 id="les-时间推进骨架">LES 时间推进骨架</h2>
+<p>LES 本身不是“一个模型”，而是“求解器 + 亚格子模型”。下面的骨架说明各步骤的位置，真实实现需要完整的 CFD 求解器：</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 伪代码：不可压 LES 一个时间步（有限体积/谱方法均可）</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">les_step</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">nu</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">grid</span><span class="p">):</span>
+    <span class="c1"># 1. 由解析速度计算变形率与亚格子涡粘</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">compute_strain_rate</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+    <span class="n">mu_sgs</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">viscosity</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">delta</span><span class="p">,</span> <span class="n">grid</span><span class="o">.</span><span class="n">wall_distance</span><span class="p">)</span>
+
+    <span class="c1"># 2. 组装动量方程右端：对流 + 压力梯度 + 分子扩散 + 亚格子扩散</span>
+    <span class="n">rhs</span> <span class="o">=</span> <span class="o">-</span><span class="n">convect</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span> <span class="o">-</span> <span class="n">grad</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="o">+</span> <span class="n">div</span><span class="p">((</span><span class="n">nu</span> <span class="o">+</span> <span class="n">mu_sgs</span> <span class="o">/</span> <span class="n">rho</span><span class="p">)</span> <span class="o">*</span> <span class="n">grad</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+
+    <span class="c1"># 3. 时间推进（低存储 RK4 或 AB2），并施加边界条件</span>
+    <span class="n">u_star</span> <span class="o">=</span> <span class="n">u</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">rhs</span>
+    <span class="n">u_star</span> <span class="o">=</span> <span class="n">apply_boundary</span><span class="p">(</span><span class="n">u_star</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+
+    <span class="c1"># 4. 压力泊松方程，投影到无散空间</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">solve_poisson</span><span class="p">(</span><span class="n">div</span><span class="p">(</span><span class="n">u_star</span><span class="p">)</span> <span class="o">/</span> <span class="n">dt</span><span class="p">,</span> <span class="n">grid</span><span class="p">)</span>
+    <span class="n">u_new</span> <span class="o">=</span> <span class="n">u_star</span> <span class="o">-</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">grad</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="c1"># 5. 亚格子动能由模型隐式耗散，无需额外方程</span>
+    <span class="k">return</span> <span class="n">u_new</span><span class="p">,</span> <span class="n">p</span>
+</code></pre></div>
+
+<div class="admonition warning"><div class="admonition-title">时间步与稳定性</div><div class="admonition-body"><p>LES 的显式时间步受最小网格与最大速度限制（\(\Delta t\approx0.3\,\Delta x/u_{\max}\)）。若为了省时间放大步长，高频模态会先失真，表现为能谱在高波数端“堆积”而不是正常衰减。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>滤波把尺度分离，亚格子应力 \(\tau_{ij}\) 承载小尺度对大尺度的输运。</li>
+<li>Smagorinsky 便宜但过度耗散；动态模型用 Germano 恒等式自适应求系数；WALE 在剪切流与壁面附近更合理。</li>
+<li>LES 的成本主要花在网格与时间推进上，模型本身的开销可以忽略；因此网格质量比模型选择更决定结果。</li>
+<li>与 RANS 的分工见 <a class="wiki-link" href="../ch4/rans.html">RANS 与涡粘模型</a>；若想彻底去掉模型，见 <a class="wiki-link" href="../ch4/dns.html">DNS 与 fDNS</a>。</li>
+</ul>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch4/rans.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">RANS 与涡粘模型</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch4/dns.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">DNS 与 fDNS</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch4/les.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#滤波与滤波后方程">滤波与滤波后方程</a><ul>
+<li><a href="#可压缩情形">可压缩情形</a></li>
+</ul>
+</li>
+<li><a href="#smagorinsky-模型">Smagorinsky 模型</a></li>
+<li><a href="#动态-smagorinsky-与-germano-恒等式">动态 Smagorinsky 与 Germano 恒等式</a></li>
+<li><a href="#wale-模型">WALE 模型</a></li>
+<li><a href="#网格要求与壁面处理">网格要求与壁面处理</a></li>
+<li><a href="#python计算亚格子应力">Python：计算亚格子应力</a></li>
+<li><a href="#les-时间推进骨架">LES 时间推进骨架</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

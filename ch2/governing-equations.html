@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>守恒方程与 N-S 方程 · CFD Wiki</title>
+  <meta name="description" content="从雷诺输运定理推导连续性方程、Cauchy 动量方程与能量方程，给出牛顿本构下的 Navier-Stokes 形式、封闭性讨论、边界条件与无量纲化。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link is-active" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch2/index.html">流体力学基本概念</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">守恒方程与 N-S 方程</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">守恒方程与 N-S 方程</h1>
+        <p class="page-summary">从雷诺输运定理推导连续性方程、Cauchy 动量方程与能量方程，给出牛顿本构下的 Navier-Stokes 形式、封闭性讨论、边界条件与无量纲化。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">流体力学基本概念</span>
+        <span class="meta-sep">·</span>
+        <span>约 2622 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#N-S方程</span><span class="tag">#连续性方程</span><span class="tag">#动量方程</span><span class="tag">#能量方程</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>运动学只描述速度场长什么样，不回答它为什么这样。守恒方程给出因果：质量不能凭空产生，动量变化等于外力，能量只能转移或转化。本页从雷诺输运定理出发，把三条守恒律写成积分与微分两种形式，最后讨论封闭性与边界条件。这是全书物理部分的核心，也是 <a class="wiki-link" href="../ch3/fvm.html">有限体积法</a> 直接离散的对象。</p>
+<h2 id="系统与控制体">系统与控制体</h2>
+<p><strong>系统</strong>（system）是固定的一团流体质点，边界随流体运动；<strong>控制体</strong>（control volume, CV）是空间中固定的一个区域，流体不断穿过它的边界。拉格朗日视角用系统，欧拉视角用控制体。两者之间的换算是雷诺输运定理：</p>
+<div class="math-block">\[\frac{d}{dt}\int_{V(t)}\phi\,dV
+=\int_V\frac{\partial\phi}{\partial t}\,dV
++\oint_{\partial V}\phi\,\mathbf{u}\cdot\mathbf{n}\,dS,\]</div>
+<p>其中 \(\phi\) 是单位体积的某种量（质量、动量、能量），\(\mathbf{n}\) 为外法向。左边是“系统总量的变化率”，右边第一项是控制体内随时间的变化，第二项是穿过边界的净流出通量。若控制体边界以速度 \(\mathbf{u}_b\) 运动，把 \(\mathbf{u}\) 换成相对速度 \(\mathbf{u}-\mathbf{u}_b\) 即可；网格变形、动网格与流固耦合都使用这个修正。</p>
+<p>雷诺输运定理的价值在于：它把对“运动系统”的求导，换成对“固定区域”的积分加表面通量。有限体积法正是逐单元计算这些面通量，因此不需要显式求空间导数。</p>
+<h2 id="连续性方程">连续性方程</h2>
+<p>取 \(\phi=\rho\)。系统质量不变，因此</p>
+<div class="math-block">\[\frac{d}{dt}\int_V\rho\,dV+\oint_{\partial V}\rho\,\mathbf{u}\cdot\mathbf{n}\,dS=0.\]</div>
+<p>对任意控制体，由高斯定理把面积分化为体积分，得到微分形式</p>
+<div class="math-block">\[\frac{\partial\rho}{\partial t}+\nabla\cdot(\rho\mathbf{u})=0.\]</div>
+<p>这是<strong>守恒型</strong>（conservative form），散度作用在 \(\rho\mathbf{u}\) 整体上。展开散度可得<strong>非守恒型</strong>：</p>
+<div class="math-block">\[\frac{\partial\rho}{\partial t}+\mathbf{u}\cdot\nabla\rho+\rho\nabla\cdot\mathbf{u}=0
+\quad\Longleftrightarrow\quad
+\frac{D\rho}{Dt}+\rho\nabla\cdot\mathbf{u}=0.\]</div>
+<p>两式在数学上等价，但在数值上不等价：只有守恒型离散才能保证跨间断（如激波）的质量守恒。做可压缩流动时，这一区别会直接决定激波位置与强度是否正确。</p>
+<p>不可压缩流动满足</p>
+<div class="math-block">\[\nabla\cdot\mathbf{u}=0.\]</div>
+<p>再次强调，这是对速度场的约束，并不要求 \(\rho\) 为常数。密度可以随温度变化，只要在连续性方程中被消去；自然对流、多组分混合都采用这种处理。</p>
+<h2 id="动量方程">动量方程</h2>
+<p>对系统用牛顿第二定律，\(\phi=\rho\mathbf{u}\)。表面力由应力张量 \(\boldsymbol{\sigma}\) 描述，体积力记为 \(\rho\mathbf{f}\)。Cauchy 应力形式为</p>
+<div class="math-block">\[\rho\frac{D\mathbf{u}}{Dt}=\nabla\cdot\boldsymbol{\sigma}+\rho\mathbf{f}.\]</div>
+<p>应力张量分解为各向同性压力与偏应力：</p>
+<div class="math-block">\[\boldsymbol{\sigma}=-p\mathbf{I}+\boldsymbol{\tau}.\]</div>
+<p>对牛顿流体，偏应力与变形率成正比：</p>
+<div class="math-block">\[\boldsymbol{\tau}=\mu\left(\nabla\mathbf{u}+(\nabla\mathbf{u})^{\mathsf{T}}\right)-\frac{2}{3}\mu\left(\nabla\cdot\mathbf{u}\right)\mathbf{I}.\]</div>
+<p>第二项保证体积粘性在不可压缩极限下不产生额外正应力；对不可压缩流动 \(\nabla\cdot\mathbf{u}=0\)，它自动消失。代入 Cauchy 方程得到<strong>Navier-Stokes 方程</strong>：</p>
+<div class="math-block">\[\rho\frac{D\mathbf{u}}{Dt}
+=-\nabla p
++\nabla\cdot\left[\mu\left(\nabla\mathbf{u}+(\nabla\mathbf{u})^{\mathsf{T}}\right)\right]
++\rho\mathbf{f}.\]</div>
+<p>常物性、不可压缩时简化为最常见的形式：</p>
+<div class="math-block">\[\rho\left(\frac{\partial\mathbf{u}}{\partial t}+(\mathbf{u}\cdot\nabla)\mathbf{u}\right)
+=-\nabla p+\mu\nabla^2\mathbf{u}+\rho\mathbf{f}.\]</div>
+<p>各项的物理含义可以用一张表对照：</p>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>数学形式</th>
+<th>物理意义</th>
+<th>数值处理要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>当地加速度</td>
+<td>\(\partial\mathbf{u}/\partial t\)</td>
+<td>固定点的速度变化</td>
+<td>非定常项，时间推进格式</td>
+</tr>
+<tr>
+<td>对流项</td>
+<td>\((\mathbf{u}\cdot\nabla)\mathbf{u}\)</td>
+<td>流体携带自身动量</td>
+<td>非线性，需迎风/限制器</td>
+</tr>
+<tr>
+<td>压力梯度</td>
+<td>\(-\nabla p\)</td>
+<td>高压指向低压的力</td>
+<td>与连续性耦合，需压力修正</td>
+</tr>
+<tr>
+<td>粘性扩散</td>
+<td>\(\mu\nabla^2\mathbf{u}\)</td>
+<td>动量在邻近流体间扩散</td>
+<td>壁面附近梯度大，需加密</td>
+</tr>
+<tr>
+<td>体积力</td>
+<td>\(\rho\mathbf{f}\)</td>
+<td>重力、电磁力、离心力</td>
+<td>浮力常用 Boussinesq</td>
+</tr>
+</tbody>
+</table>
+<p>可压缩流动更常写<strong>守恒型通量形式</strong>，便于有限体积离散与激波捕捉：</p>
+<div class="math-block">\[\frac{\partial(\rho\mathbf{u})}{\partial t}
++\nabla\cdot\left(\rho\mathbf{u}\mathbf{u}+p\mathbf{I}-\boldsymbol{\tau}\right)
+=\rho\mathbf{f},\]</div>
+<p>其中 \(\rho\mathbf{u}\mathbf{u}\) 是并矢（二阶张量），\((\rho\mathbf{u}\mathbf{u})_{ij}=\rho u_i u_j\)。它把“动量被速度输运”写成面通量，正是 <a class="wiki-link" href="../ch3/fvm.html">有限体积法</a> 中通量重构的起点。</p>
+<h2 id="能量方程">能量方程</h2>
+<p>取 \(\phi=\rho E\)，\(E=e+\frac{1}{2}u_iu_i\) 为单位质量的总能量，\(e\) 为内能。总能量守恒的微分形式为</p>
+<div class="math-block">\[\frac{\partial(\rho E)}{\partial t}+\nabla\cdot(\rho E\mathbf{u})
+=\nabla\cdot(\boldsymbol{\sigma}\cdot\mathbf{u})
++\nabla\cdot(k\nabla T)
++\rho\mathbf{f}\cdot\mathbf{u}
++\dot q_v,\]</div>
+<p>右端依次是应力做功、热传导、体积力做功与体积热源。\(k\) 为导热系数，\(\dot q_v\) 为单位体积热源（如化学反应、焦耳热）。</p>
+<p>把动能方程从中减去，得到内能形式。对不可压缩、常物性流体，粘性耗散与热传导占主导，温度方程可写为</p>
+<div class="math-block">\[\rho c_p\frac{DT}{Dt}=\nabla\cdot(k\nabla T)+\Phi,\]</div>
+<p>其中粘性耗散函数</p>
+<div class="math-block">\[\Phi=\boldsymbol{\tau}:\nabla\mathbf{u}\ge 0\]</div>
+<p>表示机械能不可逆地转化为热。低速流动中 \(\Phi\) 通常远小于对流与传导项，可以忽略；但在高剪切润滑、粘性泵与微通道中它可能是主要热源。</p>
+<p>温度形式与总能形式的差别不只是代数化简。总能形式保留动能与压力功，能正确描述激波、高速压缩与膨胀；温度形式默认动能变化可忽略、压力功已通过连续性方程消去，因此只适用于低 \(Ma\) 流动。当 \(Ma>0.3\) 或存在激波时，必须回到总能形式，否则会出现“温度算对了、总压算错了”的问题。</p>
+<h2 id="状态方程与封闭性">状态方程与封闭性</h2>
+<p>未知量有 \(\rho\)、三个速度分量、\(p\)、\(T\)，共六个；连续性 1 个、动量 3 个、能量 1 个，共五个方程。因此还需要一个状态方程把 \(p\)、\(\rho\)、\(T\) 联系起来：</p>
+<div class="math-block">\[p=p(\rho,T),\qquad e=e(\rho,T).\]</div>
+<p>理想气体取 \(p=\rho RT\)、\(e=c_vT\)，并满足 \(R=c_p-c_v\)、\(\gamma=c_p/c_v\)。真实气体、超临界流体与相变问题则需要更复杂的状态方程，且往往要把求解变量从原始变量切换到守恒变量，以保证间断处的正确性。</p>
+<p>不可压缩流动不需要状态方程求压力，因为密度已知；压力由连续性方程作为约束确定，这正是压力泊松方程与投影法的来源。若存在温度差引起的浮力，采用 <strong>Boussinesq 近似</strong>：</p>
+<div class="math-block">\[\rho=\rho_0\left[1-\beta\left(T-T_0\right)\right],\]</div>
+<p>且只在体积力项中保留这个密度变化，其余项仍用 \(\rho_0\)。这样既捕捉了热对流，又避免了可压缩求解器的小时间步限制。</p>
+<h2 id="边界条件与初始条件">边界条件与初始条件</h2>
+<p>N-S 方程是二阶偏微分方程，需要给定边界上的速度或应力、温度或热流。常见类型如下：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>数学表达</th>
+<th>适用场景</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无滑移壁面</td>
+<td>\(\mathbf{u}=0\)</td>
+<td>固体壁面</td>
+<td>最常用，需解析边界层</td>
+</tr>
+<tr>
+<td>移动壁面</td>
+<td>\(\mathbf{u}=\mathbf{U}_w\)</td>
+<td>旋转机械、履带</td>
+<td>注意壁面法向分量为零</td>
+</tr>
+<tr>
+<td>入口速度</td>
+<td>\(\mathbf{u}=\mathbf{u}_{in}\)</td>
+<td>管道、风洞入口</td>
+<td>需给出湍流参数</td>
+</tr>
+<tr>
+<td>出口压力</td>
+<td>\(p=p_{out}\)</td>
+<td>开放出口</td>
+<td>常配合零梯度速度</td>
+</tr>
+<tr>
+<td>远场</td>
+<td>特征边界</td>
+<td>外流、飞行器</td>
+<td>允许波出入</td>
+</tr>
+<tr>
+<td>周期</td>
+<td>\(\phi(\mathbf{x}+\mathbf{L})=\phi(\mathbf{x})\)</td>
+<td>充分发展、叶栅</td>
+<td>需保证净通量平衡</td>
+</tr>
+<tr>
+<td>对称</td>
+<td>\(u_n=0,\ \partial u_t/\partial n=0\)</td>
+<td>对称面</td>
+<td>减少计算量</td>
+</tr>
+</tbody>
+</table>
+<p>初始条件同样重要。定常问题用初值作为迭代起点，初值越接近解，收敛越快；非定常问题初值决定瞬态过程，物理上应给出与边界一致的场。不可压缩求解器还要求初始速度场满足 \(\nabla\cdot\mathbf{u}=0\)，否则第一步就会产生虚假压力波。边界条件的数量与位置必须与方程类型匹配，详见 <a class="wiki-link" href="../ch1/pde-foundations.html">偏微分方程基础</a>。</p>
+<h2 id="无量纲化与相似参数">无量纲化与相似参数</h2>
+<p>取特征长度 \(L\)、特征速度 \(U\)、特征时间 \(L/U\)、特征压力 \(\rho U^2\)，定义</p>
+<div class="math-block">\[\mathbf{x}^*=\frac{\mathbf{x}}{L},\quad
+\mathbf{u}^*=\frac{\mathbf{u}}{U},\quad
+t^*=\frac{tU}{L},\quad
+p^*=\frac{p}{\rho U^2}.\]</div>
+<p>代入不可压缩 N-S 方程，得到</p>
+<div class="math-block">\[\frac{\partial\mathbf{u}^*}{\partial t^*}
++(\mathbf{u}^*\cdot\nabla^*)\mathbf{u}^*
+=-\nabla^*p^*+\frac{1}{Re}\nabla^{*2}\mathbf{u}^*+\frac{1}{Fr^2}\mathbf{g}^*,\]</div>
+<p>其中</p>
+<div class="math-block">\[Re=\frac{\rho UL}{\mu},\qquad
+Fr=\frac{U}{\sqrt{gL}},\qquad
+Ma=\frac{U}{a}.\]</div>
+<p>\(Re\) 衡量惯性力与粘性力之比，决定层流还是湍流；\(Fr\) 衡量惯性力与重力之比，决定自由表面与浮力效应；\(Ma\) 衡量可压缩性。三个参数一旦确定，几何相似的流动在无量纲意义上就等价，这是风洞缩比实验与 CFD 验证的基础，也是在 <a class="wiki-link" href="../ch5/benchmarks.html">基准算例</a> 中对比不同求解器的前提。</p>
+<h2 id="汇总">汇总</h2>
+<table>
+<thead>
+<tr>
+<th>方程</th>
+<th>守恒量</th>
+<th>积分形式</th>
+<th>微分形式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>连续性</td>
+<td>质量</td>
+<td>\(\dfrac{d}{dt}\int_V\rho\,dV+\oint_S\rho\mathbf{u}\cdot\mathbf{n}\,dS=0\)</td>
+<td>\(\partial_t\rho+\nabla\cdot(\rho\mathbf{u})=0\)</td>
+</tr>
+<tr>
+<td>动量</td>
+<td>动量</td>
+<td>\(\dfrac{d}{dt}\int_V\rho\mathbf{u}\,dV+\oint_S\rho\mathbf{u}(\mathbf{u}\cdot\mathbf{n})\,dS=\int_V\rho\mathbf{f}\,dV+\oint_S\boldsymbol{\sigma}\cdot\mathbf{n}\,dS\)</td>
+<td>\(\rho\,D\mathbf{u}/Dt=\nabla\cdot\boldsymbol{\sigma}+\rho\mathbf{f}\)</td>
+</tr>
+<tr>
+<td>能量</td>
+<td>总能量</td>
+<td>\(\dfrac{d}{dt}\int_V\rho E\,dV+\oint_S\rho E\mathbf{u}\cdot\mathbf{n}\,dS=\dot W+\dot Q\)</td>
+<td>\(\partial_t(\rho E)+\nabla\cdot(\rho E\mathbf{u})=\nabla\cdot(\boldsymbol{\sigma}\cdot\mathbf{u})+\nabla\cdot(k\nabla T)+\dot q_v\)</td>
+</tr>
+</tbody>
+</table>
+<p>三行结构完全一致：左边是“总量变化 + 净流出”，右边是“源与汇”。这种统一形式正是守恒型离散可以逐项对应到面通量的原因。</p>
+<div class="admonition tip"><div class="admonition-title">下一步</div><div class="admonition-body"><p>把本页的微分方程放到网格上，就进入 <a class="wiki-link" href="../ch3/fvm.html">有限体积法</a>；把速度分解为平均与脉动并对方程取平均，就进入 <a class="wiki-link" href="../ch4/rans.html">RANS</a>。若只想先获得可手算的近似，可跳到 <a class="wiki-link" href="../ch2/bernoulli-integral.html">伯努利方程</a> 做沿流线积分。</p></div></div>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch2/kinematics.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">流动的运动学描述</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch2/bernoulli-integral.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">伯努利方程与控制体积积分</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch2/governing-equations.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#系统与控制体">系统与控制体</a></li>
+<li><a href="#连续性方程">连续性方程</a></li>
+<li><a href="#动量方程">动量方程</a></li>
+<li><a href="#能量方程">能量方程</a></li>
+<li><a href="#状态方程与封闭性">状态方程与封闭性</a></li>
+<li><a href="#边界条件与初始条件">边界条件与初始条件</a></li>
+<li><a href="#无量纲化与相似参数">无量纲化与相似参数</a></li>
+<li><a href="#汇总">汇总</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

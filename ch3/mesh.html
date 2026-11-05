@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>网格生成与质量 · CFD Wiki</title>
+  <meta name="description" content="介绍结构化、非结构与混合网格的类型与拓扑，长宽比、偏斜度、正交性等质量指标，边界层网格的首层高度估算，以及网格无关性与 GCI。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link is-active" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch3/index.html">CFD 数值方法基础</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">网格生成与质量</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">网格生成与质量</h1>
+        <p class="page-summary">介绍结构化、非结构与混合网格的类型与拓扑，长宽比、偏斜度、正交性等质量指标，边界层网格的首层高度估算，以及网格无关性与 GCI。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">CFD 数值方法基础</span>
+        <span class="meta-sep">·</span>
+        <span>约 2482 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#网格</span><span class="tag">#边界层网格</span><span class="tag">#网格质量</span><span class="tag">#GCI</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>网格是离散化的几何载体。同一个格式、同一个物理模型，换一套网格可能得到完全不同的结果：粗网格把激波抹平，扭曲单元让扩散项失真，首层过高使壁面函数失效。因此“会不会画网格”往往比“会不会选格式”更决定一次计算的质量。</p>
+<p>这一页按“类型—质量—边界层—无关性—工具”的顺序展开，最后用一小段 Python 计算结构化网格的单元面积，把几何量与质量指标联系起来。</p>
+<h2 id="网格类型与拓扑">网格类型与拓扑</h2>
+<p><strong>结构化网格</strong>用 \((i,j,k)\) 三重索引标识节点，邻居关系由索引加减一给出。它存储省、寻址快、适合高精度差分与谱方法；缺点是复杂外形需要多块拼接，块与块之间要处理交界面。</p>
+<p><strong>非结构网格</strong>用单元与面的连接表存储，单元可以是三角形、四面体、棱柱、金字塔或多面体。它对任意外形适应性强，局部加密方便，是工程 CFD 的主流；代价是内存访问不连续、并行分区复杂、高阶格式难写。</p>
+<p><strong>混合网格</strong>在边界层用棱柱（三棱柱）保证法向分辨率，在外场用四面体填充，兼顾贴体与填充效率。<strong>笛卡尔网格</strong>用规则立方体，配合切单元（cut-cell）贴合边界，生成快、质量好，但小切单元会带来稳定性问题。<strong>重叠网格</strong>（overset）让多套网格相互重叠，通过插值交换信息，适合运动物体与多体分离，但插值守恒性与 donor 单元选择需要额外处理。</p>
+<p>二维常用单元是三角形与四边形，三维常用四面体、六面体、三棱柱、四棱锥与多面体。单元类型直接影响格式：</p>
+<ul>
+<li>四面体对任意几何最灵活，但梯度重构误差大，边界层内很难做到高长宽比；</li>
+<li>六面体在主流方向对齐时精度与收敛性最好，但生成困难；</li>
+<li>棱柱适合边界层，金字塔用于棱柱与四面体的过渡；</li>
+<li>多面体（polyhedral）邻居多、梯度更稳，内存与计算量也更高。</li>
+</ul>
+<h2 id="质量指标">质量指标</h2>
+<p>网格质量没有单一指标，常用以下几个维度。</p>
+<p><strong>长宽比</strong>衡量单元在一个方向被拉长的程度：</p>
+<div class="math-block">\[\mathrm{AR}=\frac{L_{\max}}{L_{\min}},\]</div>
+<p>\(L_{\max},L_{\min}\) 是单元最长与最短特征长度。边界层内长宽比可达几百甚至上千，这是正常的，因为法向梯度远大于流向梯度；但各向同性区域的长宽比应尽量接近 1。</p>
+<p><strong>偏斜度</strong>衡量角度偏离正多边形的程度。以四边形为例，可用</p>
+<div class="math-block">\[S=\max\left(
+\frac{\theta_{\max}-90^\circ}{90^\circ},
+\frac{90^\circ-\theta_{\min}}{90^\circ}
+\right),\]</div>
+<p>\(\theta_{\max},\theta_{\min}\) 是单元内最大与最小内角。\(S\) 接近 0 表示接近矩形，超过 0.8 通常已算坏单元。偏斜单元会让面法向与中心连线严重不平行，扩散项的非正交修正变大。</p>
+<p><strong>正交性</strong>衡量面法向与两侧单元中心连线的夹角：</p>
+<div class="math-block">\[\cos\theta=
+\frac{\mathbf{n}_f\cdot\mathbf{d}_{PN}}
+{\lVert\mathbf{n}_f\rVert\,\lVert\mathbf{d}_{PN}\rVert},\]</div>
+<p>\(\mathbf{n}_f\) 是面法向，\(\mathbf{d}_{PN}\) 是中心连线。\(\theta\) 接近 0 表示正交；超过 60 度后，非正交修正可能超过正交项，解容易振荡。</p>
+<p><strong>Jacobian 与体积</strong>。对映射单元，Jacobian 行列式必须为正；为负说明节点顺序反了或单元被压穿，称为负体积。求解器一启动就报负体积，几乎都是网格问题。单元体积还可用散度定理计算：</p>
+<div class="math-block">\[V_P=\frac{1}{3}\sum_{f\in\mathcal{F}_P}
+\mathbf{x}_f\cdot\mathbf{n}_f A_f,\]</div>
+<p>\(\mathbf{x}_f\) 是面心位置，\(A_f\) 是面面积。这个式子对任意多面体成立，也是许多求解器检查体积的方式。</p>
+<p><strong>光滑度</strong>指相邻单元尺寸的变化率。相邻单元体积突变会带来截断误差的跳变，也会让多重网格与迭代收敛变差。通常希望增长率不超过 1.2 到 1.3。</p>
+<p>坏网格的后果很具体：长宽比过大且法向未对齐，边界层速度剖面出现锯齿；偏斜度过高，压力场出现局部毛刺；负体积直接终止计算；光滑度差，残差曲线反复抬头。与其在求解器里调参数，不如回到网格修单元。</p>
+<h2 id="边界层网格">边界层网格</h2>
+<p>壁面附近的法向分辨率用无量纲壁面距离描述：</p>
+<div class="math-block">\[y^+=\frac{u_\tau y}{\nu},
+\qquad
+u_\tau=\sqrt{\frac{\tau_w}{\rho}},\]</div>
+<p>\(u_\tau\) 是摩擦速度，\(\tau_w\) 是壁面剪应力，\(\nu\) 是运动粘度，\(y\) 是到壁面的距离。\(y^+<1\) 才能解析粘性底层；使用壁面函数时首层通常落在 \(30<y^+<300\) 的对数层内，且不要落在缓冲层（约 \(5<y^+<30\)）。</p>
+<p>首层高度可以预先估算。对平板湍流边界层，用</p>
+<div class="math-block">\[C_f=0.058\,Re^{-0.2},
+\qquad
+u_\tau=U_\infty\sqrt{\frac{C_f}{2}},\]</div>
+<p>再取目标 \(y^+\) 得</p>
+<div class="math-block">\[\Delta y_1=\frac{y^+\nu}{u_\tau}.\]</div>
+<p>例如 \(U_\infty=1\ \mathrm{m/s}\)、\(L=1\ \mathrm{m}\)、\(\nu=1\times10^{-5}\ \mathrm{m^2/s}\)，则 \(Re=10^5\)，\(C_f\approx0.0058\)，\(u_\tau\approx0.054\ \mathrm{m/s}\)。若目标 \(y^+=1\)，首层约 \(1.85\times10^{-4}\ \mathrm{m}\)，即 0.185 mm。</p>
+<p>层数与增长率决定边界层总厚度。若首层 \(\Delta y_1\)、增长率 \(g\)、层数 \(n\)，总厚度为</p>
+<div class="math-block">\[T=\Delta y_1\frac{g^{n}-1}{g-1}.\]</div>
+<p>常见做法是 \(g=1.1\) 到 \(1.2\)，层数 10 到 30，使总厚度覆盖边界层厚度的 1.5 倍以上。分离区、转捩区、角区需要更细的流向与展向网格，因为那里法向速度剖面变化剧烈，仅靠法向加密不够。</p>
+<div class="admonition warning"><div class="admonition-title">壁面函数与 y+ 的一致性</div><div class="admonition-body"><p>用壁面函数却把首层放在 \(y^+<5\)，或用低雷诺数模型却把首层放在 \(y^+>30\)，都会得到“看起来收敛、实际错误”的结果。换湍流模型时，必须同时检查首层高度。</p></div></div>
+<h2 id="网格无关性">网格无关性</h2>
+<p>网格无关性指继续加密网格后，关键监测量不再明显变化。做法通常是粗、中、细三套网格，细化因子 \(r\) 约为 1.3 到 2，保持边界层首层与拓扑相似，只改变单元尺寸。</p>
+<p>用 Richardson 外推估计“无限细网格”的值：</p>
+<div class="math-block">\[f_{\mathrm{ext}}\approx f_1+\frac{f_1-f_2}{r^{p}-1},\]</div>
+<p>\(f_1\) 是细网格解，\(f_2\) 是较粗网格解，\(p\) 是观测到的收敛阶。若三套网格的差值比不符合单调收敛，说明解落在非渐近区，外推不可信。</p>
+<p>工程上常用网格收敛指数（GCI）给出误差带：</p>
+<div class="math-block">\[\mathrm{GCI}=\frac{F_s\lvert e\rvert}{r^{p}-1},
+\qquad
+e=\frac{f_2-f_1}{f_1},\]</div>
+<p>\(F_s\) 是安全因子，通常取 1.25。GCI 不是严格的误差界，而是一个保守估计：它告诉你能以多快的速度加密网格、当前结果大概在什么误差范围。完整流程与判据见<a class="wiki-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a>。</p>
+<h2 id="常用网格工具">常用网格工具</h2>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>类型</th>
+<th>优势</th>
+<th>局限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ICEM CFD</td>
+<td>结构化/非结构</td>
+<td>六面体与 O-B 网格强，边界层控制细</td>
+<td>界面老，脚本化较弱</td>
+</tr>
+<tr>
+<td>Ansys Meshing</td>
+<td>非结构/混合</td>
+<td>与 Fluent 集成，自动划分快</td>
+<td>复杂几何仍需手工修补</td>
+</tr>
+<tr>
+<td>Pointwise</td>
+<td>结构化/非结构</td>
+<td>高质量六面体、航空外流</td>
+<td>商业授权，学习曲线陡</td>
+</tr>
+<tr>
+<td>Gmsh</td>
+<td>开源</td>
+<td>脚本化、几何与网格一体、轻量</td>
+<td>边界层与复杂六面体较弱</td>
+</tr>
+<tr>
+<td>snappyHexMesh</td>
+<td>笛卡尔切单元</td>
+<td>与 OpenFOAM 配套、自动贴体</td>
+<td>表面质量依赖几何，层加成功率高门槛</td>
+</tr>
+<tr>
+<td>STAR-CCM+</td>
+<td>多面体/混合</td>
+<td>一体化、多面体质量好、自动化</td>
+<td>商业授权成本高</td>
+</tr>
+</tbody>
+</table>
+<p>工具只是手段。判断网格好坏的标准与求解器无关：正交、光滑、足够细、边界层匹配。用脚本生成网格时，应该把单元数、最小正交角、最大长宽比、首层 \(y^+\) 作为输出指标，而不是只看“生成了多少单元”。</p>
+<h2 id="结构化网格的-python-示例">结构化网格的 Python 示例</h2>
+<p>下面的代码生成一个二维曲线坐标网格，并用对角线叉积计算每个四边形的面积。它演示了两个常被忽略的事实：网格面积不必相等，单元质量可以用面积比快速筛查：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">nx</span><span class="p">,</span> <span class="n">ny</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">20</span>
+<span class="n">xi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">nx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">eta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">ny</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">xi</span><span class="p">,</span> <span class="n">eta</span><span class="p">,</span> <span class="n">indexing</span><span class="o">=</span><span class="s2">"ij"</span><span class="p">)</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">X</span><span class="p">))</span>   <span class="c1"># 上边界隆起，制造非均匀单元</span>
+
+<span class="c1"># 每个单元的四个角点（逆时针）</span>
+<span class="n">p00</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">X</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">Y</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">p10</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">X</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">p11</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">X</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">Y</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">p01</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">X</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">Y</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># 四边形面积 = 两条对角线叉积的一半</span>
+<span class="n">d1</span> <span class="o">=</span> <span class="n">p11</span> <span class="o">-</span> <span class="n">p00</span>
+<span class="n">d2</span> <span class="o">=</span> <span class="n">p01</span> <span class="o">-</span> <span class="n">p10</span>
+<span class="n">area</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">d1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">d2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">d1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">d2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"单元数："</span><span class="p">,</span> <span class="n">area</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"总面积："</span><span class="p">,</span> <span class="n">area</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"最小面积："</span><span class="p">,</span> <span class="n">area</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"最大面积："</span><span class="p">,</span> <span class="n">area</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"面积比："</span><span class="p">,</span> <span class="n">area</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">/</span> <span class="n">area</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
+</code></pre></div>
+
+<p>运行后总面积约为 1.191，比未变形时的 1 多出隆起的贡献；最小与最大单元面积之比可以用来判断拉伸是否过强。真实三维网格还应检查每个单元的最小二面角、Jacobian 与相邻体积增长率，这些指标在多数求解器中都有现成报告。</p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>网格类型决定离散格式的选择空间，结构、非结构、混合、笛卡尔与重叠各有适用场景。</li>
+<li>质量指标要一起看：长宽比、偏斜度、正交性、Jacobian、光滑度；任何一项极端都会污染解。</li>
+<li>边界层网格的核心是首层 \(y^+\) 与增长率，必须与湍流模型匹配。</li>
+<li>网格无关性用三套网格与 GCI 量化，不能凭“看起来差不多”下结论。</li>
+</ul>
+<p>相关阅读：边界层物理与 \(y^+\) 的含义见<a class="wiki-link" href="../ch2/boundary-layer.html">边界层</a>；面法向梯度与非正交修正见<a class="wiki-link" href="../ch3/fvm.html">有限体积法</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch3/fem.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">有限元法 FEM</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch3/data-formats.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">CFD 常用数据格式</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch3/mesh.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#网格类型与拓扑">网格类型与拓扑</a></li>
+<li><a href="#质量指标">质量指标</a></li>
+<li><a href="#边界层网格">边界层网格</a></li>
+<li><a href="#网格无关性">网格无关性</a></li>
+<li><a href="#常用网格工具">常用网格工具</a></li>
+<li><a href="#结构化网格的-python-示例">结构化网格的 Python 示例</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

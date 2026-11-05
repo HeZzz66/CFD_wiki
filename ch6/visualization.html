@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>matplotlib 与 PyVista 出版级出图 · CFD Wiki</title>
+  <meta name="description" content="用 matplotlib 做二维等值线、伪彩色、矢量与流线，用 PyVista 做三维切片、等值面与流线，并讨论配色、色标、矢量导出以及 Tecplot 与 Python 的分工。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link is-active" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch6/index.html">后处理与可视化</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">matplotlib 与 PyVista 出版级出图</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">matplotlib 与 PyVista 出版级出图</h1>
+        <p class="page-summary">用 matplotlib 做二维等值线、伪彩色、矢量与流线，用 PyVista 做三维切片、等值面与流线，并讨论配色、色标、矢量导出以及 Tecplot 与 Python 的分工。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">后处理与可视化</span>
+        <span class="meta-sep">·</span>
+        <span>约 2738 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#matplotlib</span><span class="tag">#PyVista</span><span class="tag">#科研绘图</span><span class="tag">#配色</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>一张合格的 CFD 图要同时满足四件事：物理上正确、读得清楚、可以复现、对读者友好。软件能帮你完成第三件的一部分，前两件靠判断，最后一件靠规范。这一页讲的是把已经算好的数组变成图，不涉及数据读取与派生量计算；那两部分分别在前两页。依赖为 <code>numpy</code> 与 <code>matplotlib</code>，三维部分另需 <code>pyvista</code>。</p>
+<h2 id="出版图的四条标准">出版图的四条标准</h2>
+<p><strong>物理正确</strong>指图上的每个量都有明确的定义与参考量。色标写 <code>p [Pa]</code> 还是 <code>Cp</code>，坐标是 \(x/L\) 还是毫米，切片在哪个位置，这些信息缺一项，图就不可复核。</p>
+<p><strong>读得清楚</strong>指在最终印刷尺寸下仍然可读。很多图在屏幕上很漂亮，缩到单栏宽度后字变成 4 pt、线变成发丝。正确做法是先定最终宽度，再按这个宽度设置字号与线宽。</p>
+<p><strong>可以复现</strong>指图由脚本生成，而不是手工拖拽。脚本、数据版本、配色与坐标范围都进版本库。半年后要改一个标签，只需改一行。</p>
+<p><strong>对读者友好</strong>指不依赖单一颜色通道。红绿色盲、黑白打印、投影仪偏色都会改变颜色的观感。用明度差异、等值线、线型与直接标注来补充颜色。</p>
+<h2 id="尺寸字体与导出">尺寸、字体与导出</h2>
+<p>期刊通常按栏宽给图：单栏约 8 到 9 cm，双栏约 17 到 18 cm。先确定宽度，再由像素需求反推分辨率：</p>
+<div class="math-block">\[N_{\mathrm{px}} = \frac{w_{\mathrm{cm}}}{2.54}\,\mathrm{dpi}.\]</div>
+<p>例如 8 cm 宽、300 dpi，约需 945 像素；600 dpi 则约 1890 像素。矢量格式没有这个限制，但位图化的等值面仍要按 dpi 导出。</p>
+<p>matplotlib 的 <code>figsize</code> 单位是英寸，所以常用一个换算常数：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">cm</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mf">2.54</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span> <span class="o">*</span> <span class="n">cm</span><span class="p">,</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">cm</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+
+<p>字号在最终尺寸下取 7 到 9 pt，坐标轴标签 8 到 10 pt，标题 9 到 11 pt。线宽不小于 0.5 pt，坐标轴线宽 0.6 到 0.8 pt。把这些写进全局配置，比每张图单独调更一致：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mpl</span>
+
+<span class="n">mpl</span><span class="o">.</span><span class="n">rcParams</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+    <span class="s2">"font.size"</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s2">"font.family"</span><span class="p">:</span> <span class="s2">"DejaVu Sans"</span><span class="p">,</span>
+    <span class="s2">"axes.linewidth"</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>
+    <span class="s2">"xtick.major.width"</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>
+    <span class="s2">"ytick.major.width"</span><span class="p">:</span> <span class="mf">0.6</span><span class="p">,</span>
+    <span class="s2">"xtick.direction"</span><span class="p">:</span> <span class="s2">"in"</span><span class="p">,</span>
+    <span class="s2">"ytick.direction"</span><span class="p">:</span> <span class="s2">"in"</span><span class="p">,</span>
+    <span class="s2">"legend.frameon"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"pdf.fonttype"</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="s2">"ps.fonttype"</span><span class="p">:</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="s2">"savefig.bbox"</span><span class="p">:</span> <span class="s2">"tight"</span><span class="p">,</span>
+<span class="p">})</span>
+</code></pre></div>
+
+<p><code>pdf.fonttype=42</code> 把字体以 TrueType 嵌入 PDF，避免投稿系统提示“字体未嵌入”。<code>savefig.bbox="tight"</code> 去掉多余白边，但会让不同图的最终宽度略有差异；需要严格对齐时改为固定 <code>figsize</code> 加 <code>subplots_adjust</code>。</p>
+<h2 id="二维标量场contour-与-pcolormesh">二维标量场：contour 与 pcolormesh</h2>
+<p>二维标量场有两种常用画法。<code>contourf</code> 画填充等值线，适合连续、光滑的量；<code>pcolormesh</code> 按单元填色，适合有限体积的单元中心数据，不引入额外插值。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">TwoSlopeNorm</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mi">240</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">120</span><span class="p">)</span>
+<span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="n">Z</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">Y</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+<span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">21</span><span class="p">)</span>
+<span class="n">norm</span> <span class="o">=</span> <span class="n">TwoSlopeNorm</span><span class="p">(</span><span class="n">vmin</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">vcenter</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">,</span> <span class="mi">5</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">cs</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">levels</span><span class="o">=</span><span class="n">levels</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"RdBu_r"</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="n">extend</span><span class="o">=</span><span class="s2">"both"</span><span class="p">)</span>
+<span class="n">cb</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">"\(C_p\)"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\(x/c\)"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\(y/c\)"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">"equal"</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"cp.pdf"</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"cp.png"</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">600</span><span class="p">)</span>
+</code></pre></div>
+
+<p>要点：</p>
+<ul>
+<li><code>levels</code> 取奇数个，让零值落在中间一条等值线上；配 <code>TwoSlopeNorm</code> 可保证白色恰好对应零。</li>
+<li><code>extend="both"</code> 表示色标两端有超出范围的值，否则极值会被悄悄截断。</li>
+<li><code>set_aspect("equal")</code> 保证几何不变形；如果坐标量纲不同（例如 \(x\) 用米、\(y\) 用毫米），先换算再画。</li>
+<li>单元中心数据用 <code>pcolormesh(x, y, Z, shading="auto")</code>，不要用 <code>contourf</code>，否则等值线会平滑掉单元间的间断。</li>
+<li>需要看精细结构时，用 <code>contour</code> 画线而不是填色；线图不会掩盖小的过冲。</li>
+</ul>
+<div class="admonition note"><div class="admonition-title">色标范围要跨图统一</div><div class="admonition-body"><p>同一物理量在不同工况、不同切片上比较时，固定 <code>vmin</code> 与 <code>vmax</code>。自动范围会让每张图都“很好看”，但读者无法比较。范围应在图注中写明，或在色标上直接标出。</p></div></div>
+<h2 id="矢量图与流线">矢量图与流线</h2>
+<p>矢量图用 <code>quiver</code>。关键是抽稀：每个网格点都画箭头，图会变成一团黑。按步长取样后，再调 <code>scale</code> 与箭头大小。</p>
+<div class="codehilite"><pre><span></span><code><span class="n">U</span> <span class="o">=</span> <span class="o">-</span><span class="n">Y</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">Y</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">X</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">X</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">Y</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">,</span> <span class="mi">5</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">step</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">quiver</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">[::</span><span class="n">step</span><span class="p">,</span> <span class="p">::</span><span class="n">step</span><span class="p">],</span> <span class="n">Y</span><span class="p">[::</span><span class="n">step</span><span class="p">,</span> <span class="p">::</span><span class="n">step</span><span class="p">],</span>
+    <span class="n">U</span><span class="p">[::</span><span class="n">step</span><span class="p">,</span> <span class="p">::</span><span class="n">step</span><span class="p">],</span> <span class="n">V</span><span class="p">[::</span><span class="n">step</span><span class="p">,</span> <span class="p">::</span><span class="n">step</span><span class="p">],</span>
+    <span class="n">color</span><span class="o">=</span><span class="s2">"0.25"</span><span class="p">,</span> <span class="n">pivot</span><span class="o">=</span><span class="s2">"mid"</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.002</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">"equal"</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"vectors.pdf"</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>scale</code> 越大箭头越短；<code>pivot="mid"</code> 让箭头以取样点为中心，避免整体偏移。三维矢量图不适合用 matplotlib，交给 PyVista 的 glyph。</p>
+<p>流线用 <code>streamplot</code>，它要求一维坐标与二维速度场：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">,</span> <span class="mi">5</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">),</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">strm</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">streamplot</span><span class="p">(</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span>
+    <span class="n">density</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.2"</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span>
+    <span class="n">arrowsize</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">integration_direction</span><span class="o">=</span><span class="s2">"both"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_aspect</span><span class="p">(</span><span class="s2">"equal"</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">y</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">y</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"streamlines.pdf"</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>density</code> 控制种子密度，过大线条会互相缠绕。非均匀网格要先插值到均匀网格，否则 <code>streamplot</code> 会报维度不匹配。流线颜色可以映射速度模长，但要注意：颜色与线宽同时编码同一物理量，会造成重复编码。</p>
+<h2 id="三维用-pyvista">三维：用 PyVista</h2>
+<p>matplotlib 的 3D 能力适合散点与简单曲面，不适合切片、等值面与体渲染。三维场交给 PyVista，它基于 VTK，能直接读 <code>.vtu</code>、<code>.vtk</code>、OpenFOAM，也能离屏渲染。</p>
+<p>下面的代码生成一个解析场，做三向切片、等值面与流线，并导出位图：</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyvista</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pv</span>
+
+<span class="n">mesh</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">ImageData</span><span class="p">(</span><span class="n">dimensions</span><span class="o">=</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">30</span><span class="p">))</span>
+<span class="n">mesh</span><span class="o">.</span><span class="n">origin</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">mesh</span><span class="o">.</span><span class="n">spacing</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">/</span> <span class="mi">59</span><span class="p">,</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="mi">39</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mi">29</span><span class="p">)</span>
+
+<span class="n">pts</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">points</span>
+<span class="n">mesh</span><span class="p">[</span><span class="s2">"p"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+<span class="n">mesh</span><span class="p">[</span><span class="s2">"U"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span>
+    <span class="o">-</span><span class="n">pts</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">pts</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">n_points</span><span class="p">),</span>
+<span class="p">])</span>
+
+<span class="n">slices</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">slice_orthogonal</span><span class="p">()</span>
+<span class="n">iso</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">contour</span><span class="p">([</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="n">scalars</span><span class="o">=</span><span class="s2">"p"</span><span class="p">)</span>
+<span class="n">streams</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">streamlines</span><span class="p">(</span>
+    <span class="n">vectors</span><span class="o">=</span><span class="s2">"U"</span><span class="p">,</span>
+    <span class="n">source_center</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+    <span class="n">source_radius</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
+    <span class="n">n_points</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+    <span class="n">max_length</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+    <span class="n">integrator_type</span><span class="o">=</span><span class="s2">"rk4"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">pl</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">Plotter</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">off_screen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="p">(</span><span class="mi">2400</span><span class="p">,</span> <span class="mi">1000</span><span class="p">))</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">add_mesh</span><span class="p">(</span><span class="n">slices</span><span class="p">,</span> <span class="n">scalars</span><span class="o">=</span><span class="s2">"p"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"RdBu_r"</span><span class="p">,</span> <span class="n">clim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+            <span class="n">scalar_bar_args</span><span class="o">=</span><span class="p">{</span><span class="s2">"title"</span><span class="p">:</span> <span class="s2">"p [Pa]"</span><span class="p">})</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">add_mesh</span><span class="p">(</span><span class="n">streams</span><span class="o">.</span><span class="n">tube</span><span class="p">(</span><span class="n">radius</span><span class="o">=</span><span class="mf">0.02</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.2"</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">add_mesh</span><span class="p">(</span><span class="n">iso</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">"0.6"</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">add_mesh</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">outline</span><span class="p">(),</span> <span class="n">color</span><span class="o">=</span><span class="s2">"k"</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">screenshot</span><span class="p">(</span><span class="s2">"panel.png"</span><span class="p">)</span>
+<span class="n">pl</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</code></pre></div>
+
+<p>说明：</p>
+<ul>
+<li><code>slice_orthogonal()</code> 一次给出三个中截面；要任意平面用 <code>mesh.slice(normal=..., origin=...)</code>。</li>
+<li><code>contour</code> 的第二个参数是等值列表，<code>scalars</code> 指定变量名。等值面单独渲染时，给一个中性灰比用彩虹色更清楚。</li>
+<li><code>streamlines</code> 需要点数据里的矢量。若矢量存在单元数据，先 <code>cell_data_to_point_data()</code>。</li>
+<li><code>tube(radius=...)</code> 把折线变成管，渲染更稳；半径按模型尺度取，不要硬编码成 1。</li>
+<li><code>off_screen=True</code> 适合服务器批处理；交互查看时去掉它，用 <code>pl.show()</code>。</li>
+<li><code>screenshot</code> 输出 PNG。要矢量图用 <code>pl.save_graphic("panel.svg")</code>，但半透明与体渲染在矢量格式里可能被栅格化。</li>
+</ul>
+<p>PyVista 也可以直接读结果文件，不需要先转格式：</p>
+<div class="codehilite"><pre><span></span><code><span class="n">mesh</span> <span class="o">=</span> <span class="n">pv</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">"flow.vtu"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">mesh</span><span class="o">.</span><span class="n">array_names</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">n_points</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">n_cells</span><span class="p">)</span>
+</code></pre></div>
+
+<p>如果读 OpenFOAM，用 <code>pv.OpenFOAMReader</code>，详见 <a class="wiki-link" href="../ch6/python-io.html">Python 读写</a>。</p>
+<h2 id="配色与色标">配色与色标</h2>
+<p>配色不是审美问题，而是编码问题。选错色标，读者会读出不存在的高低起伏。</p>
+<table>
+<thead>
+<tr>
+<th>数据特征</th>
+<th>推荐色标</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>单向大小（速度、压力幅值）</td>
+<td><code>viridis</code>、<code>cividis</code>、<code>magma</code></td>
+<td>明度单调，灰度打印仍可读</td>
+</tr>
+<tr>
+<td>有正负与零基准（Cp）</td>
+<td><code>RdBu_r</code>、<code>coolwarm</code></td>
+<td>发散型，零值居中</td>
+</tr>
+<tr>
+<td>周期性相位</td>
+<td><code>twilight</code>、<code>hsv</code></td>
+<td>首尾颜色连续</td>
+</tr>
+<tr>
+<td>分类/离散</td>
+<td><code>Set2</code>、<code>tab10</code></td>
+<td>类别间差异明显</td>
+</tr>
+</tbody>
+</table>
+<p>不要用 <code>jet</code>。它的明度不单调，会在中间亮度处制造虚假的“条带”，且红绿相邻对色盲不友好。很多期刊明确要求避免彩虹色标。</p>
+<p>色标的细节：</p>
+<ul>
+<li>标签写物理量与单位，例如 <code>p [Pa]</code>、<code>Cp [-]</code>；不要只写变量名。</li>
+<li>刻度取 5 到 7 个，与等值线层级对齐；太密会挤成一团。</li>
+<li>需要强调零值时用 <code>TwoSlopeNorm</code>，并让零值对应白色或中性色。</li>
+<li>多图共享色标时，只保留一个 colorbar，放在图组右侧；不要每张子图各放一个。</li>
+<li>离散数据的 colorbar 用 <code>BoundaryNorm</code> 或 <code>contourf</code> 的 <code>levels</code>，避免连续渐变暗示不存在的中间值。</li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.colors</span><span class="w"> </span><span class="kn">import</span> <span class="n">BoundaryNorm</span>
+
+<span class="n">bounds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+<span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="s2">"RdBu_r"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">bounds</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">norm</span> <span class="o">=</span> <span class="n">BoundaryNorm</span><span class="p">(</span><span class="n">bounds</span><span class="p">,</span> <span class="n">cmap</span><span class="o">.</span><span class="n">N</span><span class="p">)</span>
+</code></pre></div>
+
+<p>离散色标让读者能准确读出区间，而不是估计颜色。对分类场（例如不同材料区）尤其重要。</p>
+<h2 id="多子图与版式">多子图与版式</h2>
+<p>多子图最难的不是画，而是对齐。推荐 <code>constrained_layout</code> 或 <code>GridSpec</code>，并遵守三条：</p>
+<ol>
+<li>同一行子图的坐标范围一致，共享 x 轴；同一列共享 y 轴。</li>
+<li>物理量相同的子图共用一个 colorbar。</li>
+<li>子图编号 <code>(a)</code>、<code>(b)</code> 放在左上角，用 <code>ax.text</code> 而不是标题。</li>
+</ol>
+<div class="codehilite"><pre><span></span><code><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">17</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">,</span> <span class="mi">6</span> <span class="o">/</span> <span class="mf">2.54</span><span class="p">),</span>
+                         <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="p">[</span><span class="s2">"(a)"</span><span class="p">,</span> <span class="s2">"(b)"</span><span class="p">]):</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="o">-</span><span class="mf">0.12</span><span class="p">,</span> <span class="mf">1.02</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span>
+            <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">"bold"</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s2">"bottom"</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">"compare.pdf"</span><span class="p">)</span>
+</code></pre></div>
+
+<p>子图标题会与编号冲突，能用坐标轴标签说明的就不要用标题。期刊图注通常单独排版，图内信息越少越好。</p>
+<h2 id="tecplot-与-python-的分工">Tecplot 与 Python 的分工</h2>
+<p>两者不是替代关系，各自有明确的强项：</p>
+<table>
+<thead>
+<tr>
+<th>任务</th>
+<th>Tecplot</th>
+<th>Python</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>交互查看流场、调视角</td>
+<td>强</td>
+<td>一般</td>
+</tr>
+<tr>
+<td>切片、等值面、流线快速探索</td>
+<td>强</td>
+<td>需要写代码</td>
+</tr>
+<tr>
+<td>批量处理上百个工况</td>
+<td>宏，够用</td>
+<td>强</td>
+</tr>
+<tr>
+<td>自定义派生量与统计</td>
+<td>公式能力有限</td>
+<td>强</td>
+</tr>
+<tr>
+<td>三维渲染与动画</td>
+<td>开箱即用</td>
+<td>PyVista 可做，配置更多</td>
+</tr>
+<tr>
+<td>二维曲线与论文排版</td>
+<td>一般</td>
+<td>matplotlib 强</td>
+</tr>
+<tr>
+<td>可复现与版本管理</td>
+<td>宏可复现</td>
+<td>脚本最强</td>
+</tr>
+</tbody>
+</table>
+<p>一个实用的流程是：用 Tecplot 快速看流场、找切片位置与视角；把确定的切片位置、色标范围写进 Python 脚本，批量出二维图与积分量；需要三维渲染时，再用 PyVista 或回到 Tecplot 出最终图。中间数据用 <code>.vtu</code>、<code>.plt</code> 或 CSV 交换。</p>
+<p>不要在两套工具里各调一次色标。以 Python 脚本里的 <code>vmin/vmax</code> 为准，Tecplot 手动设为相同值；否则同一篇论文里的两张图会对不上。</p>
+<h2 id="一张图的检查清单">一张图的检查清单</h2>
+<ol>
+<li>色标有物理量与单位，范围与图注一致。</li>
+<li>坐标轴有量纲或无量纲说明，几何比例正确。</li>
+<li>等值线层级与色标刻度对齐，没有未标注的截断。</li>
+<li>没有使用 <code>jet</code>；灰度打印后主要结构仍在。</li>
+<li>字号在最终尺寸下不小于 7 pt，线宽不小于 0.5 pt。</li>
+<li>线条图导出 PDF/SVG，位图导出 300 dpi 以上。</li>
+<li>图由脚本生成，脚本与数据版本可追溯。</li>
+</ol>
+<div class="admonition tip"><div class="admonition-title">先灰度打印</div><div class="admonition-body"><p>把图转成灰度看一眼。如果主要结构消失，说明信息只靠颜色编码。用等值线、线型、直接标注或明度差补充，让黑白读者也能读到同样的结论。</p></div></div>
+<h2 id="与上一章的接口">与上一章的接口</h2>
+<p><a class="wiki-link" href="../ch6/postprocessing.html">核心算法</a> 返回的是数组：Cp 是 <code>(nx, ny)</code> 或 <code>(n_wall,)</code>，Q 是三维场，雷诺应力是 <code>3x3</code> 张量。这一页的函数只接受这些数组，不读文件、不算物理量。保持这个边界，图才能换数据、数据才能换图，两者都不会互相拖累。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch6/postprocessing.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">流体后处理核心算法</span>
+        </a>
+        <a class="page-nav-item is-next" href="../library/index.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">论文与书籍</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch6/visualization.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#出版图的四条标准">出版图的四条标准</a></li>
+<li><a href="#尺寸字体与导出">尺寸、字体与导出</a></li>
+<li><a href="#二维标量场contour-与-pcolormesh">二维标量场：contour 与 pcolormesh</a></li>
+<li><a href="#矢量图与流线">矢量图与流线</a></li>
+<li><a href="#三维用-pyvista">三维：用 PyVista</a></li>
+<li><a href="#配色与色标">配色与色标</a></li>
+<li><a href="#多子图与版式">多子图与版式</a></li>
+<li><a href="#tecplot-与-python-的分工">Tecplot 与 Python 的分工</a></li>
+<li><a href="#一张图的检查清单">一张图的检查清单</a></li>
+<li><a href="#与上一章的接口">与上一章的接口</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

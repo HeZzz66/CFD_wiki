@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>流体后处理核心算法 · CFD Wiki</title>
+  <meta name="description" content="把 Cp、Cf 与 y+、涡量与 Q 准则、λ2 判据、RK4 流线、质量流量与加权平均、雷诺应力、FFT 能量谱、壁面压力积分等后处理量写成可直接调用的 numpy 函数。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link is-active" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch6/index.html">后处理与可视化</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">流体后处理核心算法</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">流体后处理核心算法</h1>
+        <p class="page-summary">把 Cp、Cf 与 y+、涡量与 Q 准则、λ2 判据、RK4 流线、质量流量与加权平均、雷诺应力、FFT 能量谱、壁面压力积分等后处理量写成可直接调用的 numpy 函数。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">后处理与可视化</span>
+        <span class="meta-sep">·</span>
+        <span>约 2999 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#后处理</span><span class="tag">#算法</span><span class="tag">#涡识别</span><span class="tag">#统计</span><span class="tag">#阻力</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>这一页给出可直接调用的函数。实现基于 <code>numpy</code>，流线积分用到 <code>scipy</code>；代码假设数据是规则网格上的三维数组 <code>(nx, ny, nz)</code>，单位统一为 SI（米、秒、帕、千克）。换单位公式仍成立，但系数数值会失去可比性。</p>
+<h2 id="统一约定">统一约定</h2>
+<p>约定：索引 <code>(i, j, k)</code> 对应 <code>x, y, z</code>；<code>dx, dy, dz</code> 为标量间距，非均匀网格应先插值或改用坐标数组；变量记作 <code>u, v, w, p, rho, nu</code>；派生量统一转 <code>float64</code>。</p>
+<p>后处理量分三类：局部量逐点算，线积分量沿面求和，统计量沿样本平均。</p>
+<h2 id="压力系数-cp">压力系数 Cp</h2>
+<p>压力系数把当地压力无量纲化：</p>
+<div class="math-block">\[C_p = \frac{p - p_\infty}{\tfrac12 \rho_\infty U_\infty^2}.\]</div>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pressure_coefficient</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p_inf</span><span class="p">,</span> <span class="n">rho_inf</span><span class="p">,</span> <span class="n">u_inf</span><span class="p">):</span>
+    <span class="n">q_inf</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rho_inf</span> <span class="o">*</span> <span class="n">u_inf</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">p</span> <span class="o">-</span> <span class="n">p_inf</span><span class="p">)</span> <span class="o">/</span> <span class="n">q_inf</span>
+</code></pre></div>
+
+<p>三个容易出错的地方：</p>
+<ol>
+<li><strong>表压与绝对压力。</strong> 求解器可能输出表压，<code>p_inf</code> 就必须用同一基准；混用会让 Cp 整体平移。</li>
+<li><strong>运动压力。</strong> 不可压缩求解器常把压力除以密度后存储，单位是 \(\mathrm{m^2/s^2}\)。此时要么先乘回密度，要么直接把分母写成 \(\tfrac12 U_\infty^2\)。</li>
+<li><strong>可压缩流。</strong> 高马赫数下仍可用同一公式，但参考动压应按冻结来流算；若用等熵关系换算，必须说明假设。</li>
+</ol>
+<p>Cp 的价值在于可比性：参考量一致，不同 Re 与风洞下的 Cp 分布才能对比。把 <code>p_inf</code> 与 <code>q_inf</code> 写进图注，别在代码里藏魔法数。</p>
+<h2 id="壁面摩擦系数与-y">壁面摩擦系数与 y+</h2>
+<p>壁面剪切应力由壁面法向速度梯度得到：</p>
+<div class="math-block">\[\tau_w = \mu \left.\frac{\partial u_t}{\partial n}\right|_{w},\]</div>
+<p>其中 \(u_t\) 是壁面切向速度，\(n\) 是壁面法向。摩擦系数与摩擦速度分别为</p>
+<div class="math-block">\[C_f = \frac{\tau_w}{\tfrac12 \rho U_\infty^2},
+\qquad
+u_\tau = \sqrt{\frac{\tau_w}{\rho}},
+\qquad
+y^+ = \frac{u_\tau y}{\nu}.\]</div>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">wall_shear_stress</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">u_t</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""y[0]=0, u_t[0]=0, uniform spacing; second-order one-sided."""</span>
+    <span class="k">return</span> <span class="n">mu</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mf">3.0</span> <span class="o">*</span> <span class="n">u_t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mf">4.0</span> <span class="o">*</span> <span class="n">u_t</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">u_t</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">y</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">skin_friction_coefficient</span><span class="p">(</span><span class="n">tau_w</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">u_inf</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tau_w</span> <span class="o">/</span> <span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">u_inf</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">friction_velocity</span><span class="p">(</span><span class="n">tau_w</span><span class="p">,</span> <span class="n">rho</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tau_w</span><span class="p">)</span> <span class="o">/</span> <span class="n">rho</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">y_plus</span><span class="p">(</span><span class="n">tau_w</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">nu</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">friction_velocity</span><span class="p">(</span><span class="n">tau_w</span><span class="p">,</span> <span class="n">rho</span><span class="p">)</span> <span class="o">*</span> <span class="n">y</span> <span class="o">/</span> <span class="n">nu</span>
+</code></pre></div>
+
+<p>实现说明：</p>
+<ul>
+<li>二阶单边差分要求前三点等距且壁面速度为零，有滑移壁面时不能用。</li>
+<li><code>y</code> 取单元中心到壁面的法向距离，<code>y[1]</code> 是第一层单元中心。</li>
+<li><code>y+ &lt; 1</code> 适合低雷诺数壁面解析；落在 5 到 30 通常意味着第一层在缓冲层，壁面函数与解析都不舒服。</li>
+<li>求解器输出 <code>wallShearStress</code> 时优先用它，差分对网格质量很敏感。</li>
+</ul>
+<p>Cf 的符号取决于切向定义。把壁面切向与来流对齐并统一符号，否则上下表面的曲线会反号。</p>
+<h2 id="涡量与-q-准则">涡量与 Q 准则</h2>
+<p>涡量是速度的旋度：</p>
+<div class="math-block">\[\boldsymbol{\omega} = \nabla \times \mathbf{u},
+\qquad
+\omega_i = \epsilon_{ijk}\partial_j u_k.\]</div>
+<p>速度梯度张量记为 \(G_{ij}=\partial u_i/\partial x_j\)。它的对称部分与反对称部分分别是应变率张量 \(S\) 与旋转张量 \(\Omega\)：</p>
+<div class="math-block">\[S_{ij}=\tfrac12\left(\partial_i u_j+\partial_j u_i\right),
+\qquad
+\Omega_{ij}=\tfrac12\left(\partial_i u_j-\partial_j u_i\right).\]</div>
+<p>Q 准则定义为</p>
+<div class="math-block">\[Q = \tfrac12\left(\lVert\Omega\rVert_F^2-\lVert S\rVert_F^2\right).\]</div>
+<p>\(Q>0\) 表示旋转强于剪切，常用于显示涡管。</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">velocity_gradient</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span><span class="p">):</span>
+    <span class="n">dudx</span><span class="p">,</span> <span class="n">dudy</span><span class="p">,</span> <span class="n">dudz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
+    <span class="n">dvdx</span><span class="p">,</span> <span class="n">dvdy</span><span class="p">,</span> <span class="n">dvdz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
+    <span class="n">dwdx</span><span class="p">,</span> <span class="n">dwdy</span><span class="p">,</span> <span class="n">dwdz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+        <span class="p">[</span><span class="n">dudx</span><span class="p">,</span> <span class="n">dudy</span><span class="p">,</span> <span class="n">dudz</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">dvdx</span><span class="p">,</span> <span class="n">dvdy</span><span class="p">,</span> <span class="n">dvdz</span><span class="p">],</span>
+        <span class="p">[</span><span class="n">dwdx</span><span class="p">,</span> <span class="n">dwdy</span><span class="p">,</span> <span class="n">dwdz</span><span class="p">],</span>
+    <span class="p">])</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">strain_rotation</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">G</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">G</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">S</span><span class="p">,</span> <span class="n">W</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">vorticity</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+        <span class="n">G</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+        <span class="n">G</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">G</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">G</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">q_criterion</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="n">S</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">strain_rotation</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+    <span class="n">S2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ij...,ij...-&gt;..."</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+    <span class="n">W2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ij...,ij...-&gt;..."</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">W</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">W2</span> <span class="o">-</span> <span class="n">S2</span><span class="p">)</span>
+</code></pre></div>
+
+<p><code>np.gradient</code> 边界单边、内部中心，整体二阶精度；非均匀网格应传坐标数组 <code>np.gradient(u, x, y, z)</code>。</p>
+<p>Q 的阈值没有普适值，依赖网格尺度与流场强度；跨算例比较应使用同一阈值，或用 \(Q/Q_{\max}\) 归一化。把 Q 的绝对值当常数是常见误用。</p>
+<div class="admonition warning"><div class="admonition-title">涡量不等于涡</div><div class="admonition-body"><p>涡量在剪切层里可以很大，但那里未必有相干涡结构。Q 与 \(\lambda_2\) 的设计目的，正是把“旋转主导”的区域从“剪切主导”的区域里分出来。展示涡结构时，最好同时给出 Q 的阈值与网格尺度。</p></div></div>
+<h2 id="λ2-判据">λ2 判据</h2>
+<p>λ2 判据看张量</p>
+<div class="math-block">\[A = S^2 + \Omega^2\]</div>
+<p>的特征值。把三个特征值按从小到大排为 \(\lambda_1 \le \lambda_2 \le \lambda_3\)，则 \(\lambda_2<0\) 的区域被判为涡核。它的物理依据是：在涡核内部，旋转项压过应变项，使中间特征值变负。</p>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">lambda2</span><span class="p">(</span><span class="n">G</span><span class="p">):</span>
+    <span class="n">S</span><span class="p">,</span> <span class="n">W</span> <span class="o">=</span> <span class="n">strain_rotation</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ij...,jk...-&gt;ik..."</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">S</span><span class="p">)</span>
+         <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">"ij...,jk...-&gt;ik..."</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">W</span><span class="p">))</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">swapaxes</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">moveaxis</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">lam</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigvalsh</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lam</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+</code></pre></div>
+
+<p><code>eigvalsh</code> 只接受对称矩阵并返回升序特征值，索引 1 即 \(\lambda_2\)；<code>moveaxis</code> 把矩阵轴移到最后两位。数组很大时按 <code>z</code> 分块处理。</p>
+<p>Q 与 λ2 给出的涡结构相似但阈值敏感性不同：λ2 对强剪切更稳健，Q 对可压缩更敏感。论文应说明方法、阈值与无量纲化。</p>
+<h2 id="流线积分rk4">流线积分（RK4）</h2>
+<p>流线满足</p>
+<div class="math-block">\[\frac{\mathrm{d}\mathbf{x}}{\mathrm{d}s}
+= \frac{\mathbf{u}(\mathbf{x})}{\lVert\mathbf{u}(\mathbf{x})\rVert},\]</div>
+<p>即按弧长前进，<code>ds</code> 有长度量纲，便于控制空间分辨率。</p>
+<p>四阶 Runge-Kutta 的一步为</p>
+<div class="math-block">\[\mathbf{x}_{n+1}
+= \mathbf{x}_n + \frac{\Delta s}{6}
+\left(\mathbf{k}_1 + 2\mathbf{k}_2 + 2\mathbf{k}_3 + \mathbf{k}_4\right),\]</div>
+<p>其中 \(\mathbf{k}_1=\mathbf{f}(\mathbf{x}_n)\)，\(\mathbf{k}_2=\mathbf{f}(\mathbf{x}_n+\tfrac{\Delta s}{2}\mathbf{k}_1)\)，\(\mathbf{f}\) 是单位速度。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">RegularGridInterpolator</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">trace_streamline</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">ds</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">2000</span><span class="p">):</span>
+    <span class="n">axes</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+    <span class="n">fu</span> <span class="o">=</span> <span class="n">RegularGridInterpolator</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">fv</span> <span class="o">=</span> <span class="n">RegularGridInterpolator</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">fw</span> <span class="o">=</span> <span class="n">RegularGridInterpolator</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">f</span><span class="p">(</span><span class="n">p</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">unit_velocity</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">sample</span><span class="p">(</span><span class="n">fu</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">sample</span><span class="p">(</span><span class="n">fv</span><span class="p">,</span> <span class="n">p</span><span class="p">),</span> <span class="n">sample</span><span class="p">(</span><span class="n">fw</span><span class="p">,</span> <span class="n">p</span><span class="p">)])</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">vals</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">speed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">speed</span> <span class="o">&lt;</span> <span class="mf">1e-12</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">vals</span> <span class="o">/</span> <span class="n">speed</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">copy</span><span class="p">()]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsteps</span><span class="p">):</span>
+        <span class="n">k1</span> <span class="o">=</span> <span class="n">unit_velocity</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">k1</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">k2</span> <span class="o">=</span> <span class="n">unit_velocity</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">ds</span> <span class="o">*</span> <span class="n">k1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">k2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">k3</span> <span class="o">=</span> <span class="n">unit_velocity</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">ds</span> <span class="o">*</span> <span class="n">k2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">k3</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">k4</span> <span class="o">=</span> <span class="n">unit_velocity</span><span class="p">(</span><span class="n">p</span> <span class="o">+</span> <span class="n">ds</span> <span class="o">*</span> <span class="n">k3</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">k4</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">p</span> <span class="o">+</span> <span class="p">(</span><span class="n">ds</span> <span class="o">/</span> <span class="mf">6.0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">k1</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k2</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">k3</span> <span class="o">+</span> <span class="n">k4</span><span class="p">)</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">copy</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</code></pre></div>
+
+<p>实现要点：</p>
+<ul>
+<li><code>fill_value=np.nan</code> 让越界点返回 NaN，积分自动停止。</li>
+<li>驻点附近速度趋零会放大噪声，用 <code>speed &lt; 1e-12</code> 截断。</li>
+<li>种子向内偏移半个单元，避开壁面与入口面。</li>
+<li>非定常流的粒子轨迹应积分 \(\mathrm{d}\mathbf{x}/\mathrm{d}t=\mathbf{u}\)，而不是单位速度。</li>
+</ul>
+<h2 id="质量流量与加权平均">质量流量与加权平均</h2>
+<p>通过一个面的质量流量为</p>
+<div class="math-block">\[\dot m = \int_A \rho\,\mathbf{u}\cdot\mathbf{n}\,\mathrm{d}A
+\approx \sum_f \rho_f\left(\mathbf{u}_f\cdot\mathbf{n}_f\right)A_f.\]</div>
+<p>面积加权平均与质量加权平均分别为</p>
+<div class="math-block">\[\bar\phi_A = \frac{\sum_f \phi_f A_f}{\sum_f A_f},
+\qquad
+\bar\phi_m = \frac{\sum_f \rho_f \phi_f\left(\mathbf{u}_f\cdot\mathbf{n}_f\right)A_f}
+{\sum_f \rho_f\left(\mathbf{u}_f\cdot\mathbf{n}_f\right)A_f}.\]</div>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">mass_flow</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">un</span><span class="p">,</span> <span class="n">area</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""un is the normal velocity, positive along the outward normal."""</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">rho</span> <span class="o">*</span> <span class="n">un</span> <span class="o">*</span> <span class="n">area</span><span class="p">))</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">area_average</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">area</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">phi</span> <span class="o">*</span> <span class="n">area</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">area</span><span class="p">))</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">mass_weighted_average</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">un</span><span class="p">,</span> <span class="n">area</span><span class="p">):</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">rho</span> <span class="o">*</span> <span class="n">un</span> <span class="o">*</span> <span class="n">area</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">phi</span> <span class="o">*</span> <span class="n">weight</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weight</span><span class="p">))</span>
+</code></pre></div>
+
+<p>面积加权回答“面上平均温度是多少”，质量加权回答“流出的流体平均带走多少焓”；速度不均匀时两者差别很大，报告必须说明。</p>
+<p>边界面法向必须统一朝外，否则流量相互抵消，得到“守恒”的假象。分别对入口与出口取绝对值再比较，差值应在百分之几以内。</p>
+<h2 id="雷诺应力与湍流统计">雷诺应力与湍流统计</h2>
+<p>对一组时间样本 \(\mathbf{u}^{(n)}\)，时均与脉动为</p>
+<div class="math-block">\[\bar u_i = \frac1N\sum_{n=1}^N u_i^{(n)},
+\qquad
+u_i' = u_i - \bar u_i.\]</div>
+<p>雷诺应力张量与湍动能为</p>
+<div class="math-block">\[\overline{u_i'u_j'} = \frac1N\sum_{n=1}^N u_i'^{(n)}u_j'^{(n)},
+\qquad
+k = \tfrac12\overline{u_i'u_i'}.\]</div>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">reynolds_stress</span><span class="p">(</span><span class="n">samples</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""samples shape (N, 3); returns 3x3 tensor."""</span>
+    <span class="n">fluct</span> <span class="o">=</span> <span class="n">samples</span> <span class="o">-</span> <span class="n">samples</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fluct</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">fluct</span> <span class="o">/</span> <span class="n">samples</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">turbulent_kinetic_energy</span><span class="p">(</span><span class="n">samples</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">reynolds_stress</span><span class="p">(</span><span class="n">samples</span><span class="p">)))</span>
+</code></pre></div>
+
+<p>注意：</p>
+<ul>
+<li>样本是同一空间点的时间序列，空间平均是另一类统计量。</li>
+<li>采样间隔应大于湍流积分时间尺度，否则等效独立样本数远小于 <code>N</code>；误差按</li>
+</ul>
+<div class="math-block">\[\epsilon_{\mathrm{stat}} \propto N^{-1/2}\]</div>
+<p>下降，样本数翻四倍误差才减半。
+- LES 的雷诺应力含 resolved 与 subgrid 两部分，只统计解析速度会低估湍动能；RANS 只给时均量，不能重建脉动。</p>
+<h2 id="fft-能量谱">FFT 能量谱</h2>
+<p>对长度为 \(N\) 的一维信号 \(u_n\)，离散傅里叶变换为</p>
+<div class="math-block">\[\hat u_k = \sum_{n=0}^{N-1} u_n e^{-\mathrm{i}2\pi kn/N}.\]</div>
+<p>能谱按 Parseval 关系归一化：</p>
+<div class="math-block">\[E(k) = \frac{1}{N^2}\left|\hat u_k\right|^2,
+\qquad
+k = \frac{2\pi}{N\Delta x}.\]</div>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">energy_spectrum_1d</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">dx</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">size</span>
+    <span class="n">signal</span> <span class="o">=</span> <span class="n">u</span> <span class="o">-</span> <span class="n">u</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="n">spectrum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">signal</span><span class="p">)</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="n">dx</span><span class="p">)</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">n</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">energy</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*=</span> <span class="mf">2.0</span>
+    <span class="k">return</span> <span class="n">k</span><span class="p">,</span> <span class="n">energy</span>
+</code></pre></div>
+
+<p><code>rfft</code> 只返回非负频率，除直流与 Nyquist 外的频点要乘 2 才能保持总能量。非周期信号先加窗（Hann 或 Tukey），否则泄漏污染低频。惯性区应满足 \(E(k)\propto k^{-5/3}\)，这是检查能谱的常用依据。</p>
+<p>三维能谱还要做球壳平均：</p>
+<div class="math-block">\[E(k)\Delta k = \sum_{|\mathbf{k}|\in[k,k+\Delta k]} \tfrac12\left|\hat{\mathbf{u}}(\mathbf{k})\right|^2.\]</div>
+<p>先做三维 FFT，再按波数模长分箱求和；箱宽要容纳多个模态，又不能抹平斜率。</p>
+<h2 id="壁面压力积分求阻力与升力">壁面压力积分求阻力与升力</h2>
+<p>对物体表面 \(S\)（外法向 \(\mathbf{n}\)），流体对物体的作用力为</p>
+<div class="math-block">\[F_i = -\oint_S p n_i\,\mathrm{d}S
++ \oint_S \tau_{ij}n_j\,\mathrm{d}S.\]</div>
+<p>第一项是压差阻力，第二项是摩擦阻力。离散形式为</p>
+<div class="math-block">\[F_i \approx -\sum_f p_f n_{i,f} A_f
++ \sum_f \tau_{ij,f} n_{j,f} A_f.\]</div>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">pressure_force</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">normals</span><span class="p">,</span> <span class="n">areas</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""normals point outward from the body; p in Pa."""</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">p</span> <span class="o">*</span> <span class="n">areas</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">normals</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">force_coefficients</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">rho_inf</span><span class="p">,</span> <span class="n">u_inf</span><span class="p">,</span> <span class="n">area_ref</span><span class="p">):</span>
+    <span class="n">q_inf</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">rho_inf</span> <span class="o">*</span> <span class="n">u_inf</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">force</span> <span class="o">/</span> <span class="p">(</span><span class="n">q_inf</span> <span class="o">*</span> <span class="n">area_ref</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">project_force</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">direction</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">direction</span><span class="p">))</span>
+</code></pre></div>
+
+<p>使用步骤：</p>
+<ol>
+<li>提取壁面面中心、外法向与面积；外法向必须由物体指向流体，否则整体符号会错。</li>
+<li>压力取壁面值；只有单元中心压力时先插值到面，或说明使用相邻单元值的近似。</li>
+<li>摩擦项单独累加，只算压力项得到的是压差阻力，不是总阻力。</li>
+<li>把合力投影到来流与升力方向，再除以 \(\tfrac12\rho_\infty U_\infty^2 A_{\mathrm{ref}}\)。</li>
+</ol>
+<p>力矩同理：</p>
+<div class="math-block">\[\mathbf{M} = -\oint_S p\left(\mathbf{x}\times\mathbf{n}\right)\mathrm{d}S,\]</div>
+<p>参考点要固定并写进报告。参考点换了，力矩数值就变了。</p>
+<h2 id="校验用制造解检查实现">校验：用制造解检查实现</h2>
+<p>写完函数先用解析场验证。取线性剪切 \(u=ay\)、\(v=w=0\)，涡量应为 \((0,0,-a)\)，Q 应为零。若涡量符号反了，检查 \(G\) 的下标顺序；若 Q 不为零，检查 \(S\) 与 \(W\) 的对称化是否作用在矩阵轴。这个测试只需几行，却能拦住大多数索引与转置错误。</p>
+<div class="admonition tip"><div class="admonition-title">单位与参考量清单</div><div class="admonition-body"><p>每个脚本开头统一写死：<code>rho_inf</code>、<code>u_inf</code>、<code>p_inf</code>、<code>mu</code>、<code>nu</code>、<code>L_ref</code>、<code>A_ref</code>。所有函数只接受这些量，不在内部硬编码。这样换工况时只改一处，也方便把参数写进图注与报告。</p></div></div>
+<h2 id="计算顺序与内存">计算顺序与内存</h2>
+<p>流水线是：读取 → 统一网格 → 梯度张量 → 局部量 → 沿面积分 → 统计 → 出图。梯度张量占 9 个三维数组，是内存峰值；大数据应分块计算 Q 与 λ2。所有函数返回 numpy 数组而非图片，同一套指标可供 matplotlib、PyVista 与 CSV 使用，下一章 <a class="wiki-link" href="../ch6/visualization.html">出版级出图</a> 只负责把这些数组变成图。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch6/python-io.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">用 Python 读写 CFD 数据</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch6/visualization.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">matplotlib 与 PyVista 出版级出图</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch6/postprocessing.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#统一约定">统一约定</a></li>
+<li><a href="#压力系数-cp">压力系数 Cp</a></li>
+<li><a href="#壁面摩擦系数与-y">壁面摩擦系数与 y+</a></li>
+<li><a href="#涡量与-q-准则">涡量与 Q 准则</a></li>
+<li><a href="#λ2-判据">λ2 判据</a></li>
+<li><a href="#流线积分rk4">流线积分（RK4）</a></li>
+<li><a href="#质量流量与加权平均">质量流量与加权平均</a></li>
+<li><a href="#雷诺应力与湍流统计">雷诺应力与湍流统计</a></li>
+<li><a href="#fft-能量谱">FFT 能量谱</a></li>
+<li><a href="#壁面压力积分求阻力与升力">壁面压力积分求阻力与升力</a></li>
+<li><a href="#校验用制造解检查实现">校验：用制造解检查实现</a></li>
+<li><a href="#计算顺序与内存">计算顺序与内存</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

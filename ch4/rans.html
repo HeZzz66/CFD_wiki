@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>RANS 与涡粘模型 · CFD Wiki</title>
+  <meta name="description" content="从 N-S 方程出发推导雷诺平均方程，认识雷诺应力带来的封闭问题；介绍 Boussinesq 涡粘假设、标准 k-ε、k-ω 与 SST 模型的方程与常数，并给出可运行的显式推进代码。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link is-active" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch4/index.html">湍流模型</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">RANS 与涡粘模型</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">RANS 与涡粘模型</h1>
+        <p class="page-summary">从 N-S 方程出发推导雷诺平均方程，认识雷诺应力带来的封闭问题；介绍 Boussinesq 涡粘假设、标准 k-ε、k-ω 与 SST 模型的方程与常数，并给出可运行的显式推进代码。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">湍流模型</span>
+        <span class="meta-sep">·</span>
+        <span>约 2727 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#RANS</span><span class="tag">#k-epsilon</span><span class="tag">#k-omega</span><span class="tag">#SST</span><span class="tag">#涡粘</span><span class="tag">#雷诺应力</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>RANS 是工程 CFD 中使用率最高的湍流处理方式。它的思路很直接：既然我们关心的是平均流场，就不要去解析每一个涡，而是对 N-S 方程做时间平均，把脉动的影响归入一个待模化的应力项。代价是精度，收益是成本。本节从平均方程推到涡粘假设，再给出三个最常用模型的完整形式。</p>
+<h2 id="雷诺平均方程与封闭问题">雷诺平均方程与封闭问题</h2>
+<p>对不可压缩 N-S 方程</p>
+<div class="math-block">\[\frac{\partial u_i}{\partial t}+u_j\frac{\partial u_i}{\partial x_j}
+=-\frac{1}{\rho}\frac{\partial p}{\partial x_i}
++\nu\frac{\partial^2 u_i}{\partial x_j\partial x_j},
+\qquad
+\frac{\partial u_i}{\partial x_i}=0\]</div>
+<p>做雷诺分解 \(u_i=U_i+u_i'\)、\(p=P+p'\)，再取平均。利用平均与导数可交换、\(\langle U_i u_j'\rangle=0\) 等法则，连续性方程保持不变，动量方程多出一项：</p>
+<div class="math-block">\[\frac{\partial U_i}{\partial t}+U_j\frac{\partial U_i}{\partial x_j}
+=-\frac{1}{\rho}\frac{\partial P}{\partial x_i}
++\frac{\partial}{\partial x_j}\left(\nu\frac{\partial U_i}{\partial x_j}\right)
+-\frac{\partial}{\partial x_j}\left\langle u_i'u_j'\right\rangle.\]</div>
+<p>最后一项 \(-\partial_j\langle u_i'u_j'\rangle\) 就是<strong>雷诺应力</strong>的散度（严格说是应力除以密度）。它与粘性应力散度形式相同，因此常写成</p>
+<div class="math-block">\[\frac{\partial}{\partial x_j}\left(\nu\frac{\partial U_i}{\partial x_j}-\left\langle u_i'u_j'\right\rangle\right),\]</div>
+<p>也就是说，湍流对平均动量的作用被“折叠”进了一个额外的应力。问题在于：这个应力由六个未知分量组成，而方程只有四个（三个动量 + 一个连续），方程组不封闭。<strong>湍流模型的任务，就是用平均场量去近似这六个分量。</strong></p>
+<div class="admonition note"><div class="admonition-title">为什么不能用“平均即线性”</div><div class="admonition-body"><p>若把脉动项直接丢掉，得到的是层流方程，它在分离区会严重高估回流、在管流中给出错误的摩阻。雷诺应力的量级往往与分子粘性应力相当甚至更大，不能当作小量忽略。</p></div></div>
+<h2 id="boussinesq-涡粘假设">Boussinesq 涡粘假设</h2>
+<p>最常用的封闭方式是 1877 年 Boussinesq 提出的<strong>涡粘假设</strong>：仿照牛顿粘性定律，假设雷诺应力与平均变形率成正比，</p>
+<div class="math-block">\[-\rho\left\langle u_i'u_j'\right\rangle
+=\mu_t\left(\frac{\partial U_i}{\partial x_j}+\frac{\partial U_j}{\partial x_i}\right)
+-\frac{2}{3}\rho k\,\delta_{ij},\]</div>
+<p>其中 \(\mu_t\) 是<strong>涡粘系数</strong>（单位 \(\mathrm{Pa\cdot s}\)，与分子粘度相同），\(k=\frac12\langle u_i'u_i'\rangle\)，\(\delta_{ij}\) 是 Kronecker 符号。末项的作用是保证取迹后回到 \(2\rho k\)：令 \(i=j\) 并求和，第一项因连续性 \(\partial_i U_i=0\) 而消失。</p>
+<p>涡粘不是物性，而是流动状态的函数。两方程模型的核心，就是再引入两个输运方程来确定 \(\mu_t\)：</p>
+<div class="math-block">\[\mu_t=\rho C_\mu\frac{k^2}{\varepsilon},
+\qquad
+\mu_t=\rho\frac{k}{\omega},\]</div>
+<p>前者用于 k-ε，后者用于 k-ω。其中 \(\varepsilon\) 是耗散率，\(\omega=\varepsilon/(C_\mu k)\) 是比耗散率（单位 \(\mathrm{s^{-1}}\)），\(C_\mu=0.09\)。这两个式子把“涡粘”与“湍流的能量及其耗散速度”联系起来：\(k\) 越大涡粘越大，\(\varepsilon\) 越大涡粘越小。</p>
+<h2 id="标准-k-ε-模型">标准 k-ε 模型</h2>
+<p>k-ε 模型由 Launder 与 Spalding 在 1974 年提出，是工业 CFD 的默认选项。它求解两个标量输运方程。</p>
+<p><strong>湍动能方程</strong>：</p>
+<div class="math-block">\[\frac{\partial k}{\partial t}+U_j\frac{\partial k}{\partial x_j}
+=P_k-\varepsilon
++\frac{\partial}{\partial x_j}\left[\left(\nu+\frac{\nu_t}{\sigma_k}\right)\frac{\partial k}{\partial x_j}\right],\]</div>
+<p><strong>耗散率方程</strong>：</p>
+<div class="math-block">\[\frac{\partial \varepsilon}{\partial t}+U_j\frac{\partial \varepsilon}{\partial x_j}
+=C_1\frac{\varepsilon}{k}P_k-C_2\frac{\varepsilon^2}{k}
++\frac{\partial}{\partial x_j}\left[\left(\nu+\frac{\nu_t}{\sigma_\varepsilon}\right)\frac{\partial \varepsilon}{\partial x_j}\right],\]</div>
+<p>其中 \(\nu_t=\mu_t/\rho\)，\(\sigma_k\)、\(\sigma_\varepsilon\) 是湍流 Prandtl 数（\(k\)、\(\varepsilon\) 的“扩散系数”相对涡粘的比例）。生产项为</p>
+<div class="math-block">\[P_k=2\nu_t S_{ij}S_{ij},
+\qquad
+S_{ij}=\frac{1}{2}\left(\frac{\partial U_i}{\partial x_j}+\frac{\partial U_j}{\partial x_i}\right),\]</div>
+<p>即平均变形率张量的二范数乘涡粘。注意 \(P_k\) 恒非负，这保证了湍动能不会被“负生产”抽干，但也意味着模型无法描述稳定分层下的湍流抑制。</p>
+<table>
+<thead>
+<tr>
+<th>常数</th>
+<th>\(C_\mu\)</th>
+<th>\(C_1\)</th>
+<th>\(C_2\)</th>
+<th>\(\sigma_k\)</th>
+<th>\(\sigma_\varepsilon\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>取值</td>
+<td>0.09</td>
+<td>1.44</td>
+<td>1.92</td>
+<td>1.0</td>
+<td>1.3</td>
+</tr>
+</tbody>
+</table>
+<p>这些常数来自剪切层、管流与衰减湍流的标定，并非从第一性原理导出。它们的普适性有限，正是 k-ε 在不同流动中表现参差的根源。</p>
+<p><strong>优点</strong>：方程稳健、收敛性好、对网格不敏感，适合充分发展的管内流、外流远场与初步设计。</p>
+<p><strong>缺点</strong>：
+- 壁面附近 \(k\to0\)、\(\varepsilon\) 有限，\(\mu_t\) 的构造要求使用壁面函数，否则需要极细的近壁网格；
+- 对逆压梯度与分离的预测偏晚，分离区长度常被低估；
+- 假设各向同性涡粘，无法捕捉旋流中的各向异性与二次流；
+- 驻点附近 \(P_k\) 可能被高估，造成“驻点湍流过强”。</p>
+<h2 id="k-ω-与-sst">k-ω 与 SST</h2>
+<p>k-ω 模型（Wilcox）用 \(\omega\) 代替 \(\varepsilon\) 作为第二个变量，在近壁区表现更好。其 \(\omega\) 方程为</p>
+<div class="math-block">\[\frac{\partial \omega}{\partial t}+U_j\frac{\partial \omega}{\partial x_j}
+=\alpha\frac{\omega}{k}P_k-\beta\omega^2
++\frac{\partial}{\partial x_j}\left[\left(\nu+\sigma_\omega\nu_t\right)\frac{\partial \omega}{\partial x_j}\right],\]</div>
+<p>其中 \(\alpha\)、\(\beta\)、\(\sigma_\omega\) 为模型常数。\(\omega\) 在壁面有明确的渐近行为（\(\omega\propto 1/y^2\)），因此无需壁面函数即可积分到壁面；代价是对来流 \(\omega\) 的取值敏感，自由剪切层中容易过度耗散。</p>
+<p><strong>SST（Shear Stress Transport）</strong> 模型把两者按区域混合：近壁用 k-ω，远场用 k-ε。混合通过函数 \(F_1\in[0,1]\) 完成：</p>
+<div class="math-block">\[\phi=F_1\phi_1+(1-F_1)\phi_2,\]</div>
+<p>其中 \(\phi\) 代表任意模型常数（如 \(\beta\)、\(\sigma_\omega\)），下标 1 为 k-ω 分支，2 为 k-ε 分支。\(F_1\) 由壁面距离 \(y\)、\(k\)、\(\omega\) 与交叉扩散项构造，在近壁趋近 1、在边界层外趋近 0。</p>
+<p>SST 的关键改进是<strong>剪切应力限制器</strong>：</p>
+<div class="math-block">\[\mu_t=\frac{\rho a_1 k}{\max\left(a_1\omega,\; S F_2\right)},
+\qquad
+S=\sqrt{2S_{ij}S_{ij}},\]</div>
+<p>其中 \(a_1=0.31\)，\(F_2\) 是第二个混合函数（在边界层内接近 1）。它把涡粘上限约束为 \(a_1 k/S\)，避免了 k-ω 在逆压梯度下对剪切应力的高估。这正是 SST 在翼型分离、扩压器与叶轮机械中比标准 k-ε 更稳的原因。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>方程数</th>
+<th>近壁处理</th>
+<th>逆压梯度/分离</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>标准 k-ε</td>
+<td>2</td>
+<td>壁面函数为主</td>
+<td>偏弱，分离偏晚</td>
+<td>管内流、初设、外流远场</td>
+</tr>
+<tr>
+<td>k-ω</td>
+<td>2</td>
+<td>可积分到壁面</td>
+<td>较好，但对来流敏感</td>
+<td>近壁剪切层、低 Re 流动</td>
+</tr>
+<tr>
+<td>SST k-ω</td>
+<td>2</td>
+<td>混合，可积分到壁面</td>
+<td>较好，工程首选</td>
+<td>翼型、叶轮、汽车外流</td>
+</tr>
+<tr>
+<td>RSM</td>
+<td>6～7</td>
+<td>需壁面处理</td>
+<td>强，能捕捉各向异性</td>
+<td>旋流、强分离、燃烧</td>
+</tr>
+</tbody>
+</table>
+<h2 id="雷诺应力模型与壁面处理">雷诺应力模型与壁面处理</h2>
+<p><strong>雷诺应力模型（RSM）</strong> 直接为六个 \(\langle u_i'u_j'\rangle\) 分量各写一个输运方程，不再使用涡粘假设。它保留了应力输运、压力—应变再分配与耗散的各向异性，因而能预测旋流中的二次流与强分离。代价是方程数从 2 增加到 7，收敛困难、网格敏感。</p>
+<p><strong>代数应力模型（ASM）</strong> 是对 RSM 的简化：把应力输运方程中的对流与扩散项近似掉，得到一组代数关系，用 \(k\)、\(\varepsilon\) 与平均应变率显式表达应力。它在旋流计算中比涡粘模型便宜，但精度介于两者之间。</p>
+<p><strong>壁面处理</strong>有两种路线。高 Re 数方法使用<strong>壁面函数</strong>：第一层网格落在对数律区（\(y^+\approx30\sim300\)），用经验关系给出壁面剪切与 \(k\)、\(\varepsilon\) 的边界值，从而绕过粘性底层。低 Re 数方法则加密网格到 \(y^+<1\)，直接积分到壁面，并对近壁的耗散与生产做修正。两者不能混用：网格落在缓冲层（\(y^+\approx5\sim30\)）时，壁面函数与低 Re 修正都会给出明显偏差。</p>
+<h2 id="python-实现一维-k-ε-显式推进">Python 实现：一维 k-ε 显式推进</h2>
+<p>下面给出一个最小可运行的一维 k-ε 推进器。为了突出四个物理过程（对流、扩散、生产、耗散），设平均剪切 \(S=\partial U/\partial y\) 为常数（均匀剪切湍流的典型设定），平均速度 \(U\) 沿 \(x\) 均匀，网格周期。所有量为 SI 单位。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1"># ---------------- 参数（SI 单位） ----------------</span>
+<span class="n">nx</span><span class="p">,</span> <span class="n">dx</span> <span class="o">=</span> <span class="mi">64</span><span class="p">,</span> <span class="mf">1e-2</span>            <span class="c1"># 网格数与间距 / m</span>
+<span class="n">U</span><span class="p">,</span> <span class="n">S</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">5.0</span>              <span class="c1"># 平均速度 m/s，恒定剪切 1/s</span>
+<span class="n">nu</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">nstep</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="mi">2000</span>
+<span class="n">Cmu</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">C2</span><span class="p">,</span> <span class="n">sigk</span><span class="p">,</span> <span class="n">sige</span> <span class="o">=</span> <span class="mf">0.09</span><span class="p">,</span> <span class="mf">1.44</span><span class="p">,</span> <span class="mf">1.92</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.3</span>
+
+<span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">)</span>        <span class="c1"># 湍动能 m^2/s^2</span>
+<span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="mf">1e-2</span><span class="p">)</span>      <span class="c1"># 耗散率 m^2/s^3</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">ddx_upwind</span><span class="p">(</span><span class="n">phi</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""一阶迎风（U&gt;0），周期边界用 roll 实现。"""</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">phi</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">dx</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">d2dx2_periodic</span><span class="p">(</span><span class="n">phi</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""二阶中心差分拉普拉斯，周期边界。"""</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">phi</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">dx</span><span class="o">**</span><span class="mi">2</span>
+
+<span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nstep</span><span class="p">):</span>
+    <span class="n">nut</span> <span class="o">=</span> <span class="n">Cmu</span> <span class="o">*</span> <span class="n">k</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">eps</span>              <span class="c1"># 涡粘 m^2/s</span>
+    <span class="n">Pk</span> <span class="o">=</span> <span class="n">nut</span> <span class="o">*</span> <span class="n">S</span><span class="o">**</span><span class="mi">2</span>                     <span class="c1"># 生产项 m^2/s^3</span>
+    <span class="c1"># k 方程：对流 + 生产 - 耗散 + 扩散</span>
+    <span class="n">dk</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">U</span> <span class="o">*</span> <span class="n">ddx_upwind</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="n">Pk</span> <span class="o">-</span> <span class="n">eps</span>
+          <span class="o">+</span> <span class="p">(</span><span class="n">nu</span> <span class="o">+</span> <span class="n">nut</span> <span class="o">/</span> <span class="n">sigk</span><span class="p">)</span> <span class="o">*</span> <span class="n">d2dx2_periodic</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+    <span class="c1"># ε 方程：对流 + 生产 - 破坏 + 扩散</span>
+    <span class="n">de</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">U</span> <span class="o">*</span> <span class="n">ddx_upwind</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+          <span class="o">+</span> <span class="n">C1</span> <span class="o">*</span> <span class="n">eps</span> <span class="o">/</span> <span class="n">k</span> <span class="o">*</span> <span class="n">Pk</span> <span class="o">-</span> <span class="n">C2</span> <span class="o">*</span> <span class="n">eps</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">k</span>
+          <span class="o">+</span> <span class="p">(</span><span class="n">nu</span> <span class="o">+</span> <span class="n">nut</span> <span class="o">/</span> <span class="n">sige</span><span class="p">)</span> <span class="o">*</span> <span class="n">d2dx2_periodic</span><span class="p">(</span><span class="n">eps</span><span class="p">))</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">dk</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">)</span>      <span class="c1"># 保正</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">eps</span> <span class="o">+</span> <span class="n">dt</span> <span class="o">*</span> <span class="n">de</span><span class="p">,</span> <span class="mf">1e-12</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"k 均值："</span><span class="p">,</span> <span class="n">k</span><span class="o">.</span><span class="n">mean</span><span class="p">(),</span> <span class="s2">" eps 均值："</span><span class="p">,</span> <span class="n">eps</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+</code></pre></div>
+
+<p>几点说明：</p>
+<ul>
+<li>显式格式的稳定步长受 CFL 与扩散条件限制，约为 \(\Delta t<\min(\Delta x/U,\ \Delta x^2/(2\nu_{\mathrm{eff}}))\)；调大 \(U\) 或 \(S\) 之前要重新估算。</li>
+<li>生产项用的是<strong>给定剪切</strong>，而不是从速度场差分得到。真实求解器中 \(S_{ij}\) 由动量方程的离散速度计算，两者在离散层面必须保持一致，否则能量不守恒。</li>
+<li><code>np.maximum</code> 只是工程上的保正手段，并不保证物理正确。k-ε 在强应变下仍可能产生负的 \(k\)，这时应缩小时间步或改用隐式处理。</li>
+</ul>
+<div class="admonition warning"><div class="admonition-title">别把演示当求解器</div><div class="admonition-body"><p>这段代码只推进两个标量方程，动量方程是“冻结”的（\(U\)、\(S\) 给定）。真正的 RANS 求解器需要把 \(k\)、\(\varepsilon\) 与动量方程耦合迭代，并处理压力—速度耦合、壁面边界与收敛判据。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>雷诺平均把脉动的影响集中到 \(-\rho\langle u_i'u_j'\rangle\)，封闭问题是 RANS 的核心。</li>
+<li>Boussinesq 假设用一个标量 \(\mu_t\) 代替六个应力分量，简单但牺牲了各向异性。</li>
+<li>标准 k-ε 稳健但对分离与近壁不敏感；k-ω 近壁好但怕来流污染；SST 用混合函数与剪切应力限制器取两者之长。</li>
+<li>工程实现中，模型方程与动量方程的离散必须匹配，边界处理比模型系数更影响结果。</li>
+</ul>
+<p>继续阅读 <a class="wiki-link" href="../ch4/les.html">大涡模拟 LES</a>，看“平均”换成“滤波”后模型结构如何变化；离散细节可参考 <a class="wiki-link" href="../ch3/fvm.html">有限体积法</a>，多语言实现见 <a class="wiki-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a>。</p>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch4/turbulence-physics.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">湍流统计与能量级串</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch4/les.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">大涡模拟 LES</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch4/rans.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#雷诺平均方程与封闭问题">雷诺平均方程与封闭问题</a></li>
+<li><a href="#boussinesq-涡粘假设">Boussinesq 涡粘假设</a></li>
+<li><a href="#标准-k-ε-模型">标准 k-ε 模型</a></li>
+<li><a href="#k-ω-与-sst">k-ω 与 SST</a></li>
+<li><a href="#雷诺应力模型与壁面处理">雷诺应力模型与壁面处理</a></li>
+<li><a href="#python-实现一维-k-ε-显式推进">Python 实现：一维 k-ε 显式推进</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

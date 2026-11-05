@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>PINNs：物理信息神经网络 · CFD Wiki</title>
+  <meta name="description" content="用一个 MLP 表示解 u(x,t)，用自动微分计算 PDE 残差，把数据、方程、边界与初值四项损失加权组合，并讨论软硬约束、权重平衡与训练策略。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link is-active" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch5/index.html">AI for CFD</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">PINNs：物理信息神经网络</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">PINNs：物理信息神经网络</h1>
+        <p class="page-summary">用一个 MLP 表示解 u(x,t)，用自动微分计算 PDE 残差，把数据、方程、边界与初值四项损失加权组合，并讨论软硬约束、权重平衡与训练策略。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">AI for CFD</span>
+        <span class="meta-sep">·</span>
+        <span>约 2488 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#PINN</span><span class="tag">#物理约束</span><span class="tag">#自动微分</span><span class="tag">#Burgers</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>PINN 的出发点只有一句话：如果网络输出真的是 PDE 的解，那么把它代回方程，残差应当处处为零。于是“解方程”被改写为“最小化残差”，求导交给自动微分，求解交给优化器。这一节以 1D Burgers 方程为主线，把损失的四项、采样方式与训练难点讲清楚。</p>
+<h2 id="问题设定">问题设定</h2>
+<p>考虑一维 Burgers 方程</p>
+<div class="math-block">\[\frac{\partial u}{\partial t} + u\frac{\partial u}{\partial x}
+= \nu \frac{\partial^2 u}{\partial x^2},
+\qquad x \in [-1,1],\ t \in [0,1],\]</div>
+<p>其中 \(\nu>0\) 是运动粘度，\(u(x,t)\) 是速度。初值与边界取</p>
+<div class="math-block">\[u(x,0) = -\sin(\pi x), \qquad u(-1,t)=u(1,t),\ \ u_x(-1,t)=u_x(1,t).\]</div>
+<p>这里 \(\nu\) 很小时解会出现陡峭的激波层，正是 PINN 最容易失败的情形之一。</p>
+<p>用多层感知机表示解：</p>
+<div class="math-block">\[u(x,t) \approx u_\theta(x,t) = \mathcal{N}_\theta(x,t),\]</div>
+<p>\(\theta\) 为网络权重与偏置。输入是两个标量坐标，输出是一个标量。坐标通常先归一化到 \([-1,1]^2\)，否则不同量纲的输入会让网络的第一层尺度失衡。</p>
+<h2 id="自动微分与残差">自动微分与残差</h2>
+<p>PINN 不需要网格，也不需要差分格式。给定配点 \((x_i,t_i)\)，用链式法则求 \(u_t\)、\(u_x\)、\(u_{xx}\)，代入方程得到残差</p>
+<div class="math-block">\[r_\theta(x,t) = \partial_t u_\theta + u_\theta\,\partial_x u_\theta
+- \nu\,\partial_{xx} u_\theta .\]</div>
+<p>在 PyTorch 中，这对应 <code>torch.autograd.grad</code>，且必须设置 <code>create_graph=True</code>，否则二阶导数无法继续回传。求二阶导的典型写法是对一阶导再求一次导：</p>
+<div class="math-block">\[\partial_{xx} u_\theta
+= \frac{\partial}{\partial x}\left(\frac{\partial u_\theta}{\partial x}\right).\]</div>
+<p>这个残差是“逐点”的，与网格无关，因此可以在任意坐标处评估——这也是 PINN 能处理复杂几何与逆问题的根源。</p>
+<h2 id="复合损失">复合损失</h2>
+<p>训练集由四类点构成，每类点对应一项损失。</p>
+<table>
+<thead>
+<tr>
+<th>点集</th>
+<th>采样方式</th>
+<th>监督信号</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>配点 \(\Omega_r\)</td>
+<td>区域内随机或拉丁超立方</td>
+<td>方程残差为零</td>
+<td>保证 PDE 成立</td>
+</tr>
+<tr>
+<td>边界点 \(\Omega_b\)</td>
+<td>边界上均匀或随机</td>
+<td>给定边界值</td>
+<td>固定边界</td>
+</tr>
+<tr>
+<td>初值点 \(\Omega_i\)</td>
+<td>\(t=0\) 平面上采样</td>
+<td>给定初始场</td>
+<td>固定时间起点</td>
+</tr>
+<tr>
+<td>观测点 \(\Omega_d\)</td>
+<td>实验或仿真数据</td>
+<td>测得的 \(u\)</td>
+<td>校正偏差、逆问题</td>
+</tr>
+</tbody>
+</table>
+<p>四项损失分别为</p>
+<div class="math-block">\[\mathcal{L}_{data} = \frac{1}{N_d}\sum_{i=1}^{N_d}
+\left( u_\theta(\mathbf{x}_i^d,t_i^d) - u_i^{obs} \right)^2,\]</div>
+<div class="math-block">\[\mathcal{L}_{pde} = \frac{1}{N_r}\sum_{i=1}^{N_r}
+r_\theta(x_i^r,t_i^r)^2,\]</div>
+<div class="math-block">\[\mathcal{L}_{bc} = \frac{1}{N_b}\sum_{i=1}^{N_b}
+\left( u_\theta(\mathbf{x}_i^b,t_i^b) - g(\mathbf{x}_i^b,t_i^b) \right)^2,\]</div>
+<div class="math-block">\[\mathcal{L}_{ic} = \frac{1}{N_i}\sum_{i=1}^{N_i}
+\left( u_\theta(x_i,0) - u_0(x_i) \right)^2 .\]</div>
+<p>总损失为加权和</p>
+<div class="math-block">\[\mathcal{L}(\theta) = \lambda_d \mathcal{L}_{data}
++ \lambda_r \mathcal{L}_{pde}
++ \lambda_b \mathcal{L}_{bc}
++ \lambda_i \mathcal{L}_{ic},\]</div>
+<p>\(\lambda\) 的取值直接决定训练是否收敛：\(\lambda_r\) 太大，网络会先学会“处处为零”的平凡解；太小，则方程约束形同虚设。</p>
+<h2 id="软约束与硬约束">软约束与硬约束</h2>
+<p><strong>软约束</strong>把边界与初值当作罚项，就是上面的 \(\mathcal{L}_{bc}\) 与 \(\mathcal{L}_{ic}\)。实现简单，但需要调权重，且边界误差会随训练震荡。</p>
+<p><strong>硬约束</strong>把边界条件写进网络结构，使输出天然满足。例如对一维 Dirichlet 问题，可构造</p>
+<div class="math-block">\[\hat u_\theta(x) = u_b(x) + (x-a)(b-x)\,\mathcal{N}_\theta(x),\]</div>
+<p>其中 \(u_b(x)\) 是满足两端边界值的插值函数，\((x-a)(b-x)\) 在 \(x=a,b\) 处为零。这样 \(\mathcal{L}_{bc}\) 可以完全去掉，优化只面对 PDE 残差。代价是构造项与几何绑定，复杂外形下不易推广。</p>
+<div class="admonition note"><div class="admonition-title">选择建议</div><div class="admonition-body"><p>边界形状简单、边界值恒定时优先用硬约束；几何复杂或边界随时间变化时用软约束，并给 \(\lambda_b\) 一个较大的初值。</p></div></div>
+<h2 id="权重平衡与训练策略">权重平衡与训练策略</h2>
+<p>四项损失的量级往往差几个数量级，固定权重很难兼顾。常见做法有三类。</p>
+<p><strong>梯度范数平衡。</strong> 每若干步统计各损失对最后一层权重的梯度范数，令权重反比于梯度尺度：</p>
+<div class="math-block">\[\lambda_k \leftarrow \frac{\hat\lambda_k}{\mathrm{mean}\left(\left\Vert \nabla_\theta \mathcal{L}_k \right\Vert\right)},\]</div>
+<p>\(\hat\lambda_k\) 是基准权重。这样可以让每项对参数更新的贡献相近。</p>
+<p><strong>自适应权重。</strong> 把 \(\lambda_k\) 设为可训练变量（如 SA-PINN），用极大似然形式给残差项加对数方差，让网络自己学“哪一项更可信”。缺点是额外参数容易与主损失耦合，训练后期可能退化。</p>
+<p><strong>因果训练。</strong> 对时间依赖问题，按时间窗口分段推进：先在前段时间上把残差压下去，再逐步扩展到后面。若一次性在全程采样，误差会从 \(t=0\) 向后传播，表现为后期解偏离。因果训练相当于给损失加了一个时间上的课程。</p>
+<p>还有一种常用的自适应加密（RAR）：先用较少的配点训练到收敛，再在残差最大的位置补充配点，重复若干轮。它把采样预算集中到最难满足的区域，对激波与边界层尤其有效。与固定网格相比，RAR 的配点分布随训练变化，实现上要保持每批点的总量稳定，避免后期显存溢出。</p>
+<div class="admonition warning"><div class="admonition-title">刚性方程的陷阱</div><div class="admonition-body"><p>当 \(\nu\) 很小、激波很陡时，残差在激波附近极大，梯度会主导训练，网络倾向于把激波抹平以降低平均残差。此时应加密激波附近的配点，或改用分段时间推进，而不是一味增大网络宽度。</p></div></div>
+<h2 id="pytorch-实现">PyTorch 实现</h2>
+<p>下面的片段保留核心逻辑：MLP、残差函数与四项损失的训练循环。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MLP</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""输入 (x, t)，输出 u；Tanh 激活对二阶导数更友好。"""</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hidden</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">()]</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">hidden</span><span class="p">),</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">()]</span>
+        <span class="n">layers</span> <span class="o">+=</span> <span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">net</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">layers</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xt</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">net</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pde_residual</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">nu</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Burgers 残差 r = u_t + u u_x - nu u_xx；xt 形状为 (N, 2)。"""</span>
+    <span class="n">xt</span> <span class="o">=</span> <span class="n">xt</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">xt</span><span class="p">)</span>
+    <span class="n">du</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">u_x</span><span class="p">,</span> <span class="n">u_t</span> <span class="o">=</span> <span class="n">du</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">du</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">u_xx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">autograd</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span>
+        <span class="n">u_x</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">grad_outputs</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">u_x</span><span class="p">),</span> <span class="n">create_graph</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">u_t</span> <span class="o">+</span> <span class="n">u</span> <span class="o">*</span> <span class="n">u_x</span> <span class="o">-</span> <span class="n">nu</span> <span class="o">*</span> <span class="n">u_xx</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sample_domain</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""在 [-1,1] x [0,1] 内均匀随机取配点。"""</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">train</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">nu</span><span class="o">=</span><span class="mf">0.01</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="mi">20000</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">"cpu"</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">opt</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">steps</span><span class="p">):</span>
+        <span class="n">xt_r</span> <span class="o">=</span> <span class="n">sample_domain</span><span class="p">(</span><span class="mi">2048</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>          <span class="c1"># 配点</span>
+        <span class="n">xt_i</span> <span class="o">=</span> <span class="n">sample_domain</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="n">xt_i</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>                             <span class="c1"># 初值点：t = 0</span>
+        <span class="n">x_b</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">+</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">t_b</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">r</span> <span class="o">=</span> <span class="n">pde_residual</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">xt_r</span><span class="p">,</span> <span class="n">nu</span><span class="p">)</span>
+        <span class="n">loss_r</span> <span class="o">=</span> <span class="p">(</span><span class="n">r</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="n">u_i</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">xt_i</span><span class="p">)</span>
+        <span class="n">loss_i</span> <span class="o">=</span> <span class="p">((</span><span class="n">u_i</span> <span class="o">-</span> <span class="p">(</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">xt_i</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">])))</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="c1"># 周期边界：左右两端函数值相等（一阶导条件可再追加一项）</span>
+        <span class="n">xt_left</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">t_b</span><span class="p">),</span> <span class="n">t_b</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">xt_right</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">t_b</span><span class="p">),</span> <span class="n">t_b</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">u_left</span><span class="p">,</span> <span class="n">u_right</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">xt_left</span><span class="p">),</span> <span class="n">model</span><span class="p">(</span><span class="n">xt_right</span><span class="p">)</span>
+        <span class="n">loss_b</span> <span class="o">=</span> <span class="p">((</span><span class="n">u_left</span> <span class="o">-</span> <span class="n">u_right</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="mf">1e-2</span> <span class="o">*</span> <span class="n">loss_r</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">loss_b</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">loss_i</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">step</span> <span class="o">%</span> <span class="mi">2000</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"step </span><span class="si">{</span><span class="n">step</span><span class="si">:</span><span class="s2">6d</span><span class="si">}</span><span class="s2">  pde </span><span class="si">{</span><span class="n">loss_r</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">  "</span>
+                  <span class="sa">f</span><span class="s2">"ic </span><span class="si">{</span><span class="n">loss_i</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">  bc </span><span class="si">{</span><span class="n">loss_b</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.3e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</code></pre></div>
+
+<p>注意 <code>pde_residual</code> 里对输入做了 <code>detach().requires_grad_()</code>，避免把采样过程的反向图带进来；<code>u_x</code> 再次求导时必须保留计算图，否则二阶项为空。</p>
+<h2 id="优点与局限">优点与局限</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>表现</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据需求</td>
+<td>低</td>
+<td>无标签也能训练，适合实验数据稀缺的场景</td>
+</tr>
+<tr>
+<td>逆问题</td>
+<td>强</td>
+<td>把未知参数设为可训练变量，与网络联合优化</td>
+</tr>
+<tr>
+<td>几何适应性</td>
+<td>强</td>
+<td>残差在任意坐标评估，无需贴体网格</td>
+</tr>
+<tr>
+<td>高维问题</td>
+<td>弱</td>
+<td>配点数量随维度指数增长，5 维以上成本陡增</td>
+</tr>
+<tr>
+<td>刚性/多尺度</td>
+<td>弱</td>
+<td>激波、边界层处残差集中，需要加密与分段训练</td>
+</tr>
+<tr>
+<td>训练成本</td>
+<td>高</td>
+<td>每个配点都要反传二阶导，通常比一次 CFD 求解慢</td>
+</tr>
+</tbody>
+</table>
+<p>一张实用的判断表：若问题是“一个几何、少量观测、要求反演参数”，PINN 很合适；若是“大量相似工况、要求毫秒级推理”，应转向<a class="wiki-link" href="../ch5/fno.html">FNO</a>或<a class="wiki-link" href="../ch5/pino.html">PINO</a>。定量对比与实验设置见<a class="wiki-link" href="../ch5/benchmarks.html">数据集与评价</a>。</p>
+<h2 id="逆问题">逆问题</h2>
+<p>PINN 最实用的场景之一是参数反演。把未知的粘度写成可训练变量：</p>
+<div class="math-block">\[\nu = \mathrm{softplus}(\phi), \qquad \phi \in \mathbb{R},\]</div>
+<p>\(\mathrm{softplus}\) 保证正值。训练时 \(\phi\) 与网络参数一起进入优化器，损失只保留观测点上的数据项与方程残差。若观测稀疏，\(\phi\) 与解之间存在多解性，需要初值或额外约束（如总耗散）来定解。</p>
+<p>这也是 PINN 相对纯数据模型的优势：方程提供了观测点之间的关联，使少量测点也能约束全局参数。</p>
+<h2 id="常见失败模式">常见失败模式</h2>
+<ul>
+<li>损失不降：先检查配点是否覆盖了激波与边界层，再检查权重是否失衡。</li>
+<li>解趋于常数：\(\lambda_r\) 过大或网络过窄，网络选择平凡解降低平均残差。</li>
+<li>边界漂移：\(N_b\) 太少或 \(\lambda_b\) 太小，增加边界点通常比调网络有效。</li>
+<li>训练后期震荡：学习率过高，或四项损失量级差太大，改用梯度归一化。</li>
+</ul>
+<h2 id="小结">小结</h2>
+<ul>
+<li>PINN 用 MLP 表示解，用自动微分得到 PDE 残差，把求解变成无约束优化。</li>
+<li>四项损失分别约束数据、方程、边界与初值；权重平衡比网络结构更影响成败。</li>
+<li>硬约束适合简单边界，软约束更通用；因果训练能缓解时间方向的误差累积。</li>
+<li>下一步可读<a class="wiki-link" href="../ch5/pino.html">PINO</a>，看看如何把残差损失从“单实例”推广到“算子”。</li>
+</ul>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch5/index.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch5/fno.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">FNO：傅里叶神经算子</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch5/pinns.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#问题设定">问题设定</a></li>
+<li><a href="#自动微分与残差">自动微分与残差</a></li>
+<li><a href="#复合损失">复合损失</a></li>
+<li><a href="#软约束与硬约束">软约束与硬约束</a></li>
+<li><a href="#权重平衡与训练策略">权重平衡与训练策略</a></li>
+<li><a href="#pytorch-实现">PyTorch 实现</a></li>
+<li><a href="#优点与局限">优点与局限</a></li>
+<li><a href="#逆问题">逆问题</a></li>
+<li><a href="#常见失败模式">常见失败模式</a></li>
+<li><a href="#小结">小结</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

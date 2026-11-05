@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>Tecplot 操作与后处理流程 · CFD Wiki</title>
+  <meta name="description" content="从 zone 与 variable 的数据模型出发，讲清 Tecplot 加载各类 CFD 文件、切片、等值面、流线、矢量、XY 曲线、动画、导出与宏批处理，并给出 OpenFOAM 与 FLUENT 的端到端流程。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">6</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../ch6/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link is-active" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>6 章</span>
+            <span>38 篇</span>
+            <span>约 91,911 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../ch6/index.html">后处理与可视化</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">Tecplot 操作与后处理流程</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">Tecplot 操作与后处理流程</h1>
+        <p class="page-summary">从 zone 与 variable 的数据模型出发，讲清 Tecplot 加载各类 CFD 文件、切片、等值面、流线、矢量、XY 曲线、动画、导出与宏批处理，并给出 OpenFOAM 与 FLUENT 的端到端流程。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">后处理与可视化</span>
+        <span class="meta-sep">·</span>
+        <span>约 2999 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#Tecplot</span><span class="tag">#后处理</span><span class="tag">#可视化</span><span class="tag">#宏</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>Tecplot 的核心优势不是“画得好看”，而是对多区域、多时间步、结构化与非结构网格的统一管理：一个文件可同时装几十个 zone、上百个变量与完整时间轴，切片、等值面、流线都能直接交互操作。</p>
+<p>按“数据模型—操作—导出—批处理—常见坑—端到端”展开；界面以 Tecplot 360 为准，版本间菜单略有差异。</p>
+<h2 id="数据模型zonevariable-与-solution-time">数据模型：zone、variable 与 solution time</h2>
+<p>数据分三个层次。</p>
+<p><strong>variable（变量）</strong>是全局的列，所有 zone 共享同一套定义，顺序在文件头的 <code>VARIABLES</code> 中声明；矢量由多个标量组合而成，例如 <code>U</code>、<code>V</code>、<code>W</code>。</p>
+<p><strong>zone（区域）</strong>是一块网格及其上的解，有自己的拓扑、节点数、单元数和变量值；多块网格、不同材料区、旋转域与静止域通常各占一个 zone。</p>
+<p><strong>solution time（解时间）</strong>是瞬态数据的第四维。同一 strand 下，不同 zone 可带不同 <code>SOLUTIONTIME</code>，Tecplot 用时间轴串成动画；缺少时间标记的多帧数据只能当作独立 zone。</p>
+<p>一个最小的 ASCII 文件长这样：</p>
+<div class="codehilite"><pre><span></span><code>TITLE = "channel flow"
+VARIABLES = "X", "Y", "Z", "U", "V", "W", "P"
+ZONE T="fluid", N=1200, E=600, DATAPACKING=BLOCK, ZONETYPE=FETETRAHEDRON
+</code></pre></div>
+
+<p>结构化区域用 <code>I</code>、<code>J</code>、<code>K</code> 声明三个方向的节点数，非结构区域用 <code>N</code>（节点）与 <code>E</code>（单元）。<code>DATAPACKING=POINT</code> 表示按点逐行排列所有变量，<code>BLOCK</code> 表示按变量分块排列。单元中心变量需要显式声明：</p>
+<div class="codehilite"><pre><span></span><code>VARLOCATION=([7]=CELLCENTERED)
+</code></pre></div>
+
+<p>二进制 <code>.plt</code> 是 Tecplot 的原生格式，读写快、支持多 zone 与多时间步；<code>.szplt</code> 是新版的分块二进制格式，适合超大瞬态数据。ASCII <code>.dat</code> 便于检查与版本管理，但体积大、读入慢。</p>
+<div class="admonition note"><div class="admonition-title">先看文件头</div><div class="admonition-body"><p>拿到一个陌生文件，先打开前二十行：<code>VARIABLES</code> 顺序、<code>ZONE</code> 拓扑与 <code>DATAPACKING</code> 决定后续操作；二进制文件则在 <code>Data &gt; Data Set Info</code> 核对变量名、范围与 zone 数。</p></div></div>
+<h2 id="加载-pltdat-与-casdat">加载 .plt、.dat 与 .cas/.dat</h2>
+<p>Tecplot 的 <code>File &gt; Load Data File(s)</code> 可以按扩展名自动识别大多数格式。</p>
+<ul>
+<li><code>.plt</code>、<code>.szplt</code>：直接载入，保留 zone、变量与时间信息。</li>
+<li><code>.dat</code>：ASCII 数据，可能是 Tecplot 格式，也可能是其他软件导出的列式数据；后者需手动指定变量列与区域。</li>
+<li><code>.cas</code> + <code>.dat</code>：FLUENT 的网格与解。先载入 <code>.cas</code> 建立网格与边界区，再载入同名 <code>.dat</code> 的场数据；顺序反了会丢边界标记。</li>
+<li><code>.vtk</code>、<code>.vtu</code>、<code>.cgns</code>：通过通用数据载入器读取，边界条件与参考量通常不在文件里，需要自己补。</li>
+<li>OpenFOAM 目录：Tecplot 360 自带 OpenFOAM 读取器，选择算例根目录或 <code>case.foam</code> 即可；旧版本可先用 <code>foamToVTK</code> 转成 VTK。</li>
+</ul>
+<p>“扩展名对就能读”是误解。部分 Fluent <code>.dat</code> 把网格与解分开存储；载入后变量列表为空，通常说明只读到了网格。</p>
+<h2 id="切片slice">切片（slice）</h2>
+<p>切片把三维场降到二维。Tecplot 的 <code>Slice</code> 工具支持过三点、指定原点与法向、沿坐标轴等距切多刀三种定位方式。</p>
+<p>操作要点：</p>
+<ol>
+<li>在 <code>Slice</code> 对话框中选 <code>Slice through volume</code>，设定平面。</li>
+<li>勾选 <code>Show surface</code> 先预览，确认没有切到实体内部或空白区。</li>
+<li>需要定量分析时点 <code>Extract</code>，把切片转成新 zone；只有提取后，变量才能参与积分、导出与 XY 提取。</li>
+<li>多刀切片用 <code>Group</code> 管理，统一色标。</li>
+</ol>
+<p>切片是插值结果：非结构网格上，Tecplot 用单元与平面的交线重建多边形，单元中心变量先插值到节点。壁面附近的薄切片，这个误差可能比要看的现象还大。</p>
+<h2 id="等值面isosurface">等值面（isosurface）</h2>
+<p>等值面是某个变量取定值的曲面，用来显示涡结构、激波面、燃烧前锋或浓度界面。</p>
+<p>在 <code>Iso-Surface</code> 对话框中选定变量与等值，例如用 Q 准则取 \(Q=0.1\) 显示涡管，或用压力取 \(p/p_\infty=0.5\) 显示激波。<code>Extract</code> 后可对曲面做面积、通量积分；不提取则只是显示层。<code>Iso-blank</code> 可遮掉等值面一侧的体数据，多值等值面适合展示随时间演化的激波。等值面质量受网格限制；粗网格上的块状折面应在网格上解决，用平滑只会移动等值面的真实位置。</p>
+<h2 id="流线streamtrace">流线（streamtrace）</h2>
+<p>流线沿着速度场积分，显示流动的走向。Tecplot 的 <code>Streamtrace</code> 工具需要先指定矢量变量（通常是 <code>U</code>、<code>V</code>、<code>W</code>），再选择种子类型：</p>
+<table>
+<thead>
+<tr>
+<th>种子类型</th>
+<th>用途</th>
+<th>注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Line</code></td>
+<td>在一条线段上均匀布点</td>
+<td>适合二维切片或入口截面</td>
+</tr>
+<tr>
+<td><code>Rake</code></td>
+<td>沿一条空间直线布点</td>
+<td>三维外流最常用</td>
+</tr>
+<tr>
+<td><code>Sphere</code></td>
+<td>在球面上布点</td>
+<td>观察分离涡、回流区</td>
+</tr>
+<tr>
+<td><code>Volume</code></td>
+<td>在体积内随机布点</td>
+<td>看整体拓扑，但图容易乱</td>
+</tr>
+</tbody>
+</table>
+<p>积分参数包括步长、最大步数、积分方向与终止条件。步长太大，流线会穿过壁面或跳过小涡；太小则计算慢且线条抖动，建议先粗后细。Tecplot 提供 <code>Euler</code> 与 <code>Runge-Kutta 4</code>；默认 RK4 在光滑流场中更准，壁面附近仍需配合 <code>Termination</code> 的边界与速度阈值。</p>
+<div class="admonition warning"><div class="admonition-title">流线不是迹线</div><div class="admonition-body"><p>定常流中流线与迹线重合；非定常流中它们一般不同。用瞬态数据做流线时，Tecplot 默认在某一时刻的瞬时速度场上积分，得到的是“瞬时流线”，不能直接解释为示踪粒子的运动轨迹。要看粒子轨迹，应使用 <code>Particle Trace</code> 或求解器输出的 Lagrangian 数据。</p></div></div>
+<h2 id="矢量图">矢量图</h2>
+<p>矢量图把速度、涡量或自定义矢量画成箭头。<code>Vector</code> 图层的关键参数是矢量类型、长度缩放与箭头稀疏度。</p>
+<ul>
+<li><code>Vector Type</code> 选 <code>Velocity</code> 时长度按速度模长缩放；选 <code>Vorticity</code> 时箭头方向表示旋转轴，长度表示涡量大小。</li>
+<li><code>Length</code> 默认常让箭头过密，建议先减到三分之一再调。</li>
+<li><code>Sparseness</code> 控制箭头间隔，三维图尤其需要稀疏。</li>
+</ul>
+<p>矢量图适合看方向，不适合看大小；长度缩放会破坏数值可比性。</p>
+<h2 id="xy-曲线">XY 曲线</h2>
+<p>XY 曲线用于把沿一条线的量画成二维图，例如壁面压力分布、边界层速度剖面、出口总压损失。</p>
+<p>流程是：<code>Data &gt; Extract &gt; Polyline</code> 沿指定线段取样，生成新 zone；再用 <code>Plot &gt; XY Line</code> 把它设为数据源。常用设置包括：手动固定轴范围，避免不同工况自动缩放；边界层剖面用 \(u^+\) 对 \(y^+\) 时开对数纵轴；实验点用符号、计算用实线；图例写明工况与雷诺数。沿线取样步长决定曲线是否漏掉峰值，激波处的步长应小于当地网格尺度。</p>
+<h2 id="多帧动画">多帧动画</h2>
+<p>瞬态数据按 <code>SOLUTIONTIME</code> 排序；<code>Animate</code> 对话框可设起止时间、帧间隔与循环方式，并导出 AVI 或 GIF。</p>
+<p>要让动画正确，必须保证：</p>
+<ol>
+<li>每个时间步的 zone 都带 <code>SOLUTIONTIME</code>，且时间单调。</li>
+<li>所有时间步的变量名与 zone 名一致；改名会导致某些帧找不到变量。</li>
+<li>色标范围固定。自动范围会让每帧颜色含义变化，动画看起来在“闪”。</li>
+<li>切片位置固定，否则观众无法区分“结构演化”与“切片移动”。</li>
+</ol>
+<p>如果数据按文件名排序（如 <code>flow_1.plt</code>、<code>flow_2.plt</code>、<code>flow_10.plt</code>），字典序会把 10 排在 2 前面。正确做法是写成一个多时间步的 <code>.plt</code>，或在宏里按数值顺序载入。</p>
+<h2 id="导出图片与数据">导出图片与数据</h2>
+<p><code>File &gt; Export</code> 支持图片与数据两类输出。</p>
+<p><strong>图片</strong>常用 PNG、TIFF 与 EMF：PNG 适合网页，TIFF 适合期刊，EMF 是矢量格式。分辨率按最终尺寸设定，8 cm 宽、300 dpi 约需 945 像素，直接导出 2400 像素更稳妥；同时手动设定宽高比、打开抗锯齿，并把色标与图例一起导出。</p>
+<p><strong>数据</strong>可导出为 Tecplot ASCII、CSV 或二进制。先把切片或等值面 <code>Extract</code> 成 zone，再 <code>File &gt; Export &gt; ASCII</code>，只选需要的变量；CSV 列名与变量名一致，便于 Python 复核。</p>
+<h2 id="宏与批处理">宏与批处理</h2>
+<p>Tecplot 的所有界面操作都可以录制成宏。<code>Scripting &gt; Record Macro</code> 开始录制，操作一遍后停止，保存为 <code>.mcr</code>。宏是一串 <code>$!</code> 命令，可以手改参数，也可以循环执行。</p>
+<p>批处理调用：</p>
+<div class="codehilite"><pre><span></span><code>tecplot -b -m postprocess.mcr
+</code></pre></div>
+
+<p><code>-b</code> 为批处理模式，<code>-m</code> 指定宏。Windows 下可执行文件可能是 <code>tecplot.exe</code>，路径要写全；先在单算例上跑通，确认输出目录存在、文件名不含中文与空格。</p>
+<p>一个可运行的宏骨架如下（切片等命令由录制生成，参数名随版本略有差异）：</p>
+<div class="codehilite"><pre><span></span><code>#!MC 1410
+$!ReadDataSet 'E:/case/flow.plt'
+$!ExportSetup
+  ExportFormat = PNG
+  ImageWidth = 2400
+  ImageHeight = 1600
+$!Export
+  ExportDestination = 'E:/case/cp.png'
+</code></pre></div>
+
+<p>宏的价值在于可复现：同一套切片位置、色标与导出尺寸可批量套用几十个工况。把宏与算例清单放进版本库，比手工点几十次可靠。Tecplot 也提供需额外授权的 PyTecplot，可与 numpy 交换数组；批量出图时宏通常更简单。</p>
+<h2 id="常见坑">常见坑</h2>
+<p><strong>单位。</strong> Tecplot 不做换算。Fluent 导入的可能是表压，OpenFOAM 不可压缩的 <code>p</code> 是运动压力（单位 \(\mathrm{m^2/s^2}\)），都不能直接与实验的 Pa 比较。先看数量级：室温空气绕流的动压约一百帕；压力显示 \(10^5\) 则是绝对压力。</p>
+<p><strong>zone 顺序。</strong> 瞬态多 zone 的顺序由 <code>SOLUTIONTIME</code> 决定，不由 zone 编号决定。手工拼接文件时，如果时间列缺失，动画会按 zone 顺序播放，看起来像“时间倒流”。</p>
+<p><strong>变量名大小写。</strong> 表达式区分大小写，<code>{P}</code> 与 <code>{p}</code> 是两个变量；名称含空格时用花括号包住，例如 <code>{Velocity X}</code>。导入后先在 <code>Data &gt; Data Set Info</code> 核对实际名称，再写公式。</p>
+<p><strong>空白值。</strong> Tecplot 用 \(1.0\times10^{30}\) 表示空白，NaN 不一定会被识别；处理不当会让等值面出现大片缺口。</p>
+<p><strong>点数据与单元数据。</strong> 压力常存在单元中心，而等值线需要节点值；直接画会得到块状阶梯，应先 <code>Data &gt; Interpolate &gt; Node Values</code> 或明确接受单元中心显示。</p>
+<p><strong>二维与三维。</strong> 二维数据如果写成三维 zone 且 <code>Z</code> 全为零，切片法向选 <code>Z</code> 会得到整个面；选 <code>X</code> 或 <code>Y</code> 则得到一条线。先确认 <code>Plot &gt; Axis</code> 的维度设置。</p>
+<h2 id="端到端流程从求解器结果到成图">端到端流程：从求解器结果到成图</h2>
+<h3 id="openfoam">OpenFOAM</h3>
+<ol>
+<li>求解器写出 <code>0/</code>、<code>0.1/</code>、<code>0.2/</code> 等时间目录，先确认 <code>constant/polyMesh</code> 完整。</li>
+<li>转换或直接读取：</li>
+</ol>
+<p><code>text
+   foamToVTK -latestTime</code></p>
+<p>输出在 <code>VTK/</code> 下，也可让 Tecplot 直接读算例根目录。
+3. 载入后核对 zone 数与变量名。不可压缩算例的 <code>p</code> 是运动压力，量纲为 \(\mathrm{m^2/s^2}\)。
+4. 在 <code>Data &gt; Alter &gt; Specify Equations</code> 中写：</p>
+<p><code>text
+   {Cp} = ({p} - {p_inf}) / (0.5 * {U_inf}**2)</code></p>
+<p><code>{p_inf}</code> 与 <code>{U_inf}</code> 可建成常量变量，也可在公式里直接写数值。
+5. <code>Z</code> 方向取中截面并 <code>Extract</code> 成 zone，画 <code>Cp</code> 等值线，色标固定为 \(-3\) 到 \(1\)。
+6. 入口前布置 <code>Rake</code> 种子画流线，用 <code>Sphere</code> 种子观察分离区。
+7. 导出 PNG（2400 像素宽）与切片 CSV，后者交给 Python 复核积分量。</p>
+<h3 id="fluent">FLUENT</h3>
+<ol>
+<li><code>File &gt; Load Data File(s) &gt; FLUENT</code>，先 <code>.cas</code> 后 <code>.dat</code>。</li>
+<li>在 <code>Data &gt; Data Set Info</code> 确认压力单位与参考值。若 <code>Operating Pressure</code> 非零，导入的可能是表压，需加回操作压力。</li>
+<li>用同一组参考量计算 <code>Cp</code>：</li>
+</ol>
+<p><code>text
+   {Cp} = ({Pressure} - {p_inf}) / (0.5 * {rho_inf} * {U_inf}**2)</code></p>
+<ol start="4">
+<li>切片、等值面、流线的操作与 OpenFOAM 相同，区别只在变量名与单位。</li>
+<li>壁面压力用 <code>Extract &gt; Polyline</code> 沿翼型取样，再画 XY 曲线与实验对比；批量工况用宏循环。</li>
+</ol>
+<div class="admonition tip"><div class="admonition-title">先做一张“体检图”</div><div class="admonition-body"><p>每个算例先出三张图：中截面压力云图、壁面 \(y^+\) 分布、入口与出口流量对比。这三张图能发现大多数设置错误，成本却很低。确认无误后，再花时间做漂亮的等值面与动画。</p></div></div>
+    </div>
+
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch6/index.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+        <a class="page-nav-item is-next" href="../ch6/python-io.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">用 Python 读写 CFD 数据</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="ch6/tecplot.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#数据模型zonevariable-与-solution-time">数据模型：zone、variable 与 solution time</a></li>
+<li><a href="#加载-pltdat-与-casdat">加载 .plt、.dat 与 .cas/.dat</a></li>
+<li><a href="#切片slice">切片（slice）</a></li>
+<li><a href="#等值面isosurface">等值面（isosurface）</a></li>
+<li><a href="#流线streamtrace">流线（streamtrace）</a></li>
+<li><a href="#矢量图">矢量图</a></li>
+<li><a href="#xy-曲线">XY 曲线</a></li>
+<li><a href="#多帧动画">多帧动画</a></li>
+<li><a href="#导出图片与数据">导出图片与数据</a></li>
+<li><a href="#宏与批处理">宏与批处理</a></li>
+<li><a href="#常见坑">常见坑</a></li>
+<li><a href="#端到端流程从求解器结果到成图">端到端流程：从求解器结果到成图</a><ul>
+<li><a href="#openfoam">OpenFOAM</a></li>
+<li><a href="#fluent">FLUENT</a></li>
+</ul>
+</li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-05</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>
