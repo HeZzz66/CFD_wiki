@@ -137,6 +137,32 @@
       </div>
     </header>
 
+    <section class="weekly-task" id="weeklyTask">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">WEEKLY TASK</span>
+          <h2>每周文献任务</h2>
+        </div>
+        <p>每周一自动检索上两周最新文献；关键词独立于下方年度检索，互不影响。</p>
+      </div>
+      <div class="weekly-panel">
+        <div class="weekly-stats">
+          <div class="weekly-stat"><span>上次检索</span><strong id="weeklyLastAt">—</strong></div>
+          <div class="weekly-stat"><span>距下次检索</span><strong id="weeklyCountdown">—</strong></div>
+          <div class="weekly-stat"><span>本周已收录</span><strong id="weeklyTotal">—</strong></div>
+        </div>
+        <div class="search-keywords" id="weeklyKeywords"></div>
+        <div class="search-addrow">
+          <input type="text" id="weeklyKeywordInput" placeholder="添加每周检索关键词，回车确认">
+          <button class="btn btn-ghost" id="weeklyKeywordAdd" type="button">添加</button>
+        </div>
+        <div class="search-actions">
+          <button class="btn btn-primary" id="weeklyRun" type="button">立即检索本周</button>
+          <span class="search-status" id="weeklyStatus" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </section>
+
     <section class="library-upload" id="libraryUpload">
       <div class="section-head compact">
         <h2>上传文献</h2>
@@ -211,8 +237,11 @@
 
     <section class="library-search" id="librarySearch">
       <div class="section-head compact">
-        <h2>文献检索</h2>
-        <p>检索近 1 年 arXiv、PoF、JFM、JCP、Nature Communications、Nature Machine Intelligence 与 NeurIPS / ICML / ICLR 中 AI for Science（流体力学）与神经算子论文，按关键词分类并给出简介；每周一自动更新上一周文献。</p>
+        <div>
+          <span class="section-eyebrow">YEARLY SEARCH</span>
+          <h2>年度文献检索</h2>
+        </div>
+        <p>检索近 1 年 arXiv、PoF、JFM、JCP、Nature Communications、Nature Machine Intelligence 与 NeurIPS / ICML / ICLR 中 AI for Science（流体力学）与神经算子论文，按关键词分类，每类默认显示 6 篇。</p>
       </div>
 
       <div class="search-keywords" id="searchKeywords"></div>
@@ -253,7 +282,7 @@
         <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
       </div>
       <div class="footer-meta">
-        <span>构建于 2026-11-05</span>
+        <span>构建于 2026-11-06</span>
         <span class="footer-dot">·</span>
         <span>内容采用 CC BY-NC-SA 4.0 许可</span>
       </div>
@@ -288,6 +317,7 @@
   <script src="../search-index.js" defer></script>
   <script src="../assets/js/app.js" defer></script>
 <script src="../library-papers.js" defer></script>
+<script src="../library-weekly-papers.js" defer></script>
 <script src="../library-index.js" defer></script>
 <script src="../assets/js/library.js" defer></script>
 </body>

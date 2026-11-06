@@ -436,15 +436,24 @@
         resultsBox.innerHTML = '<div class="search-empty">暂无检索结果。点击上方按钮执行一次检索，或先启动本地服务（<code>python build.py --serve</code>）。</div>';
         return;
       }
-      var groups = groupsOf(papers);
+      var LIMIT = 6;
+      var groups = groupsOf(papers).filter(function (group) {
+        return group.keyword !== '其他相关';
+      });
       resultsBox.innerHTML = groups.map(function (group) {
-        var cards = group.papers.map(paperCard).join('');
+        var shown = group.papers.slice(0, LIMIT);
+        var cards = shown.map(paperCard).join('');
+        var rest = group.papers.length - LIMIT;
+        var more = rest > 0
+          ? '<a class="paper-more" href="papers.html?kw=' + encodeURIComponent(group.keyword) + '">查看全部 ' + group.papers.length + ' 篇 →</a>'
+          : '';
         return (
           '<section class="paper-group">' +
           '  <h3 class="paper-group-title">' + escapeHtml(group.keyword) +
           '    <span class="paper-group-count">' + group.papers.length + ' 篇</span>' +
           '  </h3>' +
           '  <div class="paper-list">' + cards + '</div>' +
+          more +
           '</section>'
         );
       }).join('');
@@ -525,5 +534,157 @@
     if (runBtn) runBtn.addEventListener('click', runFetch);
 
     loadMetaAndPapers();
+  }
+
+  /* ============ 每周文献任务（独立关键词 / 倒计时） ============ */
+  var weeklyTask = document.getElementById('weeklyTask');
+  if (weeklyTask) {
+    var wKwBox = document.getElementById('weeklyKeywords');
+    var wKwInput = document.getElementById('weeklyKeywordInput');
+    var wKwAdd = document.getElementById('weeklyKeywordAdd');
+    var wRun = document.getElementById('weeklyRun');
+    var wStatus = document.getElementById('weeklyStatus');
+    var wLastAt = document.getElementById('weeklyLastAt');
+    var wCountdown = document.getElementById('weeklyCountdown');
+    var wTotal = document.getElementById('weeklyTotal');
+
+    var weeklyKeywords = [];
+    var weeklyRunning = false;
+    var weeklyTimer = null;
+
+    function escapeHtmlW(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function setWStatus(text, tone) {
+      if (!wStatus) return;
+      wStatus.textContent = text;
+      wStatus.dataset.tone = tone || '';
+    }
+
+    function renderWKeywords() {
+      if (!wKwBox) return;
+      wKwBox.innerHTML = '';
+      weeklyKeywords.forEach(function (kw, index) {
+        var chip = document.createElement('span');
+        chip.className = 'search-chip';
+        var label = document.createElement('span');
+        label.className = 'search-chip-label';
+        label.textContent = kw;
+        var del = document.createElement('button');
+        del.className = 'search-chip-del';
+        del.type = 'button';
+        del.setAttribute('aria-label', '删除 ' + kw);
+        del.textContent = '×';
+        del.addEventListener('click', function () {
+          weeklyKeywords.splice(index, 1);
+          renderWKeywords();
+        });
+        chip.appendChild(label);
+        chip.appendChild(del);
+        wKwBox.appendChild(chip);
+      });
+    }
+
+    function addWKeyword(word) {
+      word = (word || '').trim();
+      if (!word) return;
+      if (weeklyKeywords.indexOf(word) !== -1) return;
+      weeklyKeywords.push(word);
+      renderWKeywords();
+    }
+
+    function nextMonday9am() {
+      var now = new Date();
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0, 0);
+      var wd = d.getDay(); // 0=周日 1=周一
+      var add = (8 - wd) % 7;
+      if (add === 0 && now >= d) add = 7;
+      d.setDate(d.getDate() + add);
+      return d;
+    }
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
+
+    function renderCountdown() {
+      if (!wCountdown) return;
+      var now = new Date();
+      var target = nextMonday9am();
+      var diff = Math.max(0, target.getTime() - now.getTime());
+      var days = Math.floor(diff / 86400000);
+      var hours = Math.floor((diff % 86400000) / 3600000);
+      var mins = Math.floor((diff % 3600000) / 60000);
+      var secs = Math.floor((diff % 60000) / 1000);
+      wCountdown.textContent = days + ' 天 ' + pad2(hours) + ':' + pad2(mins) + ':' + pad2(secs);
+    }
+
+    function loadWeekly() {
+      var meta = window.__WEEKLY_META__ || {};
+      weeklyKeywords = (meta.keywords || []).slice();
+      renderWKeywords();
+      if (wLastAt) wLastAt.textContent = (meta.last_auto_at || '').slice(0, 10) || '尚未检索';
+      if (wTotal) wTotal.textContent = (meta.total || 0) + ' 篇';
+      renderCountdown();
+      if (weeklyTimer) clearInterval(weeklyTimer);
+      weeklyTimer = setInterval(renderCountdown, 1000);
+
+      if (serverMode) {
+        fetch('/api/papers-weekly-meta', { cache: 'no-store' })
+          .then(function (r) { return r.json(); })
+          .then(function (m) {
+            if (m && m.keywords && m.keywords.length) { weeklyKeywords = m.keywords; renderWKeywords(); }
+            if (wLastAt) wLastAt.textContent = (m.last_auto_at || '').slice(0, 10) || '尚未检索';
+            if (wTotal) wTotal.textContent = (m.total || 0) + ' 篇';
+          })
+          .catch(function () {});
+      }
+    }
+
+    function runWeekly() {
+      if (weeklyRunning) return;
+      if (!serverMode) {
+        setWStatus('请先运行 python build.py --serve 启动本地服务后再检索', 'err');
+        return;
+      }
+      weeklyRunning = true;
+      if (wRun) { wRun.disabled = true; wRun.textContent = '正在检索…'; }
+      setWStatus('正在检索近两周最新文献…… 请稍候', '');
+      fetch('/api/fetch-weekly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keywords: weeklyKeywords, days: 14 })
+      })
+        .then(function (response) {
+          if (!response.ok) return response.json().then(function (d) { throw new Error(d.error || '检索失败'); });
+          return response.json();
+        })
+        .then(function (result) {
+          var summaries = [];
+          if (result.sources && result.sources.length) summaries.push('命中来源：' + result.sources.join('、'));
+          if (result.errors && result.errors.length) summaries.push('部分来源失败：' + result.errors.join('；'));
+          if (wLastAt) wLastAt.textContent = (result.ran_at || '').slice(0, 10) || '刚刚';
+          if (wTotal) wTotal.textContent = result.total + ' 篇';
+          setWStatus('本周检索完成，共 ' + result.total + ' 篇' + (summaries.length ? '（' + summaries.join('；') + '）' : ''), result.total ? 'ok' : '');
+        })
+        .catch(function (error) {
+          setWStatus('检索失败：' + error.message, 'err');
+        })
+        .then(function () {
+          weeklyRunning = false;
+          if (wRun) { wRun.disabled = false; wRun.textContent = '立即检索本周'; }
+        });
+    }
+
+    if (wKwAdd) wKwAdd.addEventListener('click', function () { addWKeyword(wKwInput && wKwInput.value); if (wKwInput) wKwInput.value = ''; });
+    if (wKwInput) {
+      wKwInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') { event.preventDefault(); addWKeyword(wKwInput.value); wKwInput.value = ''; }
+      });
+    }
+    if (wRun) wRun.addEventListener('click', runWeekly);
+
+    loadWeekly();
   }
 })();

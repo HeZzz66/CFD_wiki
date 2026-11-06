@@ -1,4 +1,4 @@
-/* 主页「每周最新文献」展板：读取 window.__PAPERS__ 或 /api/papers 并渲染 */
+/* 主页「每周最新文献」展板：读取 window.__WEEKLY_PAPERS__ 或 /api/papers-weekly 并渲染 */
 (function () {
   'use strict';
 
@@ -51,7 +51,6 @@
 
   /* 按来源轮询选取，保证展板覆盖多个期刊/会议而非全是同一来源 */
   function pickDiverse(papers, count) {
-    // 优先选取有明确关键词的论文，避免展板被「其他相关」占满
     var ranked = papers.filter(function (paper) {
       return (paper.keywords || []).some(function (kw) { return kw !== '其他相关'; });
     });
@@ -80,8 +79,8 @@
   function renderEmpty() {
     grid.innerHTML =
       '<div class="home-papers-empty">' +
-      '  <p>还没有检索结果。前往「阅读文献」执行一次检索，近 1 年的 AI for Science 与神经算子论文会自动汇集到这里。</p>' +
-      '  <a class="btn btn-primary" href="' + root + 'library/index.html">前往文献检索 <span aria-hidden="true">→</span></a>' +
+      '  <p>每周文献任务尚未运行。前往「阅读文献」手动触发一次，或等待每周一自动检索。</p>' +
+      '  <a class="btn btn-primary" href="' + root + 'library/index.html">前往阅读文献 <span aria-hidden="true">→</span></a>' +
       '</div>';
     if (metaEl) metaEl.textContent = '';
   }
@@ -90,21 +89,20 @@
     if (!papers || !papers.length) { renderEmpty(); return; }
     grid.innerHTML = pickDiverse(papers, 6).map(card).join('');
     if (metaEl) {
-      var parts = ['共 ' + papers.length + ' 篇'];
-      if (meta && meta.last_manual_at) parts.push('手动检索 ' + meta.last_manual_at.slice(0, 10));
-      if (meta && meta.last_auto_at) parts.push('自动更新 ' + meta.last_auto_at.slice(0, 10));
-      metaEl.textContent = '来自最近一次检索 · ' + parts.join(' · ');
+      var parts = ['本周共 ' + papers.length + ' 篇'];
+      if (meta && meta.last_auto_at) parts.push('上次检索 ' + meta.last_auto_at.slice(0, 10));
+      metaEl.textContent = parts.join(' · ');
     }
   }
 
-  var stored = window.__PAPERS__ || [];
-  var storedMeta = window.__PAPERS_META__ || {};
+  var stored = window.__WEEKLY_PAPERS__ || [];
+  var storedMeta = window.__WEEKLY_META__ || {};
   var isHttp = location.protocol === 'http:' || location.protocol === 'https:';
 
   if (isHttp) {
     Promise.all([
-      fetch('/api/papers', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return stored; }),
-      fetch('/api/papers-meta', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return storedMeta; })
+      fetch('/api/papers-weekly', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return stored; }),
+      fetch('/api/papers-weekly-meta', { cache: 'no-store' }).then(function (r) { return r.json(); }).catch(function () { return storedMeta; })
     ]).then(function (res) {
       render(res[0] && res[0].length ? res[0] : stored, res[1] || storedMeta);
     }).catch(function () {

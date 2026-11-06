@@ -118,7 +118,7 @@
 
     <main class="main" id="main">
 <div class="home">
-  <section class="hero">
+  <section class="hero hero-compact">
     <div class="hero-text">
       <span class="hero-eyebrow">OPEN KNOWLEDGE BASE FOR CFD</span>
       <h1>把计算流体力学<br><em>拆成可以学会的每一步</em></h1>
@@ -133,54 +133,18 @@
         <div class="hero-stat"><strong>91,911</strong><span>字内容</span></div>
       </div>
     </div>
+  </section>
 
-    <div class="hero-visual" aria-hidden="true">
-      <svg viewBox="0 0 520 430" role="img">
-        <defs>
-          <linearGradient id="flowGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="var(--accent)"/>
-            <stop offset="1" stop-color="var(--teal)"/>
-          </linearGradient>
-          <pattern id="heroGrid" width="26" height="26" patternUnits="userSpaceOnUse">
-            <path d="M26 0H0V26" fill="none" stroke="var(--border)" stroke-width="1" opacity=".7"/>
-          </pattern>
-        </defs>
-        <rect x="0" y="0" width="520" height="430" rx="24" fill="url(#heroGrid)"/>
-        <rect x="0" y="0" width="520" height="430" rx="24" fill="none" stroke="var(--border)"/>
-
-        <g fill="none" stroke="url(#flowGradient)" stroke-linecap="round">
-          <path d="M22 118 C 130 118, 170 84, 260 82 C 350 80, 410 104, 498 96" stroke-width="2.2" opacity=".9"/>
-          <path d="M22 154 C 120 154, 180 132, 262 130 C 350 128, 404 146, 498 140" stroke-width="1.7" opacity=".72"/>
-          <path d="M22 196 C 110 196, 148 182, 190 190" stroke-width="1.5" opacity=".55"/>
-          <path d="M22 250 C 120 250, 170 246, 220 248" stroke-width="1.5" opacity=".55"/>
-          <path d="M22 292 C 130 292, 190 322, 268 326 C 350 330, 420 310, 498 302" stroke-width="1.9" opacity=".8"/>
-          <path d="M22 330 C 140 330, 200 352, 280 354 C 370 356, 430 340, 498 334" stroke-width="1.5" opacity=".55"/>
-        </g>
-
-        <path d="M126 211 C 154 187, 214 179, 284 189 C 344 198, 394 206, 424 211 C 384 221, 304 226, 224 216 C 174 210, 144 212, 126 211 Z"
-              fill="url(#flowGradient)" opacity=".92"/>
-        <path d="M126 211 C 154 187, 214 179, 284 189 C 344 198, 394 206, 424 211"
-              fill="none" stroke="var(--surface)" stroke-width="1.4" opacity=".55"/>
-
-        <g font-family="'JetBrains Mono', 'Cascadia Code', monospace" font-size="13" fill="var(--text)">
-          <rect x="32" y="30" width="126" height="38" rx="10" fill="var(--surface)" stroke="var(--border)"/>
-          <text x="46" y="54" opacity=".9">∇ · u = 0</text>
-
-          <rect x="358" y="356" width="130" height="38" rx="10" fill="var(--surface)" stroke="var(--border)"/>
-          <text x="372" y="380" opacity=".9">Re = 1.2×10⁶</text>
-
-          <rect x="336" y="230" width="112" height="34" rx="9" fill="var(--surface)" stroke="var(--border)"/>
-          <text x="349" y="252" font-size="12" opacity=".75">k–ω SST</text>
-        </g>
-
-        <g fill="var(--muted)" font-family="'JetBrains Mono', monospace" font-size="11">
-          <text x="40" y="404">x/c</text>
-          <text x="468" y="150">U∞</text>
-        </g>
-        <path d="M446 136 L 486 136 M 478 131 L 486 136 L 478 141" fill="none" stroke="var(--muted)" stroke-width="1.4" stroke-linecap="round"/>
-        <circle cx="155" cy="208" r="3.4" fill="var(--accent)"/>
-      </svg>
+  <section class="home-papers">
+    <div class="section-head">
+      <div>
+        <span class="section-eyebrow">WEEKLY PAPERS</span>
+        <h2>每周最新文献</h2>
+      </div>
+      <p>AI for Science（流体力学）与神经算子方向本周新作。<a href="library/index.html">阅读文献 →</a></p>
     </div>
+    <div class="home-papers-meta" id="homePapersMeta"></div>
+    <div class="home-papers-grid" id="homePapersGrid"></div>
   </section>
 
   <section class="chapters-section">
@@ -273,19 +237,6 @@
     </div>
   </section>
 
-  <section class="home-papers">
-    <div class="section-head">
-      <div>
-        <span class="section-eyebrow">LATEST PAPERS</span>
-        <h2>每周最新文献</h2>
-      </div>
-      <p>AI for Science（流体力学）与神经算子方向，来自 arXiv / 期刊 / 顶会的新作。<a href="library/index.html">查看全部 →</a></p>
-    </div>
-
-    <div class="home-papers-grid" id="homePapersGrid"></div>
-    <div class="home-papers-meta" id="homePapersMeta"></div>
-  </section>
-
   <section class="home-intro article-body">
     <h2 id="这是什么">这是什么</h2>
 <p>CFD Wiki 是一个以“可推导、可运行、可工程化”为目标的计算流体力学知识库。它不追求罗列结论，而是尽量把每个结论背后的假设、公式来源和适用边界讲清楚，并给出可以直接改写的代码。</p>
@@ -351,24 +302,6 @@
 </ul>
 <p>具体规范见项目根目录的 <code>README.md</code>。</p>
   </section>
-
-  <section class="feature-strip">
-    <div class="feature-item">
-      <span class="feature-icon">∑</span>
-      <h3>数学先行</h3>
-      <p>场论、张量、量纲分析与偏微分方程，先把符号和推导讲清楚。</p>
-    </div>
-    <div class="feature-item">
-      <span class="feature-icon">{ }</span>
-      <h3>公式配代码</h3>
-      <p>每个模型都给出数学表达与 Python / C++ / Fortran 实现，可直接改写。</p>
-    </div>
-    <div class="feature-item">
-      <span class="feature-icon">↗</span>
-      <h3>面向工程</h3>
-      <p>从网格、求解器到 Tecplot 与 Python 后处理，串起完整工作流。</p>
-    </div>
-  </section>
 </div>
     </main>
   </div>
@@ -381,7 +314,7 @@
         <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
       </div>
       <div class="footer-meta">
-        <span>构建于 2026-11-05</span>
+        <span>构建于 2026-11-06</span>
         <span class="footer-dot">·</span>
         <span>内容采用 CC BY-NC-SA 4.0 许可</span>
       </div>
@@ -415,7 +348,7 @@
 
   <script src="search-index.js" defer></script>
   <script src="assets/js/app.js" defer></script>
-<script src="library-papers.js" defer></script>
+<script src="library-weekly-papers.js" defer></script>
 <script src="assets/js/home.js" defer></script>
 </body>
 </html>
