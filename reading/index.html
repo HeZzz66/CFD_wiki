@@ -109,7 +109,7 @@
           <div class="sidebar-stat">
             <span>8 章</span>
             <span>50 篇</span>
-            <span>约 123,983 字</span>
+            <span>约 124,326 字</span>
           </div>
           <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
         </div>
@@ -137,6 +137,7 @@
       <button class="kb-rail-btn" data-view="sources" type="button"><span aria-hidden="true">▣</span><em>来源</em></button>
       <button class="kb-rail-btn" data-view="graph" type="button"><span aria-hidden="true">◇</span><em>图谱</em></button>
       <button class="kb-rail-btn" data-view="search" type="button"><span aria-hidden="true">⌕</span><em>检索</em></button>
+      <button class="kb-rail-btn" data-view="lint" type="button"><span aria-hidden="true">◎</span><em>体检</em></button>
       <button class="kb-rail-btn" data-view="settings" type="button"><span aria-hidden="true">⚙</span><em>设置</em></button>
     </nav>
 
@@ -265,6 +266,18 @@
         <div class="kb-search-results" id="kbSearchResults"></div>
       </div>
 
+      <div class="kb-view kb-lint-view" id="kbLintView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">LINT</span>
+            <h2>知识库体检</h2>
+          </div>
+          <p>照 llm_wiki 的 Lint 思路：检查死链、孤立词条、空词条，以及没有挂靠原始文献的来源页。</p>
+        </div>
+        <div class="kb-lint-summary" id="kbLintSummary"></div>
+        <div class="kb-lint-list" id="kbLintList"></div>
+      </div>
+
       <div class="kb-view kb-settings-view" id="kbSettingsView" hidden>
         <div class="kb-view-head">
           <div>
@@ -288,13 +301,16 @@
           <div class="kb-settings-card">
             <h4>工程操作</h4>
             <div class="kb-settings-actions">
-              <button class="btn btn-primary" id="kbExportJson" type="button">导出 JSON 工程</button>
+              <button class="btn btn-primary" id="kbExportZip" type="button">导出工程 ZIP</button>
+              <button class="btn btn-ghost" id="kbImportMdBtn" type="button">导入 Markdown</button>
+              <button class="btn btn-ghost" id="kbExportJson" type="button">导出 JSON</button>
               <button class="btn btn-ghost" id="kbImportBtn" type="button">导入 JSON</button>
               <button class="btn btn-ghost" id="kbRebuild" type="button">重建索引与总览</button>
               <button class="btn btn-ghost kb-danger" id="kbReset" type="button">清空知识库</button>
               <input type="file" id="kbImportInput" accept=".json,application/json" hidden>
+              <input type="file" id="kbImportMdInput" accept=".md,text/markdown" multiple hidden>
             </div>
-            <p class="kb-hint">JSON 工程包含全部词条、正文、来源关联与索引日志，可迁移到其他设备，或作为 llm_wiki 的导入材料。</p>
+            <p class="kb-hint">工程 ZIP 是 llm_wiki / Obsidian 的项目结构：purpose.md、schema.md、wiki/index.md、wiki/log.md，以及 wiki/{sources,concepts,entities,topics}/*.md，截图放在 media/。JSON 只适合本站在浏览器间迁移。</p>
           </div>
         </div>
 
@@ -313,6 +329,35 @@
 <li><strong>规则 Schema</strong>：<code>purpose</code>（为什么建这个库）与 <code>schema</code>（词条怎么命名、怎么分类）两页，约束整个知识库的写法。</li>
 </ol>
 <p><code>index</code> 是目录、<code>log</code> 是操作日志：新建、导入、删除都会自动记录，和 llm_wiki 的做法一致。</p>
+<h2 id="工程目录">工程目录</h2>
+<p>知识库本体就是一个 llm_wiki 风格的项目目录（本地 <code>--serve</code> 时写在 <code>library/kb/</code>）：</p>
+<div class="codehilite"><pre><span></span><code>library/kb/
+├── purpose.md              为什么建这个库
+├── schema.md               词条类型与命名规则
+└── wiki/
+    ├── overview.md         总览
+    ├── index.md            索引（按类型自动重建）
+    ├── log.md              操作日志（自动追加）
+    ├── sources/*.md        来源摘要
+    ├── concepts/*.md       概念
+    ├── entities/*.md       实体
+    ├── topics/*.md         主题
+    └── media/*.png         正文截图
+</code></pre></div>
+
+<p>每个词条都是带 YAML frontmatter 的 Markdown：</p>
+<div class="codehilite"><pre><span></span><code><span class="nn">---</span>
+<span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">concept-vof</span>
+<span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VOF 方法</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">concept</span>
+<span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">两相流</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">界面捕捉</span><span class="p p-Indicator">]</span>
+<span class="nt">sources</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">paper-xxx</span><span class="p p-Indicator">]</span>
+<span class="nt">created</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2026-11-06T10:20:00</span>
+<span class="nt">updated</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2026-11-06T10:32:00</span>
+<span class="nn">---</span>
+</code></pre></div>
+
+<p><code>index.md</code> 与 <code>log.md</code> 每次保存都会按词条重新生成，不要手写。</p>
 <h2 id="工作流">工作流</h2>
 <ol>
 <li>在「来源」页上传论文，或直接使用已上传的文件；点“阅读”进入阅读器，右栏做富文本笔记（支持加粗、标题、列表、粘贴截图）。</li>
@@ -320,13 +365,21 @@
 <li>在「知识库」里新建概念/实体/主题词条，用 <code>[[词条名]]</code> 建立双链；右侧会实时显示预览与反向链接。</li>
 <li>在「图谱」里查看 4 类关系（直接链接、共享来源、共同邻居、同类型）形成的网络，点击节点回到词条。</li>
 <li>在「检索」里对标题、正文、标签做全文检索。</li>
+<li>在「体检」里跑一遍 Lint：死链、孤立词条、空词条、没挂靠文献的来源页，点一行直接跳到对应词条。</li>
 </ol>
+<h2 id="导出与迁移">导出与迁移</h2>
+<ul>
+<li><strong>导出工程 ZIP</strong>：整库打成 <code>purpose.md</code> + <code>schema.md</code> + <code>wiki/**/*.md</code> + <code>media/</code>，解压后可直接用 Obsidian 打开，或作为 llm_wiki 的导入材料。</li>
+<li><strong>导入 Markdown</strong>：把带 frontmatter 的 <code>.md</code>（例如从 Obsidian 里拿出来的）批量导入，按 <code>id</code> 或标题覆盖同名词条。</li>
+<li><strong>导出 / 导入 JSON</strong>：本站自己的完整快照，适合在浏览器之间搬数据。</li>
+<li>删除词条会<strong>级联清理</strong>：其他词条里指向它的 <code>[[双链]]</code> 会被拆成普通文字，来源关联一并解除。</li>
+</ul>
 <h2 id="与-llm_wiki-的差异">与 llm_wiki 的差异</h2>
 <p>llm_wiki 是桌面应用，导入时调用 LLM 自动分析并生成词条；本页是静态站点内的<strong>本地增强版</strong>：</p>
 <ul>
 <li>不调用 LLM，导入时生成结构化骨架与笔记摘录，内容由你填写；</li>
-<li>数据优先存到 <code>library/kb.json</code>（<code>--serve</code> 模式），静态部署时退回浏览器 IndexedDB；</li>
-<li>支持导出完整 JSON 工程与单页 Markdown，便于备份、迁移到 Obsidian 或导入 llm_wiki 继续加工。</li>
+<li>本地 <code>--serve</code> 时词条写入 <code>library/kb/</code> 的 Markdown 工程；静态部署（GitHub Pages）时退回浏览器 IndexedDB，请用工程 ZIP 做备份；</li>
+<li>暂未实现向量检索、Louvain 社区发现与 Deep Research，只是一个纯前端的结构化管理器。</li>
 </ul>
 <div class="admonition tip"><div class="admonition-title">双链写法</div><div class="admonition-body"><p><code>[[场论基础]]</code> 按标题解析；<code>[[ch1/field-theory|场论基础]]</code> 可以直接指向站内 Wiki 页面并自定义显示文字。解析不到的词条会显示为红色，点一下就能新建。</p></div></div></div>
       </div>

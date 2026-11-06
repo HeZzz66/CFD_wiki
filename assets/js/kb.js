@@ -563,6 +563,7 @@
       sources: $('kbSourcesView'),
       graph: $('kbGraphView'),
       search: $('kbSearchView'),
+      lint: $('kbLintView'),
       settings: $('kbSettingsView')
     };
     Object.keys(views).forEach(function (key) {
@@ -574,6 +575,7 @@
     if (view === 'sources') { renderSources(); }
     if (view === 'graph') { setTimeout(renderGraph, 60); }
     if (view === 'search') { $('kbSearchInput').focus(); renderSearch(''); }
+    if (view === 'lint') { renderLint(); }
     if (view === 'settings') { renderSettings(); }
   }
 
@@ -606,9 +608,27 @@
       toast('系统页面不能删除');
       return;
     }
-    if (!window.confirm('删除词条「' + page.title + '」？此操作不可撤销。')) return;
+    if (!window.confirm('删除词条「' + page.title + '」？指向它的双链会被拆成普通文字，此操作不可撤销。')) return;
     state.kb.pages = state.kb.pages.filter(function (p) { return p.id !== page.id; });
-    logEntry('删除词条', page.title);
+    var title = page.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    var pattern = new RegExp('\\[\\[' + title + '(?:\\|([^\\]]+))?\\]\\]', 'g');
+    var touched = 0;
+    pages().forEach(function (other) {
+      var before = other.body || '';
+      var after = before.replace(pattern, function (match, label) {
+        return label || page.title;
+      });
+      if (after !== before) {
+        other.body = after;
+        other.updated = nowISO();
+        touched += 1;
+      }
+      if (Array.isArray(other.sources)) {
+        var filtered = other.sources.filter(function (item) { return item !== page.id; });
+        if (filtered.length !== other.sources.length) other.sources = filtered;
+      }
+    });
+    logEntry('删除词条', page.title + (touched ? '，清理 ' + touched + ' 条双链' : ''));
     rebuildIndex();
     persist();
     renderTree();
@@ -616,7 +636,18 @@
     openPage(findPage('overview') ? 'overview' : pages()[0].id);
   }
 
-  function htmlToMarkdown(html) {
+  function mediaName(src) {
+    var match = /^data:image\/([a-z0-9.+-]+);base64,([\s\S]+)$/i.exec(src);
+    var ext = match ? match[1].toLowerCase().replace('jpeg', 'jpg') : 'png';
+    var payload = match ? match[2] : src;
+    var key = 0;
+    for (var i = 0; i < payload.length; i += 1) {
+      key = (key * 31 + payload.charCodeAt(i)) >>> 0;
+    }
+    return key.toString(36) + '.' + ext;
+  }
+
+  function htmlToMarkdown(html, ctx) {
     var box = document.createElement('div');
     box.innerHTML = html || '';
     box.querySelectorAll('br').forEach(function (br) { br.replaceWith('\n'); });
@@ -625,7 +656,19 @@
       if (node.nodeType === 3) { out += node.nodeValue; return; }
       if (node.nodeType !== 1) return;
       var tag = node.tagName.toLowerCase();
-      var inner = htmlToMarkdown(node.innerHTML).trim();
+      if (tag === 'img') {
+        var src = node.getAttribute('src') || '';
+        var alt = node.getAttribute('alt') || '截图';
+        if (ctx && /^data:image\//i.test(src)) {
+          var name = mediaName(src);
+          ctx.images.push({ name: 'media/' + name, base64: src });
+          out += '![' + alt + '](' + (ctx.prefix || '') + 'media/' + name + ')\n\n';
+        } else if (src) {
+          out += '![' + alt + '](' + src + ')\n\n';
+        }
+        return;
+      }
+      var inner = htmlToMarkdown(node.innerHTML, ctx).trim();
       if (tag === 'h2') out += '\n## ' + inner + '\n';
       else if (tag === 'h3') out += '\n### ' + inner + '\n';
       else if (tag === 'li') out += '- ' + inner + '\n';
@@ -645,12 +688,268 @@
     download(front + htmlToMarkdown(page.body), safeName(page.title) + '.md', 'text/markdown');
   }
 
+  /* ---------------- llm_wiki 工程导出（无依赖 store-only ZIP）--------------- */
+  var CRC_TABLE = (function () {
+    var table = new Uint32Array(256);
+    for (var i = 0; i < 256; i += 1) {
+      var value = i;
+      for (var bit = 0; bit < 8; bit += 1) {
+        value = value & 1 ? (0xEDB88320 ^ (value >>> 1)) : (value >>> 1);
+      }
+      table[i] = value >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i += 1) {
+      crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function base64Bytes(dataUrl) {
+    var payload = dataUrl.indexOf(',') !== -1 ? dataUrl.split(',')[1] : dataUrl;
+    var binary = atob(payload);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function zipBlob(entries) {
+    var encoder = new TextEncoder();
+    var files = entries.map(function (entry) {
+      var data = entry.base64 ? base64Bytes(entry.base64) : encoder.encode(entry.text || '');
+      return { name: encoder.encode(entry.name), data: data, crc: crc32(data) };
+    });
+    var localSize = files.reduce(function (sum, file) {
+      return sum + 30 + file.name.length + file.data.length;
+    }, 0);
+    var centralSize = files.reduce(function (sum, file) {
+      return sum + 46 + file.name.length;
+    }, 0);
+    var buffer = new Uint8Array(localSize + centralSize + 22);
+    var view = new DataView(buffer.buffer);
+    var offset = 0;
+    var central = [];
+    function u16(value) { view.setUint16(offset, value, true); offset += 2; }
+    function u32(value) { view.setUint32(offset, value >>> 0, true); offset += 4; }
+
+    files.forEach(function (file) {
+      var start = offset;
+      u32(0x04034b50);
+      u16(20);
+      u16(0x0800);
+      u16(0);
+      u16(0);
+      u16(0x0021);
+      u32(file.crc);
+      u32(file.data.length);
+      u32(file.data.length);
+      u16(file.name.length);
+      u16(0);
+      buffer.set(file.name, offset); offset += file.name.length;
+      buffer.set(file.data, offset); offset += file.data.length;
+      central.push({ file: file, offset: start });
+    });
+
+    var centralStart = offset;
+    central.forEach(function (item) {
+      u32(0x02014b50);
+      u16(20);
+      u16(20);
+      u16(0x0800);
+      u16(0);
+      u16(0);
+      u16(0x0021);
+      u32(item.file.crc);
+      u32(item.file.data.length);
+      u32(item.file.data.length);
+      u16(item.file.name.length);
+      u16(0);
+      u16(0);
+      u16(0);
+      u16(0);
+      u32(0);
+      u32(item.offset);
+      buffer.set(item.file.name, offset); offset += item.file.name.length;
+    });
+
+    u32(0x06054b50);
+    u16(0);
+    u16(0);
+    u16(files.length);
+    u16(files.length);
+    u32(offset - centralStart);
+    u32(centralStart);
+    u16(0);
+    return new Blob([buffer], { type: 'application/zip' });
+  }
+
+  function pagePath(page) {
+    if (page.id === 'purpose') return 'purpose.md';
+    if (page.id === 'schema') return 'schema.md';
+    if (page.id === 'overview') return 'wiki/overview.md';
+    if (page.id === 'index') return 'wiki/index.md';
+    if (page.id === 'log') return 'wiki/log.md';
+    var dirs = { source: 'sources', concept: 'concepts', entity: 'entities', topic: 'topics' };
+    return 'wiki/' + (dirs[page.type] || 'topics') + '/' + safeName(page.id) + '.md';
+  }
+
+  function pageFile(page, images) {
+    var path = pagePath(page);
+    var depth = path.split('/').length - 1;
+    var prefix = depth ? new Array(depth + 1).join('../') : '';
+    var meta = '---\n' +
+      'id: ' + JSON.stringify(page.id) + '\n' +
+      'title: ' + JSON.stringify(page.title) + '\n' +
+      'type: ' + JSON.stringify(page.type) + '\n' +
+      'tags: ' + JSON.stringify(page.tags || []) + '\n' +
+      'sources: ' + JSON.stringify(page.sources || []) + '\n' +
+      'created: ' + JSON.stringify(page.created || '') + '\n' +
+      'updated: ' + JSON.stringify(page.updated || '') + '\n---\n\n';
+    return meta + htmlToMarkdown(page.body, { images: images, prefix: prefix }) + '\n';
+  }
+
+  function exportProject() {
+    var images = [];
+    var entries = [];
+    pages().forEach(function (page) {
+      entries.push({ name: pagePath(page), text: pageFile(page, images) });
+    });
+    var seen = {};
+    images.forEach(function (image) {
+      if (seen[image.name]) return;
+      seen[image.name] = true;
+      entries.push(image);
+    });
+    var stamp = nowISO().slice(0, 10);
+    downloadBlob(zipBlob(entries), 'cfdwiki-kb-' + stamp + '.zip');
+  }
+
+  /* ---------------- Markdown 导入 ---------------- */
+  function parseFrontMatter(text) {
+    var match = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+    if (!match) return { meta: {}, body: text };
+    var meta = {};
+    match[1].split(/\r?\n/).forEach(function (line) {
+      var pair = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
+      if (!pair) return;
+      var value = pair[2].trim();
+      if (value.charAt(0) === '[' && value.charAt(value.length - 1) === ']') {
+        try {
+          meta[pair[1]] = JSON.parse(value);
+        } catch (error) {
+          meta[pair[1]] = value.slice(1, -1).split(',').map(function (item) {
+            return item.trim().replace(/^['"]|['"]$/g, '');
+          }).filter(Boolean);
+        }
+      } else {
+        meta[pair[1]] = value.replace(/^['"]|['"]$/g, '');
+      }
+    });
+    return { meta: meta, body: text.slice(match[0].length) };
+  }
+
+  function mdToHtml(text) {
+    var lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+    var out = [];
+    var inList = false;
+    function inline(value) {
+      var result = esc(value);
+      result = result.replace(/`([^`]+)`/g, '<code>$1</code>');
+      result = result.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, '<img src="$2" alt="$1">');
+      result = result.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+      result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      result = result.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      return result;
+    }
+    lines.forEach(function (line) {
+      var trimmed = line.trim();
+      if (!trimmed) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        return;
+      }
+      var heading = /^(#{1,4})\s+(.*)$/.exec(trimmed);
+      if (heading) {
+        if (inList) { out.push('</ul>'); inList = false; }
+        var level = Math.min(4, heading[1].length + 1);
+        out.push('<h' + level + '>' + inline(heading[2]) + '</h' + level + '>');
+        return;
+      }
+      var item = /^[-*+]\s+(.*)$/.exec(trimmed) || /^\d+\.\s+(.*)$/.exec(trimmed);
+      if (item) {
+        if (!inList) { out.push('<ul>'); inList = true; }
+        out.push('<li>' + inline(item[1]) + '</li>');
+        return;
+      }
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push('<p>' + inline(trimmed) + '</p>');
+    });
+    if (inList) out.push('</ul>');
+    return out.join('');
+  }
+
+  function importMarkdown(files) {
+    var valid = ['concept', 'source', 'entity', 'topic', 'overview', 'meta'];
+    var added = 0;
+    var queue = Array.prototype.slice.call(files || []);
+    if (!queue.length) return;
+    var index = 0;
+    function next() {
+      if (index >= queue.length) {
+        rebuildIndex();
+        renderLog();
+        persist();
+        renderAll();
+        toast('已导入 ' + added + ' 个 Markdown 词条');
+        return;
+      }
+      var file = queue[index];
+      index += 1;
+      var reader = new FileReader();
+      reader.onload = function () {
+        var parsed = parseFrontMatter(String(reader.result || ''));
+        var meta = parsed.meta;
+        var title = String(meta.title || file.name.replace(/\.md$/i, ''));
+        var type = valid.indexOf(meta.type) !== -1 ? meta.type : 'concept';
+        var existing = meta.id ? findPage(String(meta.id)) : findByTitle(title);
+        if (existing) {
+          existing.title = title;
+          existing.type = type;
+          existing.body = mdToHtml(parsed.body);
+          existing.updated = nowISO();
+        } else {
+          pages().push({
+            id: uid('p'),
+            title: title,
+            type: type,
+            tags: Array.isArray(meta.tags) ? meta.tags : [],
+            sources: Array.isArray(meta.sources) ? meta.sources : [],
+            body: mdToHtml(parsed.body),
+            created: nowISO(),
+            updated: nowISO()
+          });
+        }
+        added += 1;
+        next();
+      };
+      reader.readAsText(file);
+    }
+    next();
+  }
+
   function safeName(name) {
     return String(name).replace(/[\\/:*?"<>|]/g, '-').slice(0, 60);
   }
 
   function download(content, filename, mime) {
     var blob = new Blob([content], { type: mime || 'application/octet-stream' });
+    downloadBlob(blob, filename);
+  }
+
+  function downloadBlob(blob, filename) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
@@ -1285,6 +1584,107 @@
     });
   }
 
+  /* ---------------- 体检（Lint）---------------- */
+  function collectLinks(page) {
+    var list = [];
+    var body = String(page.body || '');
+    var re = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+    var match;
+    while ((match = re.exec(body))) list.push(match[1].trim());
+    return list;
+  }
+
+  function renderLint() {
+    var summary = $('kbLintSummary');
+    var box = $('kbLintList');
+    if (!box) return;
+    var systemIds = ['overview', 'index', 'log', 'purpose', 'schema'];
+    var inbound = {};
+    var outbound = {};
+    var dead = [];
+
+    pages().forEach(function (page) {
+      outbound[page.id] = [];
+      collectLinks(page).forEach(function (target) {
+        var resolved = resolveLink(target);
+        if (resolved) {
+          outbound[page.id].push(resolved.id);
+          inbound[resolved.id] = (inbound[resolved.id] || 0) + 1;
+        } else if (!/^(https?:|mailto:|\/|\.\/|.+\.html?$)/i.test(target)) {
+          dead.push({ page: page, target: target });
+        }
+      });
+    });
+
+    var issues = [];
+    pages().forEach(function (page) {
+      if (systemIds.indexOf(page.id) !== -1) return;
+      var degree = (inbound[page.id] || 0) + outbound[page.id].length;
+      var hasImage = (page.body || '').indexOf('<img') !== -1;
+      if (!plain(page.body).trim() && !hasImage) {
+        issues.push({ kind: '空词条', page: page, detail: '正文为空' });
+      }
+      if (degree <= 1) {
+        issues.push({
+          kind: '孤立词条',
+          page: page,
+          detail: '入链 ' + (inbound[page.id] || 0) + ' · 出链 ' + outbound[page.id].length
+        });
+      }
+      if (page.type === 'source' && !(page.sources || []).length) {
+        issues.push({ kind: '来源缺关联', page: page, detail: 'frontmatter 里没有 sources' });
+      }
+      if (page.type === 'source' && !(inbound[page.id] || 0)) {
+        issues.push({ kind: '来源未被引用', page: page, detail: '没有任何词条链接到它' });
+      }
+    });
+
+    if (summary) {
+      var counts = { 死链: dead.length };
+      issues.forEach(function (issue) { counts[issue.kind] = (counts[issue.kind] || 0) + 1; });
+      var chips = Object.keys(counts).filter(function (key) { return counts[key]; }).map(function (key) {
+        return '<span class="kb-lint-chip">' + esc(key) + ' <strong>' + counts[key] + '</strong></span>';
+      });
+      summary.innerHTML = chips.length
+        ? '<span class="kb-lint-total">共 ' + (dead.length + issues.length) + ' 项待处理</span>' + chips.join('')
+        : '<span class="kb-lint-total is-ok">没有发现问题，词条之间连得挺紧。</span>';
+    }
+
+    box.innerHTML = '';
+    if (!dead.length && !issues.length) {
+      box.innerHTML = '<div class="kb-empty">知识库结构健康。</div>';
+      return;
+    }
+
+    dead.forEach(function (item) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'kb-lint-row';
+      row.innerHTML = '<span class="kb-lint-kind is-dead">死链</span>' +
+        '<strong>→ ' + esc(item.target) + '</strong>' +
+        '<span class="kb-lint-detail">出现在「' + esc(item.page.title) + '」</span>';
+      row.addEventListener('click', function () {
+        switchView('wiki');
+        openPage(item.page.id);
+      });
+      box.appendChild(row);
+    });
+
+    issues.forEach(function (issue) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'kb-lint-row';
+      row.innerHTML = '<span class="kb-lint-kind">' + esc(issue.kind) + '</span>' +
+        '<strong>' + esc(issue.page.title) + '</strong>' +
+        '<span class="kb-lint-detail">' + esc(issue.detail) + '</span>';
+      row.addEventListener('click', function () {
+        switchView('wiki');
+        openPage(issue.page.id);
+      });
+      box.appendChild(row);
+    });
+  }
+
   /* ---------------- 设置 ---------------- */
   function renderSettings() {
     var statPages = $('kbStatPages');
@@ -1294,12 +1694,12 @@
     if (statPages) statPages.textContent = String(pages().length);
     if (statLinks) statLinks.textContent = String(linkCount());
     if (statSources) statSources.textContent = String(state.items.length);
-    if (statStorage) statStorage.textContent = state.server ? '服务端' : '浏览器';
+    if (statStorage) statStorage.textContent = state.server ? 'Markdown 工程' : '浏览器';
     var hint = $('kbStorageHint');
     if (hint) {
       hint.textContent = state.server
-        ? '当前由 python build.py --serve 提供服务，词条写入 library/kb.json，可随站点部署。'
-        : '当前为静态页面，词条保存在此浏览器的 IndexedDB 中；换设备或清理浏览器数据会丢失，请定期导出 JSON 工程。';
+        ? '当前由 python build.py --serve 提供服务：词条写入 library/kb/ 下的 Markdown 文件（purpose/schema + wiki/{sources,concepts,entities,topics}），index.md 与 log.md 自动重建。'
+        : '当前为静态页面，词条保存在此浏览器的 IndexedDB 中；换设备或清理浏览器数据会丢失，请用「导出工程 ZIP」把 Markdown 工程下载下来，或本地 --serve 写到 library/kb/。';
     }
     var index = findPage('index');
     var log = findPage('log');
@@ -1312,6 +1712,24 @@
     if (exportBtn) exportBtn.addEventListener('click', function () {
       download(JSON.stringify(state.kb, null, 2), 'cfdwiki-kb-' + nowISO().slice(0, 10) + '.json', 'application/json');
     });
+    var exportZipBtn = $('kbExportZip');
+    if (exportZipBtn) exportZipBtn.addEventListener('click', function () {
+      try {
+        exportProject();
+        toast('工程 ZIP 已开始下载');
+      } catch (error) {
+        toast('导出失败：' + error.message);
+      }
+    });
+    var importMdBtn = $('kbImportMdBtn');
+    var importMdInput = $('kbImportMdInput');
+    if (importMdBtn && importMdInput) {
+      importMdBtn.addEventListener('click', function () { importMdInput.click(); });
+      importMdInput.addEventListener('change', function () {
+        importMarkdown(importMdInput.files);
+        importMdInput.value = '';
+      });
+    }
     var importBtn = $('kbImportBtn');
     var importInput = $('kbImportInput');
     if (importBtn && importInput) {
