@@ -11,6 +11,10 @@ venv/
 library/files/*
 library/previews/*
 
+# 章节参考文档的二进制文件（元数据 refs/*.json 仍纳入版本管理）
+library/refs/files/*
+library/refs/previews/*
+
 # 操作系统 / 编辑器
 .DS_Store
 Thumbs.db

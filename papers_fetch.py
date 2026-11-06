@@ -66,6 +66,20 @@ DEFAULT_KEYWORDS = [
     "diffusion model",
 ]
 
+# 每周自动任务的独立关键词（与年度检索互不影响，可在前端单独增删）
+DEFAULT_WEEKLY_KEYWORDS = [
+    "neural operator",
+    "Fourier neural operator",
+    "DeepONet",
+    "physics-informed neural network",
+    "PINN",
+    "machine learning fluid dynamics",
+    "machine learning turbulence",
+    "turbulence closure",
+    "scientific machine learning",
+    "data-driven turbulence modeling",
+]
+
 JOURNAL_SOURCES = [
     {"source": "Physics of Fluids", "label": "PoF", "issn": "1070-6631"},
     {"source": "Journal of Fluid Mechanics", "label": "JFM", "issn": "0022-1120"},
@@ -441,6 +455,11 @@ PAPERS_PATH = LIBRARY_DIR / "papers.json"
 KEYWORDS_PATH = LIBRARY_DIR / "fetch_keywords.json"
 STATE_PATH = LIBRARY_DIR / "fetch_state.json"
 
+# 每周自动任务独立存储（与年度检索分离）
+WEEKLY_PAPERS_PATH = LIBRARY_DIR / "weekly_papers.json"
+WEEKLY_KEYWORDS_PATH = LIBRARY_DIR / "weekly_keywords.json"
+WEEKLY_STATE_PATH = LIBRARY_DIR / "weekly_state.json"
+
 
 def _load_json(path: Path, default: Any) -> Any:
     try:
@@ -525,10 +544,84 @@ def state_snapshot() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 每周自动任务（独立关键词 / 独立结果 / 独立状态）
+# ---------------------------------------------------------------------------
+
+def load_weekly_papers() -> list[dict]:
+    data = _load_json(WEEKLY_PAPERS_PATH, [])
+    return data if isinstance(data, list) else []
+
+
+def save_weekly_papers(papers: list[dict]) -> None:
+    _save_json(WEEKLY_PAPERS_PATH, papers)
+
+
+def load_weekly_keywords() -> list[str]:
+    data = _load_json(WEEKLY_KEYWORDS_PATH, [])
+    custom = data if isinstance(data, list) else []
+    merged: list[str] = []
+    for kw in list(DEFAULT_WEEKLY_KEYWORDS) + custom:
+        if kw and kw.strip() and kw not in merged:
+            merged.append(kw.strip())
+    return merged
+
+
+def save_weekly_keywords(keywords: list[str]) -> None:
+    custom = [
+        kw.strip()
+        for kw in keywords
+        if kw and kw.strip() and kw.strip() not in DEFAULT_WEEKLY_KEYWORDS
+    ]
+    _save_json(WEEKLY_KEYWORDS_PATH, custom)
+
+
+def load_weekly_state() -> dict:
+    data = _load_json(WEEKLY_STATE_PATH, {})
+    return data if isinstance(data, dict) else {}
+
+
+def save_weekly_state(state: dict) -> None:
+    _save_json(WEEKLY_STATE_PATH, state)
+
+
+def weekly_snapshot() -> dict:
+    state = load_weekly_state()
+    return {
+        "last_auto_at": state.get("last_auto_at", ""),
+        "last_auto_monday": state.get("last_auto_monday", ""),
+        "total": len(load_weekly_papers()),
+        "keywords": load_weekly_keywords(),
+    }
+
+
+def run_weekly_fetch(keywords: list[str], days: int = 14) -> dict:
+    """每周自动检索：写入独立的 weekly 存储，不与年度结果混合。"""
+    papers, errors, sources = fetch_all(keywords, days)
+    merged = merge_papers(load_weekly_papers(), papers)
+    save_weekly_papers(merged)
+    save_weekly_keywords(keywords)
+    now = datetime.now().isoformat(timespec="seconds")
+    state = load_weekly_state()
+    state["last_auto_at"] = now
+    state["last_auto_monday"] = monday_of(date.today()).isoformat()
+    save_weekly_state(state)
+    return {
+        "papers": papers,
+        "errors": errors,
+        "sources": sources,
+        "total": len(merged),
+        "new_count": len(papers),
+        "ran_at": now,
+        "window_days": days,
+    }
+
+
+# ---------------------------------------------------------------------------
 # 周定时调度（任务二）
 # ---------------------------------------------------------------------------
 
-def run_fetch_and_store(keywords: list[str], days: int, trigger: str) -> dict:
+def run_fetch_and_store(keywords: list[str], days: int, trigger: str = "manual") -> dict:
+    """年度（手动）检索：写入年度存储。trigger 保留兼容，auto 分支已由 run_weekly_fetch 接管。"""
     papers, errors, sources = fetch_all(keywords, days)
     merged = merge_papers(load_papers(), papers)
     save_papers(merged)
@@ -554,23 +647,23 @@ def run_fetch_and_store(keywords: list[str], days: int, trigger: str) -> dict:
 
 
 def auto_fetch_if_due() -> dict | None:
-    """若已跨入新的一周（以周一为界），自动检索上两周。返回结果 dict 或 None。"""
+    """若已跨入新的一周（以周一为界），自动检索上两周到独立的 weekly 存储。"""
     today = date.today()
     current_monday = monday_of(today)
-    state = load_state()
+    state = load_weekly_state()
     if not state.get("last_auto_monday"):
         # 首次运行：初始化基准，不立即触发
         state["last_auto_monday"] = current_monday.isoformat()
-        save_state(state)
+        save_weekly_state(state)
         return None
     if state["last_auto_monday"] == current_monday.isoformat():
         return None
     try:
-        return run_fetch_and_store(load_keywords(), days=14, trigger="auto")
+        return run_weekly_fetch(load_weekly_keywords(), days=14)
     except Exception:  # noqa: BLE001
         # 调度失败不阻塞服务；保留基准避免频繁重试
         state["last_auto_monday"] = current_monday.isoformat()
-        save_state(state)
+        save_weekly_state(state)
         return None
 
 
@@ -581,14 +674,19 @@ def auto_fetch_if_due() -> dict | None:
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="检索 AI for CFD 文献并写入 library/papers.json")
+    parser = argparse.ArgumentParser(description="检索 AI for CFD 文献并写入 library/ 对应存储")
+    parser.add_argument("--scope", choices=["yearly", "weekly"], default="yearly",
+                        help="检索范围：yearly 写入年度存储（默认），weekly 写入每周任务存储")
     parser.add_argument("--days", type=int, default=365, help="检索时间窗天数（周任务用 14）")
-    parser.add_argument("--trigger", choices=["auto", "manual"], default="auto", help="触发类型，影响状态记录")
     parser.add_argument("--keywords", nargs="*", default=None, help="临时覆盖关键词；不填则读取默认词 + 自定义词")
     args = parser.parse_args()
 
-    keywords = args.keywords if args.keywords else load_keywords()
-    result = run_fetch_and_store(keywords, days=args.days, trigger=args.trigger)
+    if args.scope == "weekly":
+        keywords = args.keywords if args.keywords else load_weekly_keywords()
+        result = run_weekly_fetch(keywords, days=args.days)
+    else:
+        keywords = args.keywords if args.keywords else load_keywords()
+        result = run_fetch_and_store(keywords, days=args.days, trigger="manual")
     print(f"检索完成：本次新增 {result['new_count']} 篇，累计 {result['total']} 篇，命中来源 {', '.join(result['sources']) or '无'}")
     if result["errors"]:
         print("失败来源：" + "；".join(result["errors"]))

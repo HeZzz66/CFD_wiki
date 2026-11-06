@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>年度文献检索 · {{ site.title }}</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body class="viewer-page">
+  <header class="viewer-bar">
+    <a class="viewer-back" href="index.html">← 阅读文献</a>
+    <div class="viewer-heading">
+      <div class="viewer-title" id="papersTitle">年度文献检索</div>
+      <div class="viewer-meta" id="papersMeta"></div>
+    </div>
+  </header>
+
+  <main class="viewer-body">
+    <section class="viewer-doc papers-page-doc" id="papersDoc" aria-label="文献列表">
+      <div class="papers-toolbar">
+        <label class="papers-filter">
+          关键词
+          <select id="papersFilter" aria-label="按关键词筛选"></select>
+        </label>
+        <span class="papers-count" id="papersCount"></span>
+      </div>
+      <div class="papers-list" id="papersList"></div>
+    </section>
+  </main>
+
+  <script src="../library-papers.js" defer></script>
+  <script src="../assets/js/papers.js" defer></script>
+</body>
+</html>

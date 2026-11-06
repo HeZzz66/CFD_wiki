@@ -97,17 +97,17 @@ tags: [TVD, 限制器, 迎风]
 - **关键词**：系统内置了一组默认关键词（neural operator、Fourier neural operator、DeepONet、physics-informed neural network、machine learning fluid dynamics 等），可在面板上删除或添加自定义词。
 - **任务一（手动）**：点「执行检索 · 近 1 年」调用 `POST /api/fetch-papers`，检索近 1 年文献，去重后按关键词分组展示，每条含来源、作者、年份与摘要简介。
 - **任务二（周定时）**：`python build.py --serve` 启动后，后台线程每分钟检查一次，一旦检测到「跨入新的一周（以每周一为界）」就自动执行一次检索，时间窗取上两周。
-- **存储**：结果写入 `library/papers.json`，构建时注入 `site/library-papers.js`（`window.__PAPERS__`），`file://` 直接打开也能看到上次检索结果；`--serve` 模式下实时读取。检索引擎代码位于 `papers_fetch.py`，关键词与调度状态分别存在 `library/fetch_keywords.json` 与 `library/fetch_state.json`。
+- **存储**：年度检索写入 `library/papers.json`（`window.__PAPERS__`）；每周任务独立写入 `library/weekly_papers.json`（`window.__WEEKLY_PAPERS__`），关键词互不影响，分别存在 `library/fetch_keywords.json` 与 `library/weekly_keywords.json`。`file://` 直接打开也能看到上次结果；`--serve` 模式下实时读取。
 
 删除文献时，删掉 `library/files/` 中对应文件并从 `manifest.json` 移除条目，再重新构建即可。
 
 ## 文献自动检索（不依赖本地服务）
 
-`papers_fetch.py` 可独立运行，按关键词检索 arXiv、5 本期刊与 NeurIPS/ICML/ICLR，结果写入 `library/papers.json`：
+`papers_fetch.py` 可独立运行，按关键词检索 arXiv、5 本期刊与 NeurIPS/ICML/ICLR。年度与每周两套存储相互独立：
 
 ```bash
-python papers_fetch.py --days 14 --trigger auto   # 周任务：检索上两周
-python papers_fetch.py --days 365                 # 手动：检索近 1 年
+python papers_fetch.py --scope yearly --days 365   # 年度检索：近 1 年
+python papers_fetch.py --scope weekly --days 14    # 每周任务：上两周
 ```
 
 仓库内置 `.github/workflows/weekly-papers.yml`：

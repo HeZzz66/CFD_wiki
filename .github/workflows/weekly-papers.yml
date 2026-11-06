@@ -31,8 +31,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Fetch papers (last two weeks)
-        run: python papers_fetch.py --days 14 --trigger auto
+      - name: Fetch weekly papers (last two weeks)
+        run: python papers_fetch.py --scope weekly --days 14
 
       - name: Rebuild site
         run: python build.py
@@ -41,7 +41,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add library/papers.json library/fetch_state.json library/fetch_keywords.json 2>/dev/null || true
+          git add library/weekly_papers.json library/weekly_keywords.json library/weekly_state.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No new papers this week"
           else

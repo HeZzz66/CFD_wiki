@@ -606,7 +606,7 @@ def search_entry(page: dict, body_html: str) -> dict[str, Any]:
 # 论文与书籍分区
 # ---------------------------------------------------------------------------
 
-LIBRARY_EXTENSIONS = {".pdf", ".docx", ".html", ".htm"}
+LIBRARY_EXTENSIONS = {".pdf", ".docx", ".html", ".htm", ".ppt", ".pptx"}
 W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
@@ -632,6 +632,37 @@ def load_library() -> list[dict[str, Any]]:
 def save_library(items: list[dict[str, Any]]) -> None:
     LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
     (LIBRARY_DIR / "manifest.json").write_text(
+        json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+# ---- 章节参考文档（每章可附加 PDF / DOCX / PPT，供浏览与下载）---------
+REFS_DIR = LIBRARY_DIR / "refs"
+REFS_FILES_DIR = REFS_DIR / "files"
+REFS_PREVIEWS_DIR = REFS_DIR / "previews"
+REF_EXTENSIONS = {".pdf", ".docx", ".html", ".htm", ".ppt", ".pptx"}
+
+
+def load_refs(chapter_id: str) -> list[dict[str, Any]]:
+    """读取某章节的参考文档列表（无则返回空）。"""
+    if not chapter_id:
+        return []
+    REFS_DIR.mkdir(parents=True, exist_ok=True)
+    path = REFS_DIR / f"{chapter_id}.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    items = [item for item in data if isinstance(item, dict) and item.get("file")]
+    items.sort(key=lambda item: str(item.get("added", "")), reverse=True)
+    return items
+
+
+def save_refs(chapter_id: str, items: list[dict[str, Any]]) -> None:
+    REFS_DIR.mkdir(parents=True, exist_ok=True)
+    (REFS_DIR / f"{chapter_id}.json").write_text(
         json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
@@ -770,6 +801,23 @@ def build() -> None:
         encoding="utf-8",
     )
 
+    # ---- 章节参考文档（复制文件并注入索引，供 file:// 直开）------------
+    if REFS_FILES_DIR.exists():
+        shutil.copytree(REFS_FILES_DIR, library_site / "refs" / "files", dirs_exist_ok=True)
+    if REFS_PREVIEWS_DIR.exists():
+        shutil.copytree(REFS_PREVIEWS_DIR, library_site / "refs" / "previews", dirs_exist_ok=True)
+    refs_index: dict[str, list[dict[str, Any]]] = {}
+    if REFS_DIR.exists():
+        for meta_file in REFS_DIR.glob("*.json"):
+            chapter_id = meta_file.stem
+            refs_index[chapter_id] = load_refs(chapter_id)
+    (SITE_DIR / "library-refs.js").write_text(
+        "window.__REFS__="
+        + json.dumps(refs_index, ensure_ascii=False, separators=(",", ":"))
+        + ";\n",
+        encoding="utf-8",
+    )
+
     # ---- 文献检索结果（近 1 年 AI4Science / 神经算子）------------------
     papers = papers_fetch.load_papers()
     papers_state = papers_fetch.load_state()
@@ -784,6 +832,18 @@ def build() -> None:
         + json.dumps(papers, ensure_ascii=False, separators=(",", ":"))
         + ";\nwindow.__PAPERS_META__="
         + json.dumps(papers_meta, ensure_ascii=False, separators=(",", ":"))
+        + ";\n",
+        encoding="utf-8",
+    )
+
+    # ---- 每周自动任务（独立关键词/结果/状态）---------------------------
+    weekly_papers = papers_fetch.load_weekly_papers()
+    weekly_meta = papers_fetch.weekly_snapshot()
+    (SITE_DIR / "library-weekly-papers.js").write_text(
+        "window.__WEEKLY_PAPERS__="
+        + json.dumps(weekly_papers, ensure_ascii=False, separators=(",", ":"))
+        + ";\nwindow.__WEEKLY_META__="
+        + json.dumps(weekly_meta, ensure_ascii=False, separators=(",", ":"))
         + ";\n",
         encoding="utf-8",
     )
@@ -867,6 +927,8 @@ def build() -> None:
             "has_mermaid": ctx.has_mermaid,
             "is_home": False,
             "is_chapter_index": is_chapter_index,
+            "chapter_id": chapter["id"],
+            "show_refs": is_chapter_index and chapter["kind"] == "docs",
             "all_pages": all_pages,
             "page_index": page_index,
             "stats": {
@@ -904,6 +966,12 @@ def build() -> None:
         site=site_meta, build_date=BUILD_DATE, root=""
     )
     (library_site / "viewer.html").write_text(viewer_html, encoding="utf-8")
+
+    # ---- 按关键词查看全部文献 -------------------------------------------
+    papers_html = env.get_template("papers.html").render(
+        site=site_meta, build_date=BUILD_DATE, root=""
+    )
+    (library_site / "papers.html").write_text(papers_html, encoding="utf-8")
 
     print()
     print(f"完成：{1 + len(ordered_pages)} 个页面 -> {SITE_DIR}")
@@ -945,6 +1013,17 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
         if path == "/api/papers-meta":
             self.send_json(papers_fetch.state_snapshot())
             return
+        if path == "/api/papers-weekly":
+            self.send_json(papers_fetch.load_weekly_papers())
+            return
+        if path == "/api/papers-weekly-meta":
+            self.send_json(papers_fetch.weekly_snapshot())
+            return
+        if path == "/api/refs":
+            query = urlparse(self.path).query
+            chapter_id = self._query_param(query, "chapter")
+            self.send_json(load_refs(chapter_id))
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
@@ -953,8 +1032,45 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
             self.handle_upload()
         elif path == "/api/fetch-papers":
             self.handle_fetch_papers()
+        elif path == "/api/fetch-weekly":
+            self.handle_fetch_weekly()
+        elif path == "/api/upload-ref":
+            self.handle_upload_ref()
         else:
             self.send_json({"error": "未知接口"}, 404)
+
+    @staticmethod
+    def _query_param(query: str, key: str) -> str:
+        for part in query.split("&"):
+            if part.startswith(key + "="):
+                return unquote(part[len(key) + 1 :])
+        return ""
+
+    def handle_fetch_weekly(self) -> None:
+        """每周任务：手动触发近两周检索，写入独立 weekly 存储。"""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8")) if length else {}
+        except Exception:
+            body = {}
+        keywords = body.get("keywords")
+        if not isinstance(keywords, list) or not keywords:
+            keywords = papers_fetch.load_weekly_keywords()
+        try:
+            days = int(body.get("days", 14))
+        except (TypeError, ValueError):
+            days = 14
+        days = min(max(days, 7), 30)
+        try:
+            result = papers_fetch.run_weekly_fetch(keywords, days)
+        except Exception as exc:  # noqa: BLE001
+            self.send_json({"error": f"检索失败：{exc}"}, 500)
+            return
+        _write_weekly_script(result["papers"])
+        self.send_json(result)
 
     def handle_fetch_papers(self) -> None:
         """任务一：手动触发近 1 年文献检索。"""
@@ -998,7 +1114,7 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
         filename = unquote(self.headers.get("X-Filename", "")).strip()
         suffix = Path(filename).suffix.lower()
         if suffix not in LIBRARY_EXTENSIONS:
-            self.send_json({"error": "仅支持 PDF / DOCX / HTML"}, 400)
+            self.send_json({"error": "仅支持 PDF / DOCX / HTML / PPT"}, 400)
             return
 
         payload = self.rfile.read(length)
@@ -1052,6 +1168,82 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
 
         self.send_json(entry)
 
+    def handle_upload_ref(self) -> None:
+        """为某章节上传参考文档（PDF / DOCX / PPT）。"""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0:
+            self.send_json({"error": "文件为空"}, 400)
+            return
+        if length > 200 * 1024 * 1024:
+            self.send_json({"error": "文件超过 200 MB 上限"}, 413)
+            return
+
+        chapter_id = unquote(self.headers.get("X-Chapter", "")).strip()
+        if not chapter_id:
+            self.send_json({"error": "缺少章节标识"}, 400)
+            return
+
+        filename = unquote(self.headers.get("X-Filename", "")).strip()
+        suffix = Path(filename).suffix.lower()
+        if suffix not in REF_EXTENSIONS:
+            self.send_json({"error": "仅支持 PDF / DOCX / HTML / PPT"}, 400)
+            return
+
+        payload = self.rfile.read(length)
+        ident = uuid.uuid4().hex[:12]
+        stored_name = ident + (".html" if suffix == ".htm" else suffix)
+        target = REFS_FILES_DIR / stored_name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(payload)
+
+        preview = ""
+        if suffix == ".docx":
+            try:
+                preview_name = ident + ".html"
+                REFS_PREVIEWS_DIR.mkdir(parents=True, exist_ok=True)
+                (REFS_PREVIEWS_DIR / preview_name).write_text(
+                    docx_to_html(target), encoding="utf-8"
+                )
+                preview = f"previews/{preview_name}"
+            except Exception:
+                preview = ""
+
+        entry = {
+            "id": ident,
+            "title": unquote(self.headers.get("X-Title", "")).strip()
+            or Path(filename).stem,
+            "kind": suffix.lstrip("."),
+            "file": f"files/{stored_name}",
+            "preview": preview,
+            "size": len(payload),
+            "added": datetime.now().isoformat(timespec="seconds"),
+        }
+        items = load_refs(chapter_id)
+        items.insert(0, entry)
+        save_refs(chapter_id, items)
+
+        # 立即同步到 site/ 供刷新查看
+        shutil.copy2(target, SITE_DIR / "library" / "refs" / "files" / stored_name)
+        if preview:
+            shutil.copy2(
+                REFS_PREVIEWS_DIR / Path(preview).name,
+                SITE_DIR / "library" / "refs" / "previews" / Path(preview).name,
+            )
+        refs_index: dict[str, list[dict[str, Any]]] = {}
+        for meta_file in REFS_DIR.glob("*.json"):
+            refs_index[meta_file.stem] = load_refs(meta_file.stem)
+        (SITE_DIR / "library-refs.js").write_text(
+            "window.__REFS__="
+            + json.dumps(refs_index, ensure_ascii=False, separators=(",", ":"))
+            + ";\n",
+            encoding="utf-8",
+        )
+
+        self.send_json(entry)
+
 
 def _write_papers_script(papers: list[dict[str, Any]]) -> None:
     """把检索结果写成 site/library-papers.js，供 file:// 直开使用。"""
@@ -1072,17 +1264,30 @@ def _write_papers_script(papers: list[dict[str, Any]]) -> None:
     )
 
 
+def _write_weekly_script(papers: list[dict[str, Any]]) -> None:
+    """把每周检索结果写成 site/library-weekly-papers.js。"""
+    meta = papers_fetch.weekly_snapshot()
+    (SITE_DIR / "library-weekly-papers.js").write_text(
+        "window.__WEEKLY_PAPERS__="
+        + json.dumps(papers, ensure_ascii=False, separators=(",", ":"))
+        + ";\nwindow.__WEEKLY_META__="
+        + json.dumps(meta, ensure_ascii=False, separators=(",", ":"))
+        + ";\n",
+        encoding="utf-8",
+    )
+
+
 def _papers_scheduler_loop() -> None:
     """任务二：后台周调度线程。
 
     每分钟检查一次，检测到已跨入新的一周（以每周一为界）就自动检索
-    「上两周」的最新文献；结果写回 library/papers.json 与 site/ 脚本。
+    「上两周」的最新文献；结果写回 weekly 存储与 site/ 脚本。
     """
     while True:
         try:
             result = papers_fetch.auto_fetch_if_due()
             if result:
-                _write_papers_script(result["papers"])
+                _write_weekly_script(result["papers"])
         except Exception:  # noqa: BLE001
             pass
         time.sleep(60)

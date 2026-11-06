@@ -63,6 +63,25 @@
     </section>
     {% endif %}
 
+    {% if show_refs %}
+    <section class="reference-panel" id="chapterRefs" data-chapter="{{ chapter_id }}">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+    {% endif %}
+
     <nav class="page-nav" aria-label="翻页">
       {% if prev %}
         <a class="page-nav-item is-prev" href="{{ root }}{{ prev.url }}">
@@ -119,5 +138,9 @@
 {% endblock %}
 
 {% block scripts %}
+{% if show_refs %}
+<script src="{{ root }}library-refs.js" defer></script>
+<script src="{{ root }}assets/js/references.js" defer></script>
+{% endif %}
 <script src="{{ root }}assets/js/notes.js" defer></script>
 {% endblock %}
