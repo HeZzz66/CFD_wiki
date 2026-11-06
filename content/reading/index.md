@@ -17,6 +17,41 @@ tags: [在读文献, 知识库, 批注, wikilink]
 
 `index` 是目录、`log` 是操作日志：新建、导入、删除都会自动记录，和 llm_wiki 的做法一致。
 
+## 工程目录
+
+知识库本体就是一个 llm_wiki 风格的项目目录（本地 `--serve` 时写在 `library/kb/`）：
+
+```
+library/kb/
+├── purpose.md              为什么建这个库
+├── schema.md               词条类型与命名规则
+└── wiki/
+    ├── overview.md         总览
+    ├── index.md            索引（按类型自动重建）
+    ├── log.md              操作日志（自动追加）
+    ├── sources/*.md        来源摘要
+    ├── concepts/*.md       概念
+    ├── entities/*.md       实体
+    ├── topics/*.md         主题
+    └── media/*.png         正文截图
+```
+
+每个词条都是带 YAML frontmatter 的 Markdown：
+
+```yaml
+---
+id: concept-vof
+title: VOF 方法
+type: concept
+tags: [两相流, 界面捕捉]
+sources: [paper-xxx]
+created: 2026-11-06T10:20:00
+updated: 2026-11-06T10:32:00
+---
+```
+
+`index.md` 与 `log.md` 每次保存都会按词条重新生成，不要手写。
+
 ## 工作流
 
 1. 在「来源」页上传论文，或直接使用已上传的文件；点“阅读”进入阅读器，右栏做富文本笔记（支持加粗、标题、列表、粘贴截图）。
@@ -24,14 +59,22 @@ tags: [在读文献, 知识库, 批注, wikilink]
 3. 在「知识库」里新建概念/实体/主题词条，用 `[[词条名]]` 建立双链；右侧会实时显示预览与反向链接。
 4. 在「图谱」里查看 4 类关系（直接链接、共享来源、共同邻居、同类型）形成的网络，点击节点回到词条。
 5. 在「检索」里对标题、正文、标签做全文检索。
+6. 在「体检」里跑一遍 Lint：死链、孤立词条、空词条、没挂靠文献的来源页，点一行直接跳到对应词条。
+
+## 导出与迁移
+
+- **导出工程 ZIP**：整库打成 `purpose.md` + `schema.md` + `wiki/**/*.md` + `media/`，解压后可直接用 Obsidian 打开，或作为 llm_wiki 的导入材料。
+- **导入 Markdown**：把带 frontmatter 的 `.md`（例如从 Obsidian 里拿出来的）批量导入，按 `id` 或标题覆盖同名词条。
+- **导出 / 导入 JSON**：本站自己的完整快照，适合在浏览器之间搬数据。
+- 删除词条会**级联清理**：其他词条里指向它的 `[[双链]]` 会被拆成普通文字，来源关联一并解除。
 
 ## 与 llm_wiki 的差异
 
 llm_wiki 是桌面应用，导入时调用 LLM 自动分析并生成词条；本页是静态站点内的**本地增强版**：
 
 - 不调用 LLM，导入时生成结构化骨架与笔记摘录，内容由你填写；
-- 数据优先存到 `library/kb.json`（`--serve` 模式），静态部署时退回浏览器 IndexedDB；
-- 支持导出完整 JSON 工程与单页 Markdown，便于备份、迁移到 Obsidian 或导入 llm_wiki 继续加工。
+- 本地 `--serve` 时词条写入 `library/kb/` 的 Markdown 工程；静态部署（GitHub Pages）时退回浏览器 IndexedDB，请用工程 ZIP 做备份；
+- 暂未实现向量检索、Louvain 社区发现与 Deep Research，只是一个纯前端的结构化管理器。
 
 :::tip 双链写法
 `[[场论基础]]` 按标题解析；`[[ch1/field-theory|场论基础]]` 可以直接指向站内 Wiki 页面并自定义显示文字。解析不到的词条会显示为红色，点一下就能新建。

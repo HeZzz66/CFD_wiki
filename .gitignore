@@ -15,7 +15,8 @@ library/previews/*
 library/refs/files/*
 library/refs/previews/*
 
-# 个人知识库（本地 --serve 时写入，含私人笔记，默认不入库；需要备份请导出 JSON）
+# 个人知识库（本地 --serve 时写入，含私人笔记，默认不入库；需要备份请导出工程 ZIP）
+library/kb/
 library/kb.json
 
 # 操作系统 / 编辑器

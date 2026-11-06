@@ -23,8 +23,11 @@ CFD Wiki 静态站点生成器
 from __future__ import annotations
 
 import argparse
+import base64
 import functools
+import hashlib
 import html
+import io
 import json
 import re
 import shutil
@@ -37,6 +40,7 @@ import webbrowser
 import xml.etree.ElementTree as ET
 import zipfile
 from datetime import date, datetime
+from html.parser import HTMLParser
 from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 from typing import Any
@@ -636,8 +640,35 @@ def save_library(items: list[dict[str, Any]]) -> None:
     )
 
 
-# ---- 个人知识库（在读文献）-------------------------------------------
-KB_PATH = LIBRARY_DIR / "kb.json"
+# ---- 个人知识库（在读文献，llm_wiki 风格的项目式目录）-----------------
+KB_DIR = LIBRARY_DIR / "kb"
+KB_WIKI_DIR = KB_DIR / "wiki"
+KB_MEDIA_DIR = KB_WIKI_DIR / "media"
+KB_LEGACY_PATH = LIBRARY_DIR / "kb.json"
+KB_MEDIA_PREFIX = "../library/kb-media/"
+
+KB_ROOT_FILES = {"purpose": "purpose.md", "schema": "schema.md"}
+KB_WIKI_FILES = {"overview": "overview.md", "index": "index.md", "log": "log.md"}
+KB_TYPE_DIRS = {
+    "source": "sources",
+    "concept": "concepts",
+    "entity": "entities",
+    "topic": "topics",
+}
+KB_TYPE_TITLES = {
+    "overview": "总览",
+    "source": "来源",
+    "concept": "概念",
+    "entity": "实体",
+    "topic": "主题",
+    "meta": "规则",
+}
+KB_TYPE_ORDER = ["overview", "source", "concept", "entity", "topic", "meta"]
+KB_LOG_RE = re.compile(
+    r"^- (\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2})?)\s*·\s*([^·]+?)\s*(?:·\s*(.*))?$"
+)
+DATA_IMAGE_RE = re.compile(r"^data:image/([a-z0-9.+-]+);base64,(.*)$", re.S)
+
 
 
 def default_kb() -> dict[str, Any]:
@@ -711,30 +742,376 @@ def default_kb() -> dict[str, Any]:
     return {"version": 1, "updated": now, "pages": pages}
 
 
-def load_kb() -> dict[str, Any]:
-    if not KB_PATH.exists():
-        return default_kb()
+class HtmlToMarkdown(HTMLParser):
+    """把编辑器里的 HTML 压成 Markdown，够 llm_wiki / Obsidian 正常阅读即可。"""
+
+    def __init__(self, image_sink=None):
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+        self.lists: list[dict[str, Any]] = []
+        self.links: list[str] = []
+        self.pre_depth = 0
+        self.image_sink = image_sink
+
+    def _blank(self, count: int = 2) -> None:
+        tail = "".join(self.parts)
+        stripped = tail.rstrip("\n")
+        if not stripped:
+            return
+        missing = count - (len(tail) - len(stripped))
+        if missing > 0:
+            self.parts.append("\n" * missing)
+
+    def handle_starttag(self, tag: str, attrs) -> None:
+        values = dict(attrs)
+        if tag in ("strong", "b"):
+            self.parts.append("**")
+        elif tag in ("em", "i"):
+            self.parts.append("*")
+        elif tag == "u":
+            self.parts.append("<u>")
+        elif tag in ("h1", "h2", "h3", "h4", "h5", "h6"):
+            self._blank(2)
+            self.parts.append("#" * int(tag[1]) + " ")
+        elif tag in ("p", "div"):
+            self._blank(2)
+        elif tag == "br":
+            self.parts.append("  \n")
+        elif tag == "hr":
+            self._blank(2)
+            self.parts.append("---")
+            self._blank(2)
+        elif tag in ("ul", "ol"):
+            self._blank(2)
+            self.lists.append({"kind": tag, "n": 0})
+        elif tag == "li":
+            self._blank(1)
+            parent = self.lists[-1] if self.lists else {"kind": "ul", "n": 0}
+            if parent["kind"] == "ol":
+                parent["n"] += 1
+                self.parts.append(f"{parent['n']}. ")
+            else:
+                self.parts.append("- ")
+        elif tag == "a":
+            self.links.append(values.get("href") or "")
+            self.parts.append("[")
+        elif tag == "img":
+            src = values.get("src") or ""
+            if self.image_sink:
+                src = self.image_sink(src)
+            alt = (values.get("alt") or "").replace("]", "")
+            self.parts.append(f"![{alt}]({src})")
+        elif tag == "blockquote":
+            self._blank(2)
+            self.parts.append("> ")
+        elif tag == "pre":
+            self._blank(2)
+            self.parts.append("```\n")
+            self.pre_depth += 1
+        elif tag == "code" and not self.pre_depth:
+            self.parts.append("`")
+        elif tag in ("td", "th"):
+            self.parts.append(" | ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("strong", "b"):
+            self.parts.append("**")
+        elif tag in ("em", "i"):
+            self.parts.append("*")
+        elif tag == "u":
+            self.parts.append("</u>")
+        elif tag in ("h1", "h2", "h3", "h4", "h5", "h6", "p", "div", "blockquote"):
+            self._blank(2)
+        elif tag in ("ul", "ol"):
+            if self.lists:
+                self.lists.pop()
+            self._blank(2)
+        elif tag == "a":
+            href = self.links.pop() if self.links else ""
+            self.parts.append(f"]({href})")
+        elif tag == "pre":
+            self.pre_depth = max(0, self.pre_depth - 1)
+            tail = "".join(self.parts)
+            if not tail.endswith("\n"):
+                self.parts.append("\n")
+            self.parts.append("```")
+            self._blank(2)
+        elif tag == "code" and not self.pre_depth:
+            self.parts.append("`")
+
+    def handle_data(self, data: str) -> None:
+        if not data:
+            return
+        self.parts.append(data)
+
+    def markdown(self) -> str:
+        text = "".join(self.parts)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip() + "\n"
+
+
+def _kb_store_image(src: str) -> str:
+    """把粘贴进来的 data URL 图片落盘到 wiki/media，双链文本只保留相对路径。"""
+    match = DATA_IMAGE_RE.match(src)
+    if not match:
+        return src
+    ext = match.group(1).lower().replace("jpeg", "jpg")
+    if ext not in {"png", "jpg", "gif", "webp", "bmp", "svg"}:
+        ext = "png"
     try:
-        data = json.loads(KB_PATH.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        warn("library/kb.json 无法解析，本次使用默认知识库。")
-        return default_kb()
-    if not isinstance(data, dict) or not isinstance(data.get("pages"), list):
-        return default_kb()
-    page_ids = {
-        str(item.get("id")) for item in data["pages"] if isinstance(item, dict)
+        raw = base64.b64decode(match.group(2))
+    except Exception:  # noqa: BLE001
+        return src
+    digest = hashlib.sha1(raw).hexdigest()[:16]
+    KB_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    name = f"{digest}.{ext}"
+    (KB_MEDIA_DIR / name).write_bytes(raw)
+    return f"media/{name}"
+
+
+def _kb_html_to_markdown(text: str) -> str:
+    parser = HtmlToMarkdown(_kb_store_image)
+    parser.feed(text or "")
+    parser.close()
+    return parser.markdown()
+
+
+def _kb_markdown_to_html(text: str) -> str:
+    if not (text or "").strip():
+        return ""
+    rendered = markdown.Markdown(extensions=["extra", "sane_lists"]).convert(text)
+    return re.sub(
+        r'src="(?:\.\./)*media/([^"]+)"',
+        lambda match: f'src="{KB_MEDIA_PREFIX}{match.group(1)}"',
+        rendered,
+    )
+
+
+def _kb_page_path(page: dict[str, Any]) -> Path:
+    pid = str(page.get("id") or "").strip()
+    ptype = str(page.get("type") or "").strip()
+    if pid in KB_ROOT_FILES:
+        return KB_DIR / KB_ROOT_FILES[pid]
+    if pid in KB_WIKI_FILES:
+        return KB_WIKI_DIR / KB_WIKI_FILES[pid]
+    if not pid:
+        pid = "page-" + uuid.uuid4().hex[:10]
+        page["id"] = pid
+    safe = re.sub(r"[^A-Za-z0-9_.-]", "-", pid) or "page"
+    return KB_WIKI_DIR / KB_TYPE_DIRS.get(ptype, "topics") / f"{safe}.md"
+
+
+def _kb_front_matter(meta: dict[str, Any]) -> str:
+    return "---\n" + yaml.safe_dump(meta, allow_unicode=True, sort_keys=False).strip() + "\n---\n\n"
+
+
+def _kb_page_file(page: dict[str, Any], prefix: str = "") -> str:
+    meta = {
+        "id": str(page.get("id") or ""),
+        "title": str(page.get("title") or "未命名词条"),
+        "type": str(page.get("type") or "concept"),
+        "tags": [str(tag) for tag in page.get("tags") or []],
+        "sources": [str(item) for item in page.get("sources") or []],
+        "created": str(page.get("created") or ""),
+        "updated": str(page.get("updated") or ""),
     }
+    body = _kb_html_to_markdown(str(page.get("body") or ""))
+    if prefix:
+        body = body.replace("](media/", f"]({prefix}media/")
+    return _kb_front_matter(meta) + body
+
+
+def _kb_index_markdown(pages: list[dict[str, Any]]) -> str:
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for page in pages:
+        if str(page.get("id")) in ("index", "log"):
+            continue
+        groups.setdefault(str(page.get("type") or "concept"), []).append(page)
+    lines = [
+        "# 索引",
+        "",
+        f"共 {sum(1 for page in pages if str(page.get('id')) not in ('index', 'log'))} 个词条。按类型分组：",
+        "",
+    ]
+    for ptype in KB_TYPE_ORDER:
+        rows = groups.get(ptype)
+        if not rows:
+            continue
+        lines.append(f"## {KB_TYPE_TITLES.get(ptype, ptype)}")
+        for page in rows:
+            lines.append(f"- [[{page.get('title')}]]")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _kb_log_markdown(kb: dict[str, Any]) -> str:
+    lines = ["# 操作日志", ""]
+    entries = kb.get("log") if isinstance(kb.get("log"), list) else []
+    if not entries:
+        lines.append("还没有操作记录。")
+    for row in entries[:200]:
+        if not isinstance(row, dict):
+            continue
+        moment = str(row.get("at") or "").replace("T", " ")[:16]
+        action = str(row.get("action") or "操作").replace("·", "／")
+        detail = str(row.get("detail") or "").replace("\n", " ").replace("·", "／").strip()
+        line = f"- {moment} · {action}"
+        if detail:
+            line += f" · {detail}"
+        lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
+def _kb_parse_log(text: str) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for line in (text or "").splitlines():
+        match = KB_LOG_RE.match(line.strip())
+        if not match:
+            continue
+        entries.append(
+            {
+                "at": match.group(1).replace(" ", "T"),
+                "action": match.group(2).strip(),
+                "detail": (match.group(3) or "").strip(),
+            }
+        )
+    return entries[:120]
+
+
+def _kb_write_system(path: Path, pid: str, title: str, ptype: str, body: str) -> None:
+    now = datetime.now().isoformat(timespec="seconds")
+    created = now
+    if path.exists():
+        try:
+            meta, _ = split_front_matter(path.read_text(encoding="utf-8"), path)
+            created = str(meta.get("created") or now)
+        except OSError:
+            pass
+    meta = {
+        "id": pid,
+        "title": title,
+        "type": ptype,
+        "tags": [],
+        "sources": [],
+        "created": created,
+        "updated": now,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(_kb_front_matter(meta) + body, encoding="utf-8")
+
+
+def _kb_seed() -> None:
+    data = None
+    if KB_LEGACY_PATH.exists():
+        try:
+            legacy = json.loads(KB_LEGACY_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            legacy = None
+        if isinstance(legacy, dict) and isinstance(legacy.get("pages"), list):
+            data = legacy
+        else:
+            warn("library/kb.json 无法解析，改用默认知识库。")
+    save_kb(data or default_kb())
+
+
+def load_kb() -> dict[str, Any]:
+    """读取 library/kb/ 下的 Markdown 词条，拼成前端使用的 JSON。"""
+    if not KB_DIR.exists():
+        _kb_seed()
+
+    pages: list[dict[str, Any]] = []
+    for path in sorted(KB_DIR.rglob("*.md")):
+        if path.name.startswith("."):
+            continue
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        meta, body = split_front_matter(raw, path)
+        pages.append(
+            {
+                "id": str(meta.get("id") or path.stem),
+                "title": str(meta.get("title") or path.stem),
+                "type": str(meta.get("type") or "concept"),
+                "tags": [str(tag) for tag in meta.get("tags") or []],
+                "sources": [str(item) for item in meta.get("sources") or []],
+                "body": _kb_markdown_to_html(body),
+                "created": str(meta.get("created") or ""),
+                "updated": str(meta.get("updated") or ""),
+            }
+        )
+
+    present = {page["id"] for page in pages}
     for item in default_kb()["pages"]:
-        if item["id"] not in page_ids:
-            data["pages"].append(item)
-    return data
+        if item["id"] not in present:
+            pages.append(item)
+
+    order = {name: index for index, name in enumerate(KB_TYPE_ORDER)}
+    pages.sort(key=lambda p: (order.get(p["type"], 99), str(p.get("created") or ""), p["title"]))
+
+    log: list[dict[str, Any]] = []
+    log_path = KB_WIKI_DIR / "log.md"
+    if log_path.exists():
+        try:
+            _, log_body = split_front_matter(log_path.read_text(encoding="utf-8"), log_path)
+            log = _kb_parse_log(log_body)
+        except OSError:
+            log = []
+
+    updated = max((page.get("updated") or "" for page in pages), default="")
+    return {
+        "version": 2,
+        "updated": updated or datetime.now().isoformat(timespec="seconds"),
+        "pages": pages,
+        "log": log,
+    }
 
 
 def save_kb(kb: dict[str, Any]) -> None:
-    LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
-    KB_PATH.write_text(
-        json.dumps(kb, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    """把前端 JSON 工程写回 library/kb/：词条 Markdown、index.md、log.md。"""
+    KB_DIR.mkdir(parents=True, exist_ok=True)
+    KB_WIKI_DIR.mkdir(parents=True, exist_ok=True)
+    pages = [page for page in kb.get("pages", []) if isinstance(page, dict)]
+
+    written: set[Path] = set()
+    for page in pages:
+        if str(page.get("id")) in ("index", "log"):
+            continue
+        target = _kb_page_path(page)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        depth = len(target.relative_to(KB_DIR).parts) - 1
+        target.write_text(_kb_page_file(page, "../" * depth), encoding="utf-8")
+        written.add(target.resolve())
+
+    index_path = KB_WIKI_DIR / "index.md"
+    log_path = KB_WIKI_DIR / "log.md"
+    _kb_write_system(index_path, "index", "索引", "meta", _kb_index_markdown(pages))
+    _kb_write_system(log_path, "log", "操作日志", "meta", _kb_log_markdown(kb))
+    written.update({index_path.resolve(), log_path.resolve()})
+
+    for path in KB_DIR.rglob("*.md"):
+        if path.resolve() not in written:
+            path.unlink()
+
+
+def sync_kb_media() -> None:
+    """把 wiki/media 复制到 site/，供浏览器按相对路径加载截图。"""
+    if not KB_MEDIA_DIR.exists():
+        return
+    target = SITE_DIR / "library" / "kb-media"
+    target.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(KB_MEDIA_DIR, target, dirs_exist_ok=True)
+
+
+def kb_project_zip() -> bytes:
+    """打包整个知识库工程，用于迁移到 Obsidian 或其他 llm_wiki 客户端。"""
+    load_kb()
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(KB_DIR.rglob("*")):
+            if path.is_file() and not path.name.startswith("."):
+                archive.write(path, path.relative_to(KB_DIR))
+    return buffer.getvalue()
 
 
 def _write_kb_script(kb: dict[str, Any]) -> None:
@@ -914,6 +1291,7 @@ def build() -> None:
     # ---- 个人知识库（在读文献）-----------------------------------------
     kb = load_kb()
     _write_kb_script(kb)
+    sync_kb_media()
 
     # ---- 章节参考文档（复制文件并注入索引，供 file:// 直开）------------
     if REFS_FILES_DIR.exists():
@@ -1123,6 +1501,18 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def send_bytes(self, payload: bytes, content_type: str, filename: str = "") -> None:
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        if filename:
+            self.send_header(
+                "Content-Disposition", f'attachment; filename="{filename}"'
+            )
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(payload)
+
     def do_GET(self) -> None:
         path = urlparse(self.path).path
         if path == "/api/library":
@@ -1147,6 +1537,9 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
             return
         if path == "/api/kb":
             self.send_json(load_kb())
+            return
+        if path == "/api/kb/export":
+            self.send_bytes(kb_project_zip(), "application/zip", "cfdwiki-kb.zip")
             return
         super().do_GET()
 
@@ -1320,7 +1713,8 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
         body["updated"] = datetime.now().isoformat(timespec="seconds")
         try:
             save_kb(body)
-            _write_kb_script(body)
+            _write_kb_script(load_kb())
+            sync_kb_media()
         except OSError as exc:
             self.send_json({"error": f"写入失败：{exc}"}, 500)
             return

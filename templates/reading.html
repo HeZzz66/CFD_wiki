@@ -21,6 +21,7 @@
       <button class="kb-rail-btn" data-view="sources" type="button"><span aria-hidden="true">▣</span><em>来源</em></button>
       <button class="kb-rail-btn" data-view="graph" type="button"><span aria-hidden="true">◇</span><em>图谱</em></button>
       <button class="kb-rail-btn" data-view="search" type="button"><span aria-hidden="true">⌕</span><em>检索</em></button>
+      <button class="kb-rail-btn" data-view="lint" type="button"><span aria-hidden="true">◎</span><em>体检</em></button>
       <button class="kb-rail-btn" data-view="settings" type="button"><span aria-hidden="true">⚙</span><em>设置</em></button>
     </nav>
 
@@ -149,6 +150,18 @@
         <div class="kb-search-results" id="kbSearchResults"></div>
       </div>
 
+      <div class="kb-view kb-lint-view" id="kbLintView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">LINT</span>
+            <h2>知识库体检</h2>
+          </div>
+          <p>照 llm_wiki 的 Lint 思路：检查死链、孤立词条、空词条，以及没有挂靠原始文献的来源页。</p>
+        </div>
+        <div class="kb-lint-summary" id="kbLintSummary"></div>
+        <div class="kb-lint-list" id="kbLintList"></div>
+      </div>
+
       <div class="kb-view kb-settings-view" id="kbSettingsView" hidden>
         <div class="kb-view-head">
           <div>
@@ -172,13 +185,16 @@
           <div class="kb-settings-card">
             <h4>工程操作</h4>
             <div class="kb-settings-actions">
-              <button class="btn btn-primary" id="kbExportJson" type="button">导出 JSON 工程</button>
+              <button class="btn btn-primary" id="kbExportZip" type="button">导出工程 ZIP</button>
+              <button class="btn btn-ghost" id="kbImportMdBtn" type="button">导入 Markdown</button>
+              <button class="btn btn-ghost" id="kbExportJson" type="button">导出 JSON</button>
               <button class="btn btn-ghost" id="kbImportBtn" type="button">导入 JSON</button>
               <button class="btn btn-ghost" id="kbRebuild" type="button">重建索引与总览</button>
               <button class="btn btn-ghost kb-danger" id="kbReset" type="button">清空知识库</button>
               <input type="file" id="kbImportInput" accept=".json,application/json" hidden>
+              <input type="file" id="kbImportMdInput" accept=".md,text/markdown" multiple hidden>
             </div>
-            <p class="kb-hint">JSON 工程包含全部词条、正文、来源关联与索引日志，可迁移到其他设备，或作为 llm_wiki 的导入材料。</p>
+            <p class="kb-hint">工程 ZIP 是 llm_wiki / Obsidian 的项目结构：purpose.md、schema.md、wiki/index.md、wiki/log.md，以及 wiki/{sources,concepts,entities,topics}/*.md，截图放在 media/。JSON 只适合本站在浏览器间迁移。</p>
           </div>
         </div>
 
