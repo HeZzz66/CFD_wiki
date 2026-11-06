@@ -274,6 +274,28 @@
     "summary": "Uncertainty quantification is crucial in scientific machine learning, where models inform safety-critical tasks such as flood forecasting, aerodynamic optimization, and financial risk management. Conformal prediction provides distribution-free coverage guarantees, but in time-dependent settings common to physics and engineering, these guarantees can break down, leading to systematic undercoverage. We study this prob…"
   },
   {
+    "id": "arxiv:2611.07646v1",
+    "title": "WaSP: Wasserstein Data Synthesis Pipeline for Solver-Free Operator Learning",
+    "authors": [
+      "Ryan Liu",
+      "Chuwei Wang",
+      "Ricardo Baptista",
+      "Andrew Stuart",
+      "Anima Anandkumar"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "Neural operators offer fast surrogates for solving PDEs, but training them typically requires expensive input-solution pairs. Two solver-free alternatives include physics-informed learning and training on manufactured data. Physics-informed learning approximates solutions by minimizing PDE residuals. While the residual norm must be strong enough to control solution error, stronger norms increase mini-batch variance and hinder optimization. Manufactured data constructs input-solution pairs for learning by applying the PDE operator to artificial solutions. However, the resulting training distribution can be mutually singular with the target distribution, yielding poor accuracy on the target distribution. We introduce the Wasserstein Data Synthesis Pipeline (WaSP), which trains on manufactured input-solution pairs while gradually mitigating the distribution shift. WaSP synthesizes new pairs by applying the learned operator to a path of intermediate distributions converging to the target input distribution. Training proceeds in stages along this path. At each stage, the previous surrogate generates solutions, and the exact PDE operator derives corresponding inputs, yielding training pairs for the next surrogate. Theoretically, we prove a stepwise error-propagation bound for the distribution shift introduced during synthesis. Empirically, WaSP reduces solution error by $3.9\\times$ to $9.5\\times$ compared to existing solver-free methods on PDEs such as Allen-Cahn, Kuramoto-Sivashinsky, and Ginzburg-Landau, and better reproduces the two chaotic systems' statistical observables.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.07646v1",
+    "doi": "",
+    "keywords": [
+      "neural operator"
+    ],
+    "summary": "Neural operators offer fast surrogates for solving PDEs, but training them typically requires expensive input-solution pairs. Two solver-free alternatives include physics-informed learning and training on manufactured data. Physics-informed learning approximates solutions by minimizing PDE residuals. While the residual norm must be strong enough to control solution error, stronger norms increase mini-batch variance…"
+  },
+  {
     "id": "doi:10.1063/5.0347030",
     "title": "Vorticity-dynamics analysis of liquid-jet atomization in crossflow dominated by Kelvin–Helmholtz instability",
     "authors": [
@@ -2340,6 +2362,26 @@
     "summary": "Quantitative image reconstruction in positron emission tomography and single photon emission computed tomography depends on how accurately the forward model describes photon emission, transport and detection. Monte Carlo simulation is the most complete model available, yet it is mostly used as an offline reference rather than inside the reconstruction. This roadmap asks what it would take to change that. The main ob…"
   },
   {
+    "id": "arxiv:2611.07395v1",
+    "title": "Rigorously Certified Neural-Network Computation of Nonlinear Water Waves at Near-Machine Precision",
+    "authors": [
+      "Michal Shavit",
+      "Yongji Wang",
+      "Tristan Buckmaster"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "We present a computational framework that combines machine-learning-based discovery with rigorous computer-assisted numerical certification and formal verification for strongly nonlinear partial differential equations. We demonstrate the approach for periodic gravity-capillary traveling water waves. Physics-informed neural networks are used as a search mechanism, with the wave profile, wave speed and, in continuation experiments, surface tension learned directly from the governing equations without training data. Through a staged training and refinement procedure, the neural networks achieve near-machine-precision residuals of the governing equations, even in strongly nonlinear regimes. A single formulation recovers high-amplitude Stokes waves, Crapper waves and Wilton ripples. Continuation from a high-amplitude Wilton ripple in surface tension reveals new high-amplitude candidate solutions. We freeze one candidate as an explicit finite representation and rigorously certify a uniform bound on its governing-equation residual using interval arithmetic, accounting for floating-point roundoff, Fourier truncation, aliasing and grid-to-continuum errors. This independently validates the neural-network accuracy. We formalize the certification argument in Lean, which machine-checks the deductions from certified numerical bounds to the residual theorem. Both the interval certification and formalization were developed with substantial assistance from a large language model, while the validity of the result remains independent of the language model: the numerical bounds are rigorously enclosed by interval arithmetic and the subsequent mathematical deductions are checked by the Lean kernel. Together, these steps provide a pipeline from neural discovery to rigorous numerical certification and machine-checked verification with auditable mathematical guarantees.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.07395v1",
+    "doi": "",
+    "keywords": [
+      "physics-informed neural network"
+    ],
+    "summary": "We present a computational framework that combines machine-learning-based discovery with rigorous computer-assisted numerical certification and formal verification for strongly nonlinear partial differential equations. We demonstrate the approach for periodic gravity-capillary traveling water waves. Physics-informed neural networks are used as a search mechanism, with the wave profile, wave speed and, in continuatio…"
+  },
+  {
     "id": "or:Vjw7q1quNt",
     "title": "Riesz Neural Operator for Solving Partial Differential Equations",
     "authors": [
@@ -2977,6 +3019,29 @@
       "scientific machine learning"
     ],
     "summary": "Large language models (LLMs) are capable of emulating reasoning and using tools, creating opportunities for autonomous agents that execute complex scientific tasks. Protein design provides a natural testbed: although machine learning (ML) methods achieve strong results, these are largely restricted to canonical amino acids and narrow objectives, leaving unfilled need for a generalist tool for broad design pipelines.…"
+  },
+  {
+    "id": "arxiv:2611.07387v1",
+    "title": "Projection-based segregated, iterative, and multi-stage physics-informed neural network for incompressible Navier-stokes equations",
+    "authors": [
+      "Zhenyu Zhang",
+      "Zhixiang Ling",
+      "Yinghao Huo",
+      "Huayong Liu",
+      "Yunde Su"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "Physics-informed neural networks(PINNs) offer a mesh-free and continuously differentiable approach to fluid simulation. However, standard monolithic PINNs for incompressible Navier-Stokes (NS) equations often suffer from severe constraint coupling and spectral biases, limiting both convergence and accuracy. To address this challenge, we propose a segregated, iterative, and multi-stage PINN (SIM-PINN) inspired by the classical projection method in computational fluid dynamics. In SIM-PINN, the nonlinear NS equations are decoupled into the linearized momentum and pressure Poisson equations. Each is addressed separately using dedicated multi-stage neural networks and coupled through projection-based inner iterations. Each stage of the multi-stage neural networks for the momentum equations corresponds to one iteration of the projection method, in which the velocity fields are progressively refined at targeted frequencies. Upon iteration convergence, solutions to the fully coupled and nonlinear NS equations are recovered. By integrating the segregated and iterative framework with the multi-stage training, SIM-PINN alleviates the optimization difficulties of the incompressible NS equations arising from nonlinearity, constraint coupling, and spectral biases. The improved convergence and accuracy are demonstrated by simulations of steady lid-driven cavity and unsteady Kolmogorov flows.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.07387v1",
+    "doi": "",
+    "keywords": [
+      "physics-informed neural network",
+      "PINN"
+    ],
+    "summary": "Physics-informed neural networks(PINNs) offer a mesh-free and continuously differentiable approach to fluid simulation. However, standard monolithic PINNs for incompressible Navier-Stokes (NS) equations often suffer from severe constraint coupling and spectral biases, limiting both convergence and accuracy. To address this challenge, we propose a segregated, iterative, and multi-stage PINN (SIM-PINN) inspired by the…"
   },
   {
     "id": "doi:10.1038/s41467-026-79050-2",
@@ -6172,6 +6237,27 @@
     "summary": "Scientific illustrations are essential for depicting conceptual designs, methodologies, and experimental workflows in research, playing a pivotal role in communicating complex academic insights. However, creating high-quality scientific illustrations remains a labor-intensive task for human scientists. While recent generative image models have advanced prompt-based editing, the synthesis of fully **editable** figure…"
   },
   {
+    "id": "arxiv:2611.08001v1",
+    "title": "LithoSAGE: Spatially Adaptive and Geometrically Equivariant Neural Operators for Computational Lithography",
+    "authors": [
+      "Ke Jin",
+      "Zhenli Xu",
+      "Zilin You"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "Operator learning offers an efficient surrogate for lithography simulation, replacing costly numerical solutions with direct model inference. However, existing learning architectures are not designed to simultaneously provide geometric equivariance and adaptability to layout windows with different physical extents, and thus their generalization capability is limited. To address this problem, we propose LithoSAGE, a spatially adaptive and geometrically equivariant neural operator method trained on lithography data. Within its basic Fourier neural operator architecture, spectral weights are expressed as continuous functions of normalized radial frequency through a learnable sum of Gaussians. This representation preserves the geometric properties of the lithography system and incorporates rotation and translation equivariance, spatial interaction decay, and direct evaluation on different layout windows. Experiments predict aerial images from mask layouts and resist images from aerial images, demonstrating the geometric equivariance and spatial adaptivity of LithoSAGE. Comparisons with other architectures also assess prediction errors and parameter efficiency.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.08001v1",
+    "doi": "",
+    "keywords": [
+      "neural operator",
+      "Fourier neural operator"
+    ],
+    "summary": "Operator learning offers an efficient surrogate for lithography simulation, replacing costly numerical solutions with direct model inference. However, existing learning architectures are not designed to simultaneously provide geometric equivariance and adaptability to layout windows with different physical extents, and thus their generalization capability is limited. To address this problem, we propose LithoSAGE, a…"
+  },
+  {
     "id": "or:YQmrP0zjmh",
     "title": "LithoDreamer: A Physics-Informed World Model for Multi-Stage Computational Lithography",
     "authors": [
@@ -8731,6 +8817,26 @@
     "summary": "Machine-learning surrogates are increasingly proposed to replace phase-field fracture simulations in many-query tasks such as uncertainty quantification, inverse analysis and design. Little controlled evidence shows which architectures are reliable, for which fracture problems and how far beyond their training data. We introduce Fracture-Bench, an open benchmark of two phase-field datasets with fixed splits, common…"
   },
   {
+    "id": "arxiv:2611.07215v1",
+    "title": "Fractional physics-informed neural networks to model social media virality",
+    "authors": [
+      "Alex Koong",
+      "George Em Karniadakis"
+    ],
+    "year": 2026,
+    "date": "2026-11-04",
+    "abstract": "Existing models of social media virality either prescribe the functional form of engagement growth or assume a fixed mechanism by which past activity influences future engagement. We present a fractional physics-informed neural network that learns both the temporal memory and nonlinear growth dynamics of social media engagement, using symbolic regression to translate the learned dynamics into interpretable equations. Synthetic experiments at the deployment resolution of 24 hourly observations demonstrate that the fractional order and reaction law can be jointly recovered from clean data. Under observation noise, however, the standard pointwise physics residual drives the fractional order toward its lower bound through a scale artifact. We address this failure using a fully whitened residual that propagates observation noise through the fractional operator. Applying the framework to 348 posts from X (formerly Twitter), we find that a single-window model estimates strongly memory-dependent dynamics but fails to accurately reconstruct held-out trajectories. Partitioning the 24-hour window into four teacher-forced segments substantially improves performance, yielding segment-specific fractional orders that increase from 0.23 to 0.99 and interpretable growth laws for each phase. The segmented model reconstructs 64% of held-out trajectories within a mean squared error of 0.01, compared with 44% for the strongest of nine classical baselines. Together, these results demonstrate the potential of fractional physics-informed equation discovery to uncover interpretable engagement dynamics while highlighting the importance of noise-aware estimation and temporal segmentation.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.07215v1",
+    "doi": "",
+    "keywords": [
+      "neural operator",
+      "physics-informed neural network"
+    ],
+    "summary": "Existing models of social media virality either prescribe the functional form of engagement growth or assume a fixed mechanism by which past activity influences future engagement. We present a fractional physics-informed neural network that learns both the temporal memory and nonlinear growth dynamics of social media engagement, using symbolic regression to translate the learned dynamics into interpretable equations…"
+  },
+  {
     "id": "or:V4FDM692AZ",
     "title": "Fractional is Better: Learnable Derivative Orders in Neural Operator Learning",
     "authors": [
@@ -8792,7 +8898,7 @@
     "url": "https://doi.org/10.1038/s42256-026-01322-9",
     "doi": "10.1038/s42256-026-01322-9",
     "keywords": [
-      "foundation model"
+      "其他相关"
     ],
     "summary": "Abstract Data-intensive collider experiments increasingly require models that transfer across high-dimensional, partially observed measurements, yet most analyses still optimize separate models for each task. Here, to address this bottleneck, we introduce EVENET, an event-level foundation model pretrained on 500 million simulated collision events using self-supervised learning and physics-informed supervision. The m…"
   },
@@ -9143,6 +9249,33 @@
       "PINN"
     ],
     "summary": "In the context of over-parameterization, there is a line of work demonstrating that randomly initialized (stochastic) gradient descent (GD) converges to a globally optimal solution at a linear convergence rate for the quadratic loss function. However, the convergence rate of GD for training two-layer neural networks exhibits poor dependence on the sample size and the Gram matrix, leading to a slow training process.…"
+  },
+  {
+    "id": "arxiv:2611.06994v1",
+    "title": "FNO-Based Inverse Co-Design of Semiconducting Quantum-Dot Devices",
+    "authors": [
+      "Marek Rychetsky",
+      "Valentin Duruisseaux",
+      "Freya Shah",
+      "David L. Craig",
+      "Ming Ni",
+      "Georgios Katsaros",
+      "Taylor L. Patti",
+      "Anima Anandkumar",
+      "Natalia Ares"
+    ],
+    "year": 2026,
+    "date": "2026-11-04",
+    "abstract": "Gate-defined semiconductor quantum dots are promising building blocks for scalable spin-based quantum processors, however their operational properties depend on several fabrication and control parameters, such as lithographic gate layout and applied voltages. Existing device architectures have been refined through repeated fabrication and experimental testing, producing layouts that support reliable device operation. However, this process does not exhaustively explore the design space, limiting the ability to obtain qubits with targeted properties. We address these challenges by presenting a differentiable inverse co-design framework for electrostatically defined quantum dots that jointly optimises gate voltages and the gate electrode layout. A semiclassical Thomas--Fermi electrostatic simulator provides reference data for a Fourier neural operator (FNO) surrogate, which predicts the two-dimensional charge-density field. The desired spatial distribution of the confined charge defines the target quantum-dot geometry for inverse design. The FNO reproduces charge densities with a relative $L^2$ test error of just 0.6\\% and enables millisecond-scale differentiable evaluations. Relative to the CPU-based physics simulator, the FNO achieves a 17,000-fold speed-up on GPU for a single design, with further performance gains enabled by batched inference. When embedded in a gradient-based design loop with fabrication constraints, the FNO can produce both vertically and horizontally elongated double-dot confinement geometries from the same initial conditions. The ability to engineer these distinct confinement configurations demonstrates control over quantum-dot shape and position, providing a route towards designing devices with distinct qubit-relevant operating properties prior to fabrication.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.06994v1",
+    "doi": "",
+    "keywords": [
+      "neural operator",
+      "Fourier neural operator"
+    ],
+    "summary": "Gate-defined semiconductor quantum dots are promising building blocks for scalable spin-based quantum processors, however their operational properties depend on several fabrication and control parameters, such as lithographic gate layout and applied voltages. Existing device architectures have been refined through repeated fabrication and experimental testing, producing layouts that support reliable device operation…"
   },
   {
     "id": "doi:10.1017/jfm.2026.12316",
@@ -10538,7 +10671,7 @@
       "Chandan K. Reddy"
     ],
     "year": 2026,
-    "date": "2026-11-05",
+    "date": "2026-11-06",
     "abstract": "Finding mathematical relations underlying natural phenomena and scientific systems has been one of the fundamental tasks in the history of scientific discovery. Recent advancements in evolutionary search with Large Language Models (LLMs), with their embedded scientific knowledge, have shown great promise for this task. However, discovering such mathematical models governing scientific observations still remains significantly challenging, as it requires navigating vast combinatorial hypothesis spaces with an explosion of possible relations. Existing LLM-based approaches overlook the impact of data on the structure of mathematical relations, and treat LLMs as a static hypothesis generator unaware of the observed scientific system. This leads to suboptimal and inefficient exploration of the hypothesis space with over-reliance on LLMs' internal priors. To bridge this gap, we introduce Decompose, Adapt, and Evolve (DecAEvolve), a framework that leverages granular feedback from symbolic term decomposition and LLM refinement through reinforcement learning (RL) fine-tuning to enhance both robustness and efficiency of evolutionary discovery frameworks. Our experiments across diverse datasets demonstrate that DecAEvolve significantly improves the accuracy of discovered equations and the efficiency of the discovery process compared to the state-of-the-art baselines.",
     "source": "Submitted to ICLR 2026",
     "venue": "ICLR",
@@ -10590,6 +10723,26 @@
       "PINN"
     ],
     "summary": "We attempt to alleviate failure modes of classical physics-informed neural networks (PINNs) in scenarios of topological pathologies corresponding to punctures, holes, poles, and voids by introducing de Rham cohomological augmentations, or Hodge-de Rham PINNs. Vanilla PINNs often encounter pitfalls in hole-based settings due to discontinuous interfaces, nonzero closed path integration, path dependence, correspondence…"
+  },
+  {
+    "id": "arxiv:2611.08421v1",
+    "title": "Data-driven discovery of intrinsic Lie point symmetries of differential equation systems",
+    "authors": [
+      "Ilker Gurcan",
+      "Kadir Ustun",
+      "Ramazan Gokberk Cinbis"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "Discovering continuous symmetries directly from differential-equation data can reveal geometric structure for model reduction and scientific machine learning without symbolic determining equations or a closed-form representation of the governing system. We formulate intrinsic Lie point-symmetry discovery as an operator-theoretic problem on sampled jet-space data. Admissible generators are identified from a sampled determining operator and separated from redundant, solution-dependent, and geometrically trivial directions. The framework combines prolongation, sequential subspace restrictions, and a fixed nonlinear dictionary linear in trainable coefficients. A rank-stabilization preflight test diagnoses systems whose represented intrinsic symmetry algebra does not stabilize under dictionary refinement. On a controlled differential-equation benchmark with an analytically known 11-dimensional represented intrinsic symmetry algebra, the method recovers the complete represented generator set, reproduces its Lie-bracket structure to numerical precision, and approximates a known generator beyond the training domain. Here we show that explicit intrinsic continuous-symmetry generators can be recovered from data obtained from exact or approximate differential systems.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.08421v1",
+    "doi": "",
+    "keywords": [
+      "scientific machine learning"
+    ],
+    "summary": "Discovering continuous symmetries directly from differential-equation data can reveal geometric structure for model reduction and scientific machine learning without symbolic determining equations or a closed-form representation of the governing system. We formulate intrinsic Lie point-symmetry discovery as an operator-theoretic problem on sampled jet-space data. Admissible generators are identified from a sampled d…"
   },
   {
     "id": "arxiv:2608.27521v1",
@@ -10855,6 +11008,26 @@
       "scientific machine learning"
     ],
     "summary": "Recent time-series foundation models exhibit strong abilities to predict physical systems. These abilities include zero-shot forecasting, in which a model forecasts future states of a system given only a short trajectory as context, without knowledge of the underlying physics. Here, we show that foundation models often forecast through a simple parroting strategy, and when they are not parroting they exhibit some sh…"
+  },
+  {
+    "id": "arxiv:2611.08409v1",
+    "title": "Conformal Prediction for Time-Dependent PDEs",
+    "authors": [
+      "Joshua Stiller",
+      "Annika Schneider",
+      "Eyke Hüllermeier"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "Uncertainty quantification is crucial in scientific machine learning, where models inform safety-critical tasks such as flood forecasting, financial risk management, and thermal control in machines. Conformal prediction provides distribution-free coverage guarantees, but in time-dependent settings common to physics and engineering, these guarantees can break down, leading to systematic undercoverage. We study this problem in the context of surrogate models for time-dependent physical systems described by partial differential equations. We prove that in a function space setting, distributions at arbitrarily close times can be mutually singular, making exact coverage guarantees impossible. We further show that in discretized settings, the total variation distance between distributions often saturates exponentially fast with the grid resolution, mandating restrictions on the spatial discretization to ensure coverage. Finally, for certain settings, we show how to use principled weighted conformal prediction to obtain finite-sample coverage guarantees over growing time horizons.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.08409v1",
+    "doi": "",
+    "keywords": [
+      "scientific machine learning"
+    ],
+    "summary": "Uncertainty quantification is crucial in scientific machine learning, where models inform safety-critical tasks such as flood forecasting, financial risk management, and thermal control in machines. Conformal prediction provides distribution-free coverage guarantees, but in time-dependent settings common to physics and engineering, these guarantees can break down, leading to systematic undercoverage. We study this p…"
   },
   {
     "id": "doi:10.1063/5.0349710",
@@ -11576,6 +11749,27 @@
       "foundation model"
     ],
     "summary": "Video generation has progressed from isolated clips to coherent short-form audiovisual sequences, and the bottleneck is shifting from rendering to semantic control. This report summarizes the observations and insights on multimodal understanding gained from successive generations of Kling. We argue that generation quality is the projection of multimodal understanding through the entire data--conditioning--alignment-…"
+  },
+  {
+    "id": "arxiv:2611.07582v1",
+    "title": "Bayesian Kolmogorov-Arnold networks for trustworthy Reynolds-stress closures",
+    "authors": [
+      "Ali Eidi",
+      "Kherlen Jigjid",
+      "Tyler Buchanan",
+      "Richard P. Dwight"
+    ],
+    "year": 2026,
+    "date": "2026-11-05",
+    "abstract": "Data-driven turbulence closures can improve Reynolds-averaged Navier-Stokes (RANS) predictions, but their use is limited by two issues: learned constitutive relations are often difficult to inspect, and predictions typically lack reliable uncertainty estimates. We develop a Bayesian tensor-basis Kolmogorov-Arnold network (BKAN) for Reynolds-stress anisotropy that addresses both within a single closure. Learnable univariate spline functions on network edges provide an inspectable representation that can, where sufficiently simple, be approximated symbolically. Variational posteriors over spline coefficients yield a predictive distribution separating epistemic uncertainty, due to limited training data, from aleatoric uncertainty, the irreducible scatter of high-fidelity targets at given inputs. Galilean and rotational invariance, symmetry, and tracelessness are enforced through the tensor basis, while physical realisability is treated separately through soft regularisation. A controlled regression benchmark assesses predictive accuracy, calibration, and Bayesian parameterisation. Placing the posterior on spline coefficients gives the best overall balance of accuracy, calibration, parameter cost, and interpretability. Applied to Reynolds-stress anisotropy, the BKAN is accurate in distribution, with calibrated, informative uncertainty that tends to identify larger prediction errors. Under geometric extrapolation, however, the model becomes overconfident: epistemic uncertainty increases but does not fully account for growing prediction errors. Finally, the framework is extended to three-dimensional wind-farm wakes, where the learned correction transfers to unseen layouts and posterior samples are propagated through the RANS solver, with the aleatoric component injected as a spatially correlated field, to obtain uncertainty bounds on the predicted wake flow.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.07582v1",
+    "doi": "",
+    "keywords": [
+      "turbulence closure"
+    ],
+    "summary": "Data-driven turbulence closures can improve Reynolds-averaged Navier-Stokes (RANS) predictions, but their use is limited by two issues: learned constitutive relations are often difficult to inspect, and predictions typically lack reliable uncertainty estimates. We develop a Bayesian tensor-basis Kolmogorov-Arnold network (BKAN) for Reynolds-stress anisotropy that addresses both within a single closure. Learnable uni…"
   },
   {
     "id": "doi:10.1017/jfm.2026.12220",
@@ -12841,6 +13035,25 @@
       "其他相关"
     ],
     "summary": "A language model-informed minimalistic design of functional coacervate vesicles"
+  },
+  {
+    "id": "arxiv:2611.07059v1",
+    "title": "A hierarchy of physics-embedded neural operators for structural dynamic surrogate modelingA hierarchy of physics-embedded neural operators for structural dynamic surrogate modeling",
+    "authors": [
+      "Amir Ansrollahi",
+      "Mehmet Sefa Orak"
+    ],
+    "year": 2026,
+    "date": "2026-11-04",
+    "abstract": "Structural-response surrogates must capture moving resonances, phase changes, and unequal-amplitude transfer channels during optimization or health-state changes. Physics-embedded learning seeks FEA-level accuracy at lower cost by embedding physics in inputs, forward passes, losses, and backpropagation. We propose Modal Rational (MR), mapping structural features to modal quantities for analytical frequency-response reconstruction. The Physics-Guided Modal Operator Network (PGMON) adds bounded frequency, damping, and residual-flexibility corrections. Modal Operator with Structural GELU and Anchored-SIREN Correction (MOSAIC) denotes the bounded spectral-discrepancy framework used here; MOSAIC-MR and MOSAIC-PGMON add such discrepancies. They support finite-dimensional maps and physical decoders for future neural operators; evidence is fixed-topology, not a completed operator comparison. Two 20,000-design populations are studied: an 80 m steel truss tower with variable member areas and attached masses, and a tapered shell beam with ten variable station masses. Archived tests cover ten designs and seven acceleration histories per structure; they are benchmarks, not seismic-design assessments. With 5% reference modal damping, MR, PGMON, and MOSAIC give mean displacement-history errors of 0.73-0.76% for the tower and 0.029-0.116% for the beam, against declared band-limited modal references. Supplied modal frequencies are distinguished from design-only use; unequal parameter counts and training settings are explicit. Error analysis separates learned modal discrepancies, truncation, and excitation weighting, explaining acceleration and difficult-tower limits and risks of blind use. Results support physically structured prediction but limit claims about generalization, computational savings, and added corrections. Next is developing and validating neural operators around these architectures.",
+    "source": "arXiv",
+    "venue": "arXiv",
+    "url": "http://arxiv.org/abs/2611.07059v1",
+    "doi": "",
+    "keywords": [
+      "neural operator"
+    ],
+    "summary": "Structural-response surrogates must capture moving resonances, phase changes, and unequal-amplitude transfer channels during optimization or health-state changes. Physics-embedded learning seeks FEA-level accuracy at lower cost by embedding physics in inputs, forward passes, losses, and backpropagation. We propose Modal Rational (MR), mapping structural features to modal quantities for analytical frequency-response…"
   },
   {
     "id": "doi:10.1063/5.0348875",
