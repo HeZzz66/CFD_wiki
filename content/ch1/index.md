@@ -38,6 +38,6 @@ $$
 
 - [第二章](../ch2/governing-equations.html) 从守恒律推导它；
 - [第三章](../ch3/fvm.html) 用面通量离散它；
-- [第五章](../ch5/pinns.html) 把它写进 PINN 的残差损失。
+- [第七章](../ch5/pinns.html) 把它写进 PINN 的残差损失。
 
 读完本章后，建议直接进入[第二章](../ch2/index.html)，把数学工具与物理量一一对应起来。

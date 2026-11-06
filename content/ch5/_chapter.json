@@ -2,6 +2,6 @@
   "title": "AI for CFD",
   "subtitle": "PINN · FNO · DeepONet · U-Net · PINO",
   "summary": "系统梳理物理信息神经网络与神经算子：从 PINN 的残差损失，到 FNO、DeepONet、U-Net、IFNO、PINO 的数学结构、Loss 设计与 PyTorch 表达。",
-  "order": 5,
-  "number": "5"
+  "order": 7,
+  "number": "7"
 }

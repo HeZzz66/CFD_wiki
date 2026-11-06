@@ -62,7 +62,7 @@ python build.py --serve --port 9000 --clean
 3. 添加 `content/ch7/index.md` 作为章节导览（`order: 0`），再添加任意数量的 `.md` 页面。
 4. 运行 `python build.py`。侧边栏、首页卡片、搜索索引、上下篇导航都会自动更新，**不需要改任何模板或脚本**。
 
-侧边栏按 `kind` 自动分成「基础知识」（前六章）与「阅读文献」（`library` 分区）两个模块，模块标题可点击收起/展开，状态记录在 `localStorage`（键 `cfdwiki:nav-collapsed`）。
+侧边栏按 `kind` 自动分成「基础知识」（前八章）与「阅读文献」（`library` 分区）两个模块，模块标题可点击收起/展开，状态记录在 `localStorage`（键 `cfdwiki:nav-collapsed`）。
 
 ### 新增一页
 

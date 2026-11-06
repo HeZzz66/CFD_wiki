@@ -1,0 +1,7 @@
+{
+  "title": "两相流与多相流",
+  "subtitle": "流型 · 均相流 · 漂移流 · 相变传热 · 多相 CFD",
+  "summary": "从流型与相分布出发，建立均相流、漂移流与分相动量方程，讲清 Lockhart–Martinelli 压降、沸腾与凝结传热，并落到 VOF、欧拉-欧拉等多相 CFD 建模方法。",
+  "order": 5,
+  "number": "5"
+}

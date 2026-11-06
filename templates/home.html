@@ -31,17 +31,41 @@
     <div class="home-papers-grid" id="homePapersGrid"></div>
   </section>
 
+  <section class="home-visuals" aria-label="流体现象可视化">
+    <figure class="visual-card visual-feature">
+      <img src="{{ root }}assets/img/hero-vorticity.jpg" alt="湍流涡量场可视化" loading="lazy">
+      <figcaption>
+        <span>VORTICITY · 涡量</span>
+        <strong>涡管拉伸与能量级串：湍流的几何结构</strong>
+      </figcaption>
+    </figure>
+    <figure class="visual-card">
+      <img src="{{ root }}assets/img/airfoil-cfd.jpg" alt="翼型绕流 CFD 流线" loading="lazy">
+      <figcaption>
+        <span>AIRFOIL · 绕流</span>
+        <strong>翼型边界层与尾迹的数值模拟</strong>
+      </figcaption>
+    </figure>
+    <figure class="visual-card">
+      <img src="{{ root }}assets/img/multiphase-heat.jpg" alt="多相流与传热可视化" loading="lazy">
+      <figcaption>
+        <span>MULTIPHASE · 多相</span>
+        <strong>上升气泡、相界面与热羽流</strong>
+      </figcaption>
+    </figure>
+  </section>
+
   <section class="chapters-section">
     <div class="section-head">
       <div>
         <span class="section-eyebrow">CONTENTS</span>
-        <h2>六章，从数学到后处理</h2>
+        <h2>八章，从数学基础到后处理</h2>
       </div>
       <p>建议按顺序阅读；每章独立成篇，也可以按需跳读。</p>
     </div>
 
     <div class="chapter-grid">
-      {% for chapter in chapters %}
+      {% for chapter in chapters if chapter.kind == "docs" %}
       <a class="chapter-card" href="{{ chapter.index.url if chapter.index else 'index.html' }}">
         <div class="chapter-card-top">
           <span class="chapter-number">{{ "%02d"|format(loop.index) }}</span>

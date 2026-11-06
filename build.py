@@ -928,7 +928,7 @@ def build() -> None:
             "is_home": False,
             "is_chapter_index": is_chapter_index,
             "chapter_id": chapter["id"],
-            "show_refs": is_chapter_index and chapter["kind"] == "docs",
+            "show_refs": chapter["kind"] == "docs",
             "all_pages": all_pages,
             "page_index": page_index,
             "stats": {
