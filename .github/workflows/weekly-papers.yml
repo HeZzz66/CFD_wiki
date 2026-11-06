@@ -2,6 +2,9 @@ name: Weekly Paper Search
 
 # 任务二：每周一自动检索上两周文献；也支持在 Actions 页面手动触发（任务一）。
 on:
+  push:
+    branches:
+      - main
   schedule:
     # 每周一 09:00（北京时间，UTC+8）→ 01:00 UTC
     - cron: "0 1 * * 1"
