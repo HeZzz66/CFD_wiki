@@ -4693,6 +4693,24 @@
     "summary": "Novel fast numerical approach for describing bubble dynamics in microfluidics water electrolysis"
   },
   {
+    "id": "doi:10.1063/5.0357680",
+    "title": "Nonlinear coupled confinement in stenosed catheterized arterial flow: Hemodynamic and nanoparticle transport mechanisms",
+    "authors": [
+      "Bhawini Prasad"
+    ],
+    "year": 2026,
+    "date": "2026-11-01",
+    "abstract": "Stenosis in artery coupled with intravascular catheterization create restrictions for flow of blood. If these happen at the same time, combined influence created by them shall differ largely from effects produced by any of it alone. This research takes into account how does stenosis combined with catheter restrictions combinedly effect pressure drop, wall shear, and nanoparticle transport. Finite-difference scheme has been used to understand steady, axisymmetric flow in a stenosed annular geometry, along with heat and nanoparticle transport applying Buongiorno formulation. Numerical solution is validated for a limiting-case analytical result. Simulations depict that on increasing stenosis severity as well as catheter radius cause a raise in pressure drop and wall shear, along with combined response departing largely from additive stand alone prediction. The maximum reported deviations reach 178.3% for pressure drop and 185.37% for wall shear, showing the significance of considering both geometric restrictions together. Results also showcase Brownian diffusion and thermophoresis effect on nanoparticle distribution in the obstructed flow field.",
+    "source": "Physics of Fluids",
+    "venue": "PoF",
+    "url": "https://doi.org/10.1063/5.0357680",
+    "doi": "10.1063/5.0357680",
+    "keywords": [
+      "其他相关"
+    ],
+    "summary": "Stenosis in artery coupled with intravascular catheterization create restrictions for flow of blood. If these happen at the same time, combined influence created by them shall differ largely from effects produced by any of it alone. This research takes into account how does stenosis combined with catheter restrictions combinedly effect pressure drop, wall shear, and nanoparticle transport. Finite-difference scheme h…"
+  },
+  {
     "id": "arxiv:2610.41059v1",
     "title": "Nonlinear Maps Between Irreducible Representations in Graph Neural Networks",
     "authors": [
@@ -9114,6 +9132,30 @@
       "其他相关"
     ],
     "summary": "Heat exchangers (HX) based on triply periodic minimal surface (TPMS) structures provide new opportunities for manipulating internal flow organization and enhancing thermal transport. This study systematically compares the thermohydraulic performance of five representative TPMS HX, including Primitive, I-graph Wrapped Package (IWP), Gyroid, Diamond, and F-Rhombic Dodecahedron (FRD), against a conventional Printed Cir…"
+  },
+  {
+    "id": "doi:10.1063/5.0359797",
+    "title": "Finite-volume residual formulations for Reynolds-averaged Navier–Stokes-constrained physics-informed neural network reconstruction of a hydrofoil tip-clearance flow from two-dimensional three-component particle image velocimetry",
+    "authors": [
+      "Zhiyuan Geng",
+      "Rui Deng",
+      "Hailong Liu",
+      "Xiang Yu",
+      "Tim Persoons",
+      "Wenguang Zhao"
+    ],
+    "year": 2026,
+    "date": "2026-11-01",
+    "abstract": "Particle image velocimetry (PIV) provides spatially resolved velocity measurements, whereas pressure remains unobserved. Physics-informed neural networks (PINNs) can infer hidden quantities by coupling observations with governing equations, but the effects of residual discretization and internal-face flux organization remain unclear. In this paper, a hydrofoil tip-clearance flow is reconstructed from single-plane two-dimensional three-component PIV using a Reynolds-averaged Navier–Stokes-constrained PINN framework. Pointwise strong-form, independent local finite-volume method (IL-FVM), and shared-face (SF)-FVM residuals are compared. Finite-volume integration is applied to in-plane fluxes, with temporal terms and out-of-plane derivatives evaluated by automatic differentiation. At α = 8° and t = 5 mm, all models yield time-averaged velocity relative L2 differences of 4.0%–4.3% under a common training budget. IL-q1 matches the strong-form baseline in velocity accuracy while reducing training time from 9.7 to 5.1 h. For hidden pressure, IL-q2 agrees most closely with the large-eddy simulation reference, with a mean squared error of 10.0 × 10−3 and a relative L2 difference of 67.9% for the zero-mean time-averaged pressure coefficient. An independent control-volume test shows that SF-q2 reduces continuity and momentum residuals by ∼40% and 32%, respectively, relative to the strong-form baseline. However, improved local physics consistency does not improve velocity or pressure reconstruction and incurs greater computational cost. An additional test at α = 4° and the same tip clearance yields similar velocity errors for Vanilla and IL-q2, with ∼34% less training time for IL-q2. Thus, stronger SF discrete conservation improves local physics consistency without necessarily improving flow reconstruction.",
+    "source": "Physics of Fluids",
+    "venue": "PoF",
+    "url": "https://doi.org/10.1063/5.0359797",
+    "doi": "10.1063/5.0359797",
+    "keywords": [
+      "physics-informed neural network",
+      "PINN"
+    ],
+    "summary": "Particle image velocimetry (PIV) provides spatially resolved velocity measurements, whereas pressure remains unobserved. Physics-informed neural networks (PINNs) can infer hidden quantities by coupling observations with governing equations, but the effects of residual discretization and internal-face flux organization remain unclear. In this paper, a hydrofoil tip-clearance flow is reconstructed from single-plane tw…"
   },
   {
     "id": "arxiv:2611.05874v1",
