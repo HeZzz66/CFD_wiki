@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>多相流 CFD 建模 · CFD Wiki</title>
+  <meta name="description" content="按“界面是否解析”梳理多相 CFD 的方法谱系：VOF/Level-Set 界面捕捉、欧拉-欧拉两流体、欧拉-拉格朗日颗粒追踪，给出相间力、相变与湍流封闭，并讨论网格、时间步与验证算例。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link is-active" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../multiphase/index.html">两相流与多相流</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">多相流 CFD 建模</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">多相流 CFD 建模</h1>
+        <p class="page-summary">按“界面是否解析”梳理多相 CFD 的方法谱系：VOF/Level-Set 界面捕捉、欧拉-欧拉两流体、欧拉-拉格朗日颗粒追踪，给出相间力、相变与湍流封闭，并讨论网格、时间步与验证算例。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">两相流与多相流</span>
+        <span class="meta-sep">·</span>
+        <span>约 3292 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#VOF</span><span class="tag">#欧拉-欧拉</span><span class="tag">#相间力</span><span class="tag">#表面张力</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>前面的页面都在做“降维”：把三维界面平均成一维含气率与压降。真正的多相 CFD 要回答的是另一类问题：气泡怎么变形、液膜在哪里破裂、颗粒如何沉积、相分布是否均匀。这些问题没有一维对应物，必须在网格上解析或统计界面。方法的选择取决于一个判断：<strong>界面要不要被解析</strong>。</p>
+<h2 id="方法谱系">方法谱系</h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>界面处理</th>
+<th>解析尺度</th>
+<th>典型工具</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>界面解析（VOF / Level-Set / Front Tracking）</td>
+<td>显式捕捉</td>
+<td>界面厚度 1–3 网格</td>
+<td>interFoam、Fluent VOF</td>
+<td>气泡上升、溃坝、液膜、射流破碎</td>
+</tr>
+<tr>
+<td>欧拉-欧拉两流体</td>
+<td>统计平均</td>
+<td>大于气泡尺度的单元</td>
+<td>Fluent Mixture/Eulerian、multiphaseEulerFoam</td>
+<td>鼓泡塔、流化床、管流</td>
+</tr>
+<tr>
+<td>欧拉-拉格朗日（点颗粒）</td>
+<td>颗粒追踪</td>
+<td>颗粒小于网格</td>
+<td>Fluent DPM、MPPICFoam</td>
+<td>喷雾、旋风、颗粒输送</td>
+</tr>
+<tr>
+<td>混合模型</td>
+<td>代数滑移</td>
+<td>大于分散相尺度</td>
+<td>Mixture</td>
+<td>低含气率、快速估算</td>
+</tr>
+<tr>
+<td>群体平衡（PBM）</td>
+<td>粒径分布</td>
+<td>统计</td>
+<td>OpenQBMM、Fluent PBM</td>
+<td>破碎/合并主导的分散流</td>
+</tr>
+</tbody>
+</table>
+<p>一条经验规则：<strong>界面尺度与设备尺度之比决定方法</strong>。若气泡直径是管径的 1/10，界面解析需要极细网格；若气泡直径是管径的 1/1000，界面解析在工程上不可行，只能用欧拉-欧拉或拉格朗日。</p>
+<h2 id="欧拉-欧拉两流体模型">欧拉-欧拉两流体模型</h2>
+<p>两流体模型把每一相都视为充满整个计算域的连续介质，用体积分数 \(\alpha_k\) 表示局部占有率，\(\sum_k\alpha_k=1\)。对相 \(k\)：</p>
+<div class="math-block">\[\frac{\partial(\alpha_k\rho_k)}{\partial t}
++\nabla\cdot(\alpha_k\rho_k\mathbf{u}_k)=\Gamma_k,\]</div>
+<div class="math-block">\[\frac{\partial(\alpha_k\rho_k\mathbf{u}_k)}{\partial t}
++\nabla\cdot(\alpha_k\rho_k\mathbf{u}_k\mathbf{u}_k)
+=-\alpha_k\nabla p+\nabla\cdot\left(\alpha_k\boldsymbol{\tau}_k\right)
++\alpha_k\rho_k\mathbf{g}+\mathbf{F}_{ik}+\Gamma_k\mathbf{u}_k.\]</div>
+<p>\(\Gamma_k\) 是相变质量源，\(\mathbf{F}_{ik}\) 是相间动量交换。两相共享同一个压力场（假定局部压力平衡），这是“双流体”与“两套单相流”的关键区别。</p>
+<h3 id="相间力">相间力</h3>
+<p>相间力决定滑移与相分布，是两流体模型最主要的封闭难点。</p>
+<p><strong>阻力（drag）</strong>：</p>
+<div class="math-block">\[\mathbf{F}_{D}=\frac{3}{4}\frac{\alpha_d\rho_c C_D}{d}\left|\mathbf{u}_r\right|\mathbf{u}_r,
+\qquad
+\mathbf{u}_r=\mathbf{u}_d-\mathbf{u}_c,\]</div>
+<p>\(d\) 为分散相直径，\(c\) 表示连续相。球形颗粒的 Schiller–Naumann 关系为</p>
+<div class="math-block">\[C_D=\frac{24}{Re_p}\left(1+0.15Re_p^{0.687}\right),\quad Re_p<1000,\]</div>
+<div class="math-block">\[C_D=0.44,\quad Re_p>1000,\]</div>
+<p>\(Re_p=\rho_c|\mathbf{u}_r|d/\mu_c\)。气泡与液滴的阻力系数偏离刚性球，需用 Tomiyama、Grace 等考虑变形与污染度的关系式。</p>
+<p><strong>升力（lift）</strong>：</p>
+<div class="math-block">\[\mathbf{F}_{L}=C_L\rho_c\alpha_d\left(\mathbf{u}_r\times\boldsymbol{\omega}_c\right),\]</div>
+<p>\(\boldsymbol{\omega}_c=\nabla\times\mathbf{u}_c\) 是连续相涡量。无界剪切中刚性球的 Saffman 升力系数与 \(\sqrt{Re_\omega}\) 有关；Auton 给出的典型值为 \(C_L\approx0.5\)。气泡的升力在大小气泡之间会变号，这是鼓泡塔径向相分布预测的关键。</p>
+<p><strong>虚拟质量力（virtual mass）</strong>：</p>
+<div class="math-block">\[\mathbf{F}_{VM}=C_{VM}\rho_c\alpha_d
+\left(\frac{\mathrm{D}\mathbf{u}_c}{\mathrm{D}t}
+-\frac{\mathrm{D}\mathbf{u}_d}{\mathrm{D}t}\right),\]</div>
+<p>刚性球 \(C_{VM}=0.5\)。它描述分散相加速时对连续相的附加排开作用，在非定常流动中重要。</p>
+<p><strong>壁面润滑力</strong>：把气泡推离壁面，避免非物理的壁面高含气率。</p>
+<p><strong>湍流扩散力</strong>：由连续相湍流对分散相的随机输运产生，常用 Lopez de Bertodano 形式</p>
+<div class="math-block">\[\mathbf{F}_{TD}=C_{TD}\rho_c k_c\nabla\alpha_d,\]</div>
+<p>\(k_c\) 是连续相湍动能。它把分散相从高含气率区输运到低含气率区，抑制过陡的相界面。</p>
+<table>
+<thead>
+<tr>
+<th>相间力</th>
+<th>量级</th>
+<th>何时必须保留</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>阻力</td>
+<td>最大</td>
+<td>几乎所有工况</td>
+</tr>
+<tr>
+<td>升力</td>
+<td>中等</td>
+<td>存在剪切、需要预测径向分布</td>
+</tr>
+<tr>
+<td>虚拟质量</td>
+<td>中小</td>
+<td>加速度大、非定常</td>
+</tr>
+<tr>
+<td>壁面润滑</td>
+<td>小</td>
+<td>近壁相分布、沸腾通道</td>
+</tr>
+<tr>
+<td>湍流扩散</td>
+<td>小</td>
+<td>高湍流、分散相扩散</td>
+</tr>
+</tbody>
+</table>
+<h3 id="相间传热">相间传热</h3>
+<p>对分散相颗粒/气泡，常用 Ranz–Marshall 关系：</p>
+<div class="math-block">\[Nu=2+0.6Re_p^{1/2}Pr^{1/3},\]</div>
+<p>它由“导热极限 \(Nu=2\)”与“对流增强”两部分组成。相间传热系数</p>
+<div class="math-block">\[h=\frac{Nu\,k_c}{d},\]</div>
+<p>再乘以界面面积浓度 \(a_i=6\alpha_d/d\)，得到体积换热源项 \(h a_i(T_c-T_d)\)。</p>
+<h2 id="界面捕捉方法">界面捕捉方法</h2>
+<h3 id="vof">VOF</h3>
+<p>VOF 用体积分数 \(\alpha\)（液相为 1、气相为 0）标记界面：</p>
+<div class="math-block">\[\frac{\partial\alpha}{\partial t}
++\nabla\cdot(\alpha\mathbf{u})=0.\]</div>
+<p>界面在 \(\alpha=0.5\) 的等值面上重构。数值难点是 \(\alpha\) 的输运必须保持<strong>有界</strong>（\(0\le\alpha\le1\)）且界面<strong>锐利</strong>。常用手段：</p>
+<ul>
+<li><strong>几何重构（PLIC）</strong>：在每个单元内用平面切割重构界面，按通量精确输运；</li>
+<li><strong>界面压缩</strong>：在 \(\alpha\) 方程中加入压缩项</li>
+</ul>
+<div class="math-block">\[\frac{\partial\alpha}{\partial t}
++\nabla\cdot(\alpha\mathbf{u})
++\nabla\cdot\left(\alpha(1-\alpha)\mathbf{u}_c\right)=0,\]</div>
+<p>\(\mathbf{u}_c\) 是人为的压缩速度，只在界面处非零，用于抵消数值扩散。OpenFOAM 的 <code>interFoam</code> 采用这一形式，压缩系数 \(C_\alpha\) 常取 1–4。</p>
+<h3 id="表面张力">表面张力</h3>
+<p>表面张力以<strong>连续表面力</strong>（CSF，Brackbill）形式加入动量方程：</p>
+<div class="math-block">\[\mathbf{f}_\sigma=\sigma\kappa\nabla\alpha,
+\qquad
+\kappa=-\nabla\cdot\left(\frac{\nabla\alpha}{|\nabla\alpha|}\right),\]</div>
+<p>\(\kappa\) 是界面曲率。\(\nabla\alpha\) 在离散意义下近似界面 delta 函数，因此体积分后等价于面上的表面张力。</p>
+<p>CSF 的经典问题是<strong>寄生电流</strong>（parasitic currents）：离散曲率误差产生非物理的界面流动，在静止气泡周围形成涡环。缓解办法是提高曲率计算精度（如高度函数法）、使用平衡力公式（balanced-force CSF），或改用 Level-Set 的平滑曲率。</p>
+<h3 id="level-set-与-clsvof">Level-Set 与 CLSVOF</h3>
+<p>Level-Set 用带符号距离函数 \(\phi\) 表示界面（\(\phi=0\) 为界面）：</p>
+<div class="math-block">\[\frac{\partial\phi}{\partial t}+\mathbf{u}\cdot\nabla\phi=0,\]</div>
+<p>每隔若干步做<strong>重新初始化</strong>，求解</p>
+<div class="math-block">\[\frac{\partial\phi}{\partial\tau}
++S(\phi)\left(|\nabla\phi|-1\right)=0,\]</div>
+<p>使 \(|\nabla\phi|\approx1\)。Level-Set 的曲率光滑、界面精度高，但质量不守恒；VOF 守恒但界面易扩散。<strong>CLSVOF</strong> 把两者耦合：用 VOF 保证质量守恒，用 Level-Set 计算曲率与法向。</p>
+<h3 id="接触角与壁面润湿">接触角与壁面润湿</h3>
+<p>壁面处的接触角通过界面法向的边界条件施加：</p>
+<div class="math-block">\[\mathbf{n}_s=\cos\theta\,\mathbf{n}_w+\sin\theta\,\mathbf{t}_w,\]</div>
+<p>\(\theta\) 是接触角，\(\mathbf{n}_w\)、\(\mathbf{t}_w\) 是壁面法向与切向。液滴在疏水表面的滚动、冷凝液滴脱落都依赖这一条件。</p>
+<h2 id="欧拉-拉格朗日与颗粒">欧拉-拉格朗日与颗粒</h2>
+<p>当分散相体积分数很低（通常 \(<10^{-3}\)）时，可以只追踪颗粒，连续相用欧拉网格：</p>
+<div class="math-block">\[m_p\frac{\mathrm{d}\mathbf{v}_p}{\mathrm{d}t}
+=\mathbf{F}_D+\mathbf{F}_L+\mathbf{F}_{VM}+m_p\mathbf{g}+\cdots,\]</div>
+<div class="math-block">\[\frac{\mathrm{d}\mathbf{x}_p}{\mathrm{d}t}=\mathbf{v}_p.\]</div>
+<p>球形颗粒的弛豫时间为</p>
+<div class="math-block">\[\tau_p=\frac{\rho_p d_p^2}{18\mu_c},\]</div>
+<p><strong>Stokes 数</strong> \(St=\tau_p/\tau_f\) 衡量颗粒跟随流动的能力：\(St\ll1\) 颗粒随流，\(St\gg1\) 颗粒保持惯性。喷雾、旋风分离与颗粒沉积的定性行为都可以由 \(St\) 判断。</p>
+<p><strong>DEM</strong> 在颗粒间加入软球碰撞力，用于密相颗粒流；<strong>MP-PIC</strong> 用计算粒子代表大量真实颗粒，兼顾 DEM 的碰撞模型与 CFD 的网格规模，适合鼓泡流化床。</p>
+<h2 id="湍流封闭">湍流封闭</h2>
+<p>两流体模型的湍流建模有三条路线：</p>
+<ol>
+<li><strong>混合物 \(k\)-\(\varepsilon\)</strong>：把两相当作一个混合物，只解一套 \(k\)、\(\varepsilon\)，简单但对滑移强的工况偏差大；</li>
+<li><strong>分相 \(k\)-\(\varepsilon\)</strong>：每相一套，需要相间湍流交换项，封闭困难；</li>
+<li><strong>Sato 气泡诱导湍流</strong>：在连续相涡粘性上叠加</li>
+</ol>
+<div class="math-block">\[\mu_t^{BI}=C_{BI}\rho_c\alpha_d d\left|\mathbf{u}_r\right|,
+\qquad C_{BI}\approx0.01,\]</div>
+<p>它描述气泡尾迹产生的额外混合。鼓泡塔的径向液速剖面若不加这一项，往往预测成“壁面上升、中心下降”的错误形状。</p>
+<h2 id="相变模型">相变模型</h2>
+<h3 id="lee-模型">Lee 模型</h3>
+<p>Lee（1980）把相变写成温度偏离饱和温度的线性松弛：</p>
+<div class="math-block">\[\dot m_{l\to g}=r\,\alpha_l\rho_l\frac{T-T_{sat}}{T_{sat}},
+\qquad T>T_{sat},\]</div>
+<div class="math-block">\[\dot m_{g\to l}=r\,\alpha_g\rho_g\frac{T_{sat}-T}{T_{sat}},
+\qquad T<T_{sat},\]</div>
+<p>\(r\) 是经验传质系数（单位 1/s），需要按过热/过冷程度标定。它简单、稳健，但把界面传热简化为体积松弛，不能预测气泡生长速率。</p>
+<h3 id="壁面沸腾rpi-模型">壁面沸腾（RPI 模型）</h3>
+<p>Kurul 与 Podowski 提出的 RPI 壁面热流分解为三部分：</p>
+<div class="math-block">\[q''_w=q''_c+q''_q+q''_e,\]</div>
+<ul>
+<li>\(q''_c\)：单相对流，按液相体积分数加权；</li>
+<li>\(q''_q\)：气泡脱离时带走的显热（quenching）；</li>
+<li>\(q''_e\)：气泡生长期间的蒸发潜热。</li>
+</ul>
+<div class="math-block">\[q''_e=\frac{\pi}{6}d_w^3\rho_g h_{fg}f\,N_a,\]</div>
+<p>\(d_w\) 是气泡脱离直径，\(f\) 是脱离频率，\(N_a\) 是活化核心密度。RPI 模型把核态沸腾的微观机制压缩成几个待标定参数，是沸腾 CFD 的主流工程做法。</p>
+<h2 id="数值实践">数值实践</h2>
+<h3 id="时间步">时间步</h3>
+<ul>
+<li>对流 CFL：\(\Delta t\le CFL\cdot\Delta x/|\mathbf{u}|\)，显式格式取 \(CFL\lesssim0.5\)；</li>
+<li>界面 CFL：VOF 界面步通常取 0.1–0.25；</li>
+<li>毛细时间步：\(\Delta t_\sigma=\sqrt{\rho_l\Delta x^3/(2\pi\sigma)}\)，用于显式表面张力，否则界面会不稳定。</li>
+</ul>
+<h3 id="网格">网格</h3>
+<p>界面解析要求界面法向 10 层以上网格，曲率才能算准；界面附近还应加密。欧拉-欧拉对网格要求较低，但单元尺寸应大于气泡尺度，否则“体积分数”失去统计意义。</p>
+<table>
+<thead>
+<tr>
+<th>求解器（OpenFOAM）</th>
+<th>方法</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>interFoam</code></td>
+<td>VOF + 界面压缩</td>
+<td>溃坝、气泡、液膜</td>
+</tr>
+<tr>
+<td><code>interIsoFoam</code></td>
+<td>VOF + 几何重构</td>
+<td>锐利界面</td>
+</tr>
+<tr>
+<td><code>multiphaseEulerFoam</code></td>
+<td>欧拉-欧拉多相</td>
+<td>鼓泡塔、流化床</td>
+</tr>
+<tr>
+<td><code>reactingTwoPhaseEulerFoam</code></td>
+<td>欧拉-欧拉 + 相变/反应</td>
+<td>沸腾、冷凝</td>
+</tr>
+<tr>
+<td><code>MPPICFoam</code></td>
+<td>MP-PIC</td>
+<td>密相颗粒流</td>
+</tr>
+<tr>
+<td><code>driftFluxFoam</code></td>
+<td>漂移流</td>
+<td>沉降、泥浆</td>
+</tr>
+</tbody>
+</table>
+<h2 id="python-示例一维-vof-输运的数值扩散">Python 示例：一维 VOF 输运的数值扩散</h2>
+<p>下面的脚本用一维常速度场输运阶跃界面，比较一阶迎风与带压缩项格式的界面锐度。它复现了 VOF 中最常见的问题：数值扩散会把界面抹成几十个网格宽。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">n</span><span class="p">,</span> <span class="n">L</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span> <span class="mf">1.0</span>
+<span class="n">dx</span> <span class="o">=</span> <span class="n">L</span> <span class="o">/</span> <span class="n">n</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">dx</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">L</span> <span class="o">-</span> <span class="n">dx</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+<span class="n">u</span> <span class="o">=</span> <span class="mf">1.0</span>
+<span class="n">dt</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">/</span> <span class="n">u</span>
+<span class="n">nsteps</span> <span class="o">=</span> <span class="mi">200</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">():</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">a</span><span class="p">[(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mf">0.2</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.4</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">1.0</span>     <span class="c1"># 初始液块</span>
+    <span class="k">return</span> <span class="n">a</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">upwind</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
+    <span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">flux</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">u</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">a</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+    <span class="n">a_new</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">dx</span> <span class="o">*</span> <span class="p">(</span><span class="n">flux</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">flux</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">a_new</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compressive</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="c1"># 简化界面压缩：在界面处附加反向通量，抵消数值扩散</span>
+    <span class="n">a_new</span> <span class="o">=</span> <span class="n">upwind</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">grad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span>
+    <span class="n">ac</span> <span class="o">=</span> <span class="o">-</span><span class="n">C</span> <span class="o">*</span> <span class="n">u</span> <span class="o">*</span> <span class="n">dx</span> <span class="o">*</span> <span class="n">grad</span> <span class="o">*</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">a</span><span class="p">))</span>
+    <span class="n">a_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">a_new</span> <span class="o">-</span> <span class="n">dt</span> <span class="o">/</span> <span class="n">dx</span> <span class="o">*</span> <span class="p">(</span><span class="n">ac</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">ac</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">a_new</span>
+
+<span class="n">a0</span> <span class="o">=</span> <span class="n">init</span><span class="p">()</span>
+<span class="n">a1</span><span class="p">,</span> <span class="n">a2</span> <span class="o">=</span> <span class="n">a0</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">a0</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nsteps</span><span class="p">):</span>
+    <span class="n">a1</span> <span class="o">=</span> <span class="n">upwind</span><span class="p">(</span><span class="n">a1</span><span class="p">)</span>
+    <span class="n">a2</span> <span class="o">=</span> <span class="n">compressive</span><span class="p">(</span><span class="n">a2</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a0</span><span class="p">,</span> <span class="s2">"k--"</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"initial"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"first-order upwind"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"with compression"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\(\alpha\)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">"迎风界面宽度（alpha 从 0.05 到 0.95 的网格数）:"</span><span class="p">,</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">a1</span> <span class="o">&gt;</span> <span class="mf">0.05</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">a1</span> <span class="o">&lt;</span> <span class="mf">0.95</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"压缩格式界面宽度:"</span><span class="p">,</span>
+      <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">a2</span> <span class="o">&gt;</span> <span class="mf">0.05</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">a2</span> <span class="o">&lt;</span> <span class="mf">0.95</span><span class="p">)))</span>
+</code></pre></div>
+
+<p>这段代码不是生产级 VOF，但它把两个要点演示清楚：一阶迎风的数值扩散与界面压缩的锐化作用。真实求解器用 PLIC 几何重构，界面宽度可控制在 2–3 个网格。</p>
+<div class="admonition warning"><div class="admonition-title">表面张力的时间步限制</div><div class="admonition-body"><p>显式表面张力在细网格上极其刚硬。若 \(\Delta t\) 超过毛细时间步，界面会出现网格尺度的“锯齿”并迅速发散。遇到这种情况，应先减小时间步，再检查曲率离散是否守恒。</p></div></div>
+<h2 id="验证算例">验证算例</h2>
+<table>
+<thead>
+<tr>
+<th>算例</th>
+<th>考察内容</th>
+<th>常用参考解</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>静气泡（Laplace 压力）</td>
+<td>表面张力、寄生电流</td>
+<td>\(\Delta p=2\sigma/R\)</td>
+</tr>
+<tr>
+<td>单气泡上升</td>
+<td>阻力、变形、路径稳定性</td>
+<td>实验轨迹与终端速度</td>
+</tr>
+<tr>
+<td>溃坝</td>
+<td>界面输运、质量守恒</td>
+<td>Martin–Moyce 实验</td>
+</tr>
+<tr>
+<td>Rayleigh–Taylor</td>
+<td>界面不稳定增长</td>
+<td>线性增长率</td>
+</tr>
+<tr>
+<td>鼓泡塔</td>
+<td>相分布、径向液速</td>
+<td>实验与一维漂移流</td>
+</tr>
+<tr>
+<td>流化床</td>
+<td>颗粒碰撞、压降</td>
+<td>最小流化速度</td>
+</tr>
+</tbody>
+</table>
+<p>验证时至少检查三条：质量守恒（\(\sum\alpha\) 漂移）、网格收敛（界面厚度与气泡速度随加密变化）、能量/动量平衡。只对照一张“好看的云图”不能算验证。</p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>多相 CFD 的第一决策是界面是否解析：解析用 VOF/Level-Set，统计平均用欧拉-欧拉，稀薄分散用拉格朗日。</li>
+<li>两流体模型的核心是相间力封闭，阻力、升力、虚拟质量、壁面润滑与湍流扩散各有适用工况。</li>
+<li>VOF 的关键是有界输运与锐利界面，表面张力用 CSF 模型，需警惕寄生电流与毛细时间步。</li>
+<li>相变可用 Lee 体积松弛或 RPI 壁面沸腾模型，后者把核态沸腾分解为对流、淬熄与蒸发三部分。</li>
+<li>网格、时间步与验证算例共同决定结果可信度，云图不能代替定量校核。</li>
+</ul>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li>Brennen, C. E. <em>Fundamentals of Multiphase Flow</em>. Cambridge University Press, 2005.</li>
+<li>Ishii, M., Hibiki, T. <em>Thermo-Fluid Dynamics of Two-Phase Flow</em>, 2nd ed. Springer, 2006.</li>
+<li>Crowe, C. T., Schwarzkopf, J. D., Sommerfeld, M., Tsuji, Y. <em>Multiphase Flows with Droplets and Particles</em>, 2nd ed. CRC Press, 2011.</li>
+<li>Wallis, G. B. <em>One-Dimensional Two-Phase Flow</em>. McGraw-Hill, 1969.</li>
+</ul>
+    </div>
+
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="multiphase">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../multiphase/boiling-condensation.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">沸腾与凝结传热</span>
+        </a>
+        <a class="page-nav-item is-next" href="../thermo/index.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="multiphase/multiphase-cfd.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#方法谱系">方法谱系</a></li>
+<li><a href="#欧拉-欧拉两流体模型">欧拉-欧拉两流体模型</a><ul>
+<li><a href="#相间力">相间力</a></li>
+<li><a href="#相间传热">相间传热</a></li>
+</ul>
+</li>
+<li><a href="#界面捕捉方法">界面捕捉方法</a><ul>
+<li><a href="#vof">VOF</a></li>
+<li><a href="#表面张力">表面张力</a></li>
+<li><a href="#level-set-与-clsvof">Level-Set 与 CLSVOF</a></li>
+<li><a href="#接触角与壁面润湿">接触角与壁面润湿</a></li>
+</ul>
+</li>
+<li><a href="#欧拉-拉格朗日与颗粒">欧拉-拉格朗日与颗粒</a></li>
+<li><a href="#湍流封闭">湍流封闭</a></li>
+<li><a href="#相变模型">相变模型</a><ul>
+<li><a href="#lee-模型">Lee 模型</a></li>
+<li><a href="#壁面沸腾rpi-模型">壁面沸腾（RPI 模型）</a></li>
+</ul>
+</li>
+<li><a href="#数值实践">数值实践</a><ul>
+<li><a href="#时间步">时间步</a></li>
+<li><a href="#网格">网格</a></li>
+</ul>
+</li>
+<li><a href="#python-示例一维-vof-输运的数值扩散">Python 示例：一维 VOF 输运的数值扩散</a></li>
+<li><a href="#验证算例">验证算例</a></li>
+<li><a href="#小结">小结</a></li>
+<li><a href="#延伸阅读">延伸阅读</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

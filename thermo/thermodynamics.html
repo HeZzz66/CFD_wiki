@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>热力学基础与状态方程 · CFD Wiki</title>
+  <meta name="description" content="梳理热力学状态量、第一与第二定律、理想气体与真实气体状态方程、声速与等熵关系，以及饱和、相平衡与 CFD 常用的热物性计算方法。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link is-active" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../thermo/index.html">热力学与传热学</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">热力学基础与状态方程</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">热力学基础与状态方程</h1>
+        <p class="page-summary">梳理热力学状态量、第一与第二定律、理想气体与真实气体状态方程、声速与等熵关系，以及饱和、相平衡与 CFD 常用的热物性计算方法。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">热力学与传热学</span>
+        <span class="meta-sep">·</span>
+        <span>约 2839 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#热力学</span><span class="tag">#状态方程</span><span class="tag">#理想气体</span><span class="tag">#相平衡</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>CFD 的能量方程里，密度与温度的关系由状态方程给出；可压缩流的激波与膨胀波由等熵关系决定；沸腾与凝结由相平衡决定。这些内容都属于热力学。对 CFD 学习者而言，热力学的价值不在于背诵公式，而在于判断<strong>什么时候可以把流体当作理想气体、什么时候必须用真实气体模型、什么时候必须考虑相变</strong>。</p>
+<h2 id="系统状态与过程">系统、状态与过程</h2>
+<p>热力学用<strong>状态量</strong>描述平衡态：压力 \(p\)、比容 \(v\)（或密度 \(\rho=1/v\)）、温度 \(T\)、内能 \(u\)、焓 \(h\)、熵 \(s\)。状态量只依赖当前状态，与路径无关；热量 \(Q\) 与功 \(W\) 是过程量，依赖路径。</p>
+<p>对简单可压缩系统，两个独立状态量即可确定其余全部状态量（状态公理）。例如给定 \((p,T)\)，密度由状态方程给出，焓由物性关系给出。CFD 中每个单元存储的是守恒量 \((\rho,\rho\mathbf{u},\rho E)\)，需要通过状态方程反推出 \(p\) 与 \(T\)，这一步称为<strong>状态方程求逆</strong>，其稳定性直接影响可压缩求解器的收敛。</p>
+<h2 id="热力学第一定律">热力学第一定律</h2>
+<p>对闭口系统，</p>
+<div class="math-block">\[\delta q-\delta w=\mathrm{d}u,\]</div>
+<p>\(q\) 是单位质量吸热，\(w\) 是单位质量对外做功。对开口系统（控制体），定常流动的能量方程为</p>
+<div class="math-block">\[q-w=\left(h_2+\frac{u_2^2}{2}+gz_2\right)
+-\left(h_1+\frac{u_1^2}{2}+gz_1\right),\]</div>
+<p>其中焓</p>
+<div class="math-block">\[h=u+pv=u+\frac{p}{\rho}.\]</div>
+<p>焓的物理意义是“内能 + 流动功”，它使开口系统的能量方程不必显式出现压力功。</p>
+<h3 id="比热与-mayer-关系">比热与 Mayer 关系</h3>
+<p>定容比热与定压比热分别为</p>
+<div class="math-block">\[c_v=\left(\frac{\partial u}{\partial T}\right)_v,
+\qquad
+c_p=\left(\frac{\partial h}{\partial T}\right)_p.\]</div>
+<p>对理想气体，</p>
+<div class="math-block">\[c_p-c_v=R,
+\qquad
+\gamma=\frac{c_p}{c_v}.\]</div>
+<p>空气在常温下 \(\gamma\approx1.4\)，\(R=287\ \mathrm{J/(kg\cdot K)}\)。\(c_p\) 与 \(c_v\) 随温度变化时，理想气体假设仍成立，只是需要把 \(c_p(T)\) 积分得到焓：</p>
+<div class="math-block">\[h(T)-h(T_{ref})=\int_{T_{ref}}^{T}c_p(T')\,\mathrm{d}T'.\]</div>
+<p>CFD 中的分段多项式（NASA 7 系数、9 系数）就是为这一积分服务的。</p>
+<h2 id="第二定律与熵">第二定律与熵</h2>
+<p>可逆过程中</p>
+<div class="math-block">\[\mathrm{d}s=\frac{\delta q_{rev}}{T}.\]</div>
+<p>对理想气体，</p>
+<div class="math-block">\[\mathrm{d}s=c_p\frac{\mathrm{d}T}{T}-R\frac{\mathrm{d}p}{p}
+=c_v\frac{\mathrm{d}T}{T}-R\frac{\mathrm{d}\rho}{\rho}.\]</div>
+<p>由此得到等熵关系：</p>
+<div class="math-block">\[\frac{T_2}{T_1}=\left(\frac{p_2}{p_1}\right)^{(\gamma-1)/\gamma}
+=\left(\frac{\rho_2}{\rho_1}\right)^{\gamma-1},
+\qquad
+\frac{p}{\rho^\gamma}=\text{const}.\]</div>
+<p>这三条式子是可压缩 CFD 中最常用的关系：激波前后用 Rankine–Hugoniot 关系，等熵膨胀用上述幂律，亚音速喷嘴的流量由壅塞条件决定。</p>
+<h3 id="声速与马赫数">声速与马赫数</h3>
+<p>等熵声速为</p>
+<div class="math-block">\[a=\sqrt{\left(\frac{\partial p}{\partial\rho}\right)_s}
+=\sqrt{\gamma RT}
+=\sqrt{\gamma\frac{p}{\rho}}.\]</div>
+<p>马赫数 \(Ma=U/a\)。\(Ma<0.3\) 时密度变化小于约 5%，可按不可压缩处理；\(Ma>1\) 出现激波，必须用可压缩求解器与通量分裂格式。</p>
+<h3 id="滞止参数">滞止参数</h3>
+<p>对理想气体一维定常绝能流动，</p>
+<div class="math-block">\[T_0=T\left(1+\frac{\gamma-1}{2}Ma^2\right),\]</div>
+<div class="math-block">\[p_0=p\left(1+\frac{\gamma-1}{2}Ma^2\right)^{\gamma/(\gamma-1)}.\]</div>
+<p>\(T_0\)、\(p_0\) 是等熵滞止到静止时得到的温度与压力。它们是与实验（总温总压探针）对接的量，也是入口边界条件的常用给法。</p>
+<h2 id="状态方程">状态方程</h2>
+<h3 id="理想气体">理想气体</h3>
+<div class="math-block">\[p=\rho RT,
+\qquad R=\frac{R_u}{M},\]</div>
+<p>\(R_u=8.314\ \mathrm{kJ/(kmol\cdot K)}\)，\(M\) 是摩尔质量。空气 \(M\approx28.97\ \mathrm{g/mol}\)，\(R\approx0.287\ \mathrm{kJ/(kg\cdot K)}\)。</p>
+<p>理想气体假设忽略分子体积与分子间作用力，适用于高温、低压、远离临界点。工程判据常用对比压力 \(p_r=p/p_c\) 与对比温度 \(T_r=T/T_c\)：当 \(T_r>2\) 且 \(p_r<0.1\) 时，理想气体误差通常可接受。</p>
+<h3 id="压缩因子与真实气体">压缩因子与真实气体</h3>
+<p>定义压缩因子</p>
+<div class="math-block">\[Z=\frac{pv}{RT}=\frac{p}{\rho RT},\]</div>
+<p>理想气体 \(Z=1\)。真实气体在高压、低温下 \(Z\) 可显著偏离 1：CO\(_2\) 在 300 K、50 bar 时已接近饱和，\(Z\) 约为 0.7，密度比理想气体高约 40%。</p>
+<p><strong>van der Waals 方程</strong>是最简单的真实气体模型：</p>
+<div class="math-block">\[\left(p+\frac{a}{v^2}\right)\left(v-b\right)=RT,\]</div>
+<p>\(a\) 修正分子间引力，\(b\) 修正分子体积。它能在临界点附近给出定性正确的相变行为，但精度有限。</p>
+<p><strong>Peng–Robinson（PR）方程</strong>在工程 CFD 与流程模拟中应用更广：</p>
+<div class="math-block">\[p=\frac{RT}{v-b}
+-\frac{a\alpha(T)}{v^2+2bv-b^2},\]</div>
+<div class="math-block">\[a=0.45724\frac{R^2T_c^2}{p_c},
+\qquad
+b=0.07780\frac{RT_c}{p_c},\]</div>
+<div class="math-block">\[\alpha(T)=\left[1+m\left(1-\sqrt{T_r}\right)\right]^2,
+\qquad
+m=0.37464+1.54226\omega-0.26992\omega^2,\]</div>
+<p>\(\omega\) 是偏心因子。PR 方程对烃类、CO\(_2\) 与轻气体的密度与相平衡预测较好，是闪蒸与多组分输运的常用选择。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>形式</th>
+<th>优点</th>
+<th>局限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>理想气体</td>
+<td>\(p=\rho RT\)</td>
+<td>简单、无需迭代</td>
+<td>高压/低温误差大</td>
+</tr>
+<tr>
+<td>van der Waals</td>
+<td>立方型</td>
+<td>解析简单、含相变</td>
+<td>精度低</td>
+</tr>
+<tr>
+<td>Peng–Robinson</td>
+<td>立方型</td>
+<td>烃类与 CO\(_2\) 精度好</td>
+<td>需解三次方程</td>
+</tr>
+<tr>
+<td>SRK</td>
+<td>立方型</td>
+<td>轻气体与烃类</td>
+<td>极性物质偏差</td>
+</tr>
+<tr>
+<td>IAPWS-IF97</td>
+<td>专用拟合</td>
+<td>水/蒸汽高精度</td>
+<td>仅限水</td>
+</tr>
+</tbody>
+</table>
+<h2 id="相平衡与饱和">相平衡与饱和</h2>
+<h3 id="clausiusclapeyron-方程">Clausius–Clapeyron 方程</h3>
+<p>两相平衡时，饱和压力随温度的变化由</p>
+<div class="math-block">\[\frac{\mathrm{d}p_{sat}}{\mathrm{d}T}
+=\frac{h_{fg}}{T\left(v_g-v_l\right)}
+=\frac{h_{fg}}{T\left(1/\rho_g-1/\rho_l\right)}\]</div>
+<p>给出，\(h_{fg}\) 是潜热。若把气相当作理想气体且 \(v_g\gg v_l\)，化为</p>
+<div class="math-block">\[\frac{\mathrm{d}\ln p_{sat}}{\mathrm{d}T}
+=\frac{h_{fg}}{RT^2}.\]</div>
+<p>在潜热近似为常数时积分得</p>
+<div class="math-block">\[\ln\frac{p_{sat,2}}{p_{sat,1}}
+=-\frac{h_{fg}}{R}\left(\frac{1}{T_2}-\frac{1}{T_1}\right).\]</div>
+<p>这条式子解释了为什么饱和压力随温度近似指数增长，也是 Antoine 拟合的理论背景。</p>
+<h3 id="antoine-方程">Antoine 方程</h3>
+<p>工程上常用</p>
+<div class="math-block">\[\log_{10}p_{sat}=A-\frac{B}{T+C},\]</div>
+<p>\(T\) 通常为 K 或 \(^\circ\)C，\(p_{sat}\) 的单位随数据表而异（mmHg、bar、Pa 都有），使用前必须核对单位。Antoine 只适用于有限温度区间，跨越临界点后失效。</p>
+<h3 id="干度与饱和状态">干度与饱和状态</h3>
+<p>在饱和 dome 内，混合物由饱和液与饱和汽组成，干度</p>
+<div class="math-block">\[x=\frac{m_g}{m_g+m_l}\]</div>
+<p>确定状态点。混合物比容与比焓为</p>
+<div class="math-block">\[v=xv_g+(1-x)v_l,
+\qquad
+h=xh_g+(1-x)h_l.\]</div>
+<p>这两条式子是两相流一维计算与沸腾 CFD 的入口：CFD 求解的焓或温度，必须先转换为干度，才能查相区。</p>
+<div class="admonition note"><div class="admonition-title">亚稳态与闪蒸</div><div class="admonition-body"><p>压力突然降到饱和压力以下时，液体不会立即沸腾，而是进入<strong>亚稳态</strong>（过热液体）。闪蒸的成核与弛豫时间决定了喷嘴、阀门下游的相变位置。平衡模型（HEM）假设无限快相变，非平衡模型则需要成核率与气泡生长速率。</p></div></div>
+<h2 id="热物性计算">热物性计算</h2>
+<h3 id="nasa-多项式">NASA 多项式</h3>
+<p>对理想气体，比热常用 7 系数拟合：</p>
+<div class="math-block">\[\frac{c_p}{R}=a_1+a_2T+a_3T^2+a_4T^3+a_5T^4,\]</div>
+<div class="math-block">\[\frac{h}{RT}=a_1+\frac{a_2}{2}T+\frac{a_3}{3}T^2
++\frac{a_4}{4}T^3+\frac{a_5}{5}T^4+\frac{a_6}{T},\]</div>
+<div class="math-block">\[\frac{s}{R}=a_1\ln T+a_2T+\frac{a_3}{2}T^2
++\frac{a_4}{3}T^3+\frac{a_5}{4}T^4+a_7.\]</div>
+<p>燃烧与高温气体 CFD 几乎都用这一形式，优点是求导简单、温度范围宽；缺点是在低温段需要另一组系数。</p>
+<h3 id="水与蒸汽">水与蒸汽</h3>
+<p>IAPWS-IF97 是水/蒸汽的工业标准，覆盖液态、蒸汽、超临界与两相区。它比理想气体复杂得多，但精度高、区间衔接明确。CFD 中的沸腾与冷凝若涉及跨临界压力，应直接调用 IF97 或 CoolProp，而不是自己拟合。</p>
+<table>
+<thead>
+<tr>
+<th>工具</th>
+<th>覆盖</th>
+<th>典型用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NASA 多项式</td>
+<td>高温气体</td>
+<td>燃烧、高超声速</td>
+</tr>
+<tr>
+<td>IAPWS-IF97</td>
+<td>水/蒸汽</td>
+<td>锅炉、汽轮机、冷凝器</td>
+</tr>
+<tr>
+<td>CoolProp</td>
+<td>大量工质</td>
+<td>制冷剂、有机朗肯循环</td>
+</tr>
+<tr>
+<td>NIST REFPROP</td>
+<td>高精度多工质</td>
+<td>标定与验证</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cfd-中的热力学选择">CFD 中的热力学选择</h2>
+<h3 id="不可压缩与可压缩">不可压缩与可压缩</h3>
+<p>不可压缩求解器只解动量与连续性，密度为常数（或仅随温度变化，用 Boussinesq 近似）：</p>
+<div class="math-block">\[\rho=\rho_0\left[1-\beta\left(T-T_0\right)\right],\]</div>
+<p>\(\beta\) 是热膨胀系数。它适用于 \(Ma<0.3\) 且温度变化不大的自然对流与强制对流。</p>
+<p>可压缩求解器解总能量方程：</p>
+<div class="math-block">\[\frac{\partial(\rho E)}{\partial t}
++\nabla\cdot\left[\mathbf{u}\left(\rho E+p\right)\right]
+=\nabla\cdot\left(k\nabla T\right)
++\nabla\cdot\left(\boldsymbol{\tau}\cdot\mathbf{u}\right)
++\rho\mathbf{g}\cdot\mathbf{u},\]</div>
+<div class="math-block">\[E=e+\frac{|\mathbf{u}|^2}{2},
+\qquad
+H=h+\frac{|\mathbf{u}|^2}{2}.\]</div>
+<p>注意 \(E\) 用内能、\(H\) 用焓，二者差一个压力功 \(p/\rho\)。把总能量写成焓形式时，压力功已经在通量里，不能再重复加入源项。</p>
+<h3 id="低速可压缩与低马赫预处理">低速可压缩与低马赫预处理</h3>
+<p>当 \(Ma\) 很小但仍需考虑密度变化（如大温差自然对流、燃烧），直接解可压缩方程会遇到刚性问题：声波时间尺度远小于对流时间尺度。低马赫预处理通过修改时间导数项，把声波速度“降”到与对流同量级，是燃烧与热声求解器的常用技术。</p>
+<h2 id="python-示例pengrobinson-状态方程">Python 示例：Peng–Robinson 状态方程</h2>
+<p>下面的脚本用 PR 方程计算 CO\(_2\) 在 300 K、不同压力下的压缩因子与密度，并与理想气体对比。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">R</span> <span class="o">=</span> <span class="mf">8.314</span>          <span class="c1"># J/(mol·K)</span>
+<span class="n">M</span> <span class="o">=</span> <span class="mf">0.04401</span>        <span class="c1"># kg/mol</span>
+<span class="n">Tc</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">omega</span> <span class="o">=</span> <span class="mf">304.13</span><span class="p">,</span> <span class="mf">7.377e6</span><span class="p">,</span> <span class="mf">0.2239</span>   <span class="c1"># CO2 临界参数</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pr_parameters</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="mf">0.45724</span> <span class="o">*</span> <span class="n">R</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">Tc</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">pc</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="mf">0.07780</span> <span class="o">*</span> <span class="n">R</span> <span class="o">*</span> <span class="n">Tc</span> <span class="o">/</span> <span class="n">pc</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="mf">0.37464</span> <span class="o">+</span> <span class="mf">1.54226</span> <span class="o">*</span> <span class="n">omega</span> <span class="o">-</span> <span class="mf">0.26992</span> <span class="o">*</span> <span class="n">omega</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">m</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">T</span> <span class="o">/</span> <span class="n">Tc</span><span class="p">)))</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">b</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">pr_z</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""解 PR 立方方程，返回气相根 Z。"""</span>
+    <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">pr_parameters</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="n">R</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">T</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">p</span> <span class="o">/</span> <span class="p">(</span><span class="n">R</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span>
+              <span class="o">-</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">B</span><span class="p">),</span>
+              <span class="n">A</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">B</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">B</span><span class="p">,</span>
+              <span class="o">-</span><span class="p">(</span><span class="n">A</span> <span class="o">*</span> <span class="n">B</span> <span class="o">-</span> <span class="n">B</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">B</span><span class="o">**</span><span class="mi">3</span><span class="p">)]</span>
+    <span class="n">roots</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">roots</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+    <span class="n">real</span> <span class="o">=</span> <span class="n">roots</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">roots</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1e-10</span><span class="p">]</span><span class="o">.</span><span class="n">real</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>          <span class="c1"># 气相取最大实根</span>
+
+<span class="n">T</span> <span class="o">=</span> <span class="mf">300.0</span>
+<span class="k">for</span> <span class="n">p_bar</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">80</span><span class="p">]:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">p_bar</span> <span class="o">*</span> <span class="mf">1e5</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">pr_z</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">rho_pr</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">M</span> <span class="o">/</span> <span class="p">(</span><span class="n">Z</span> <span class="o">*</span> <span class="n">R</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+    <span class="n">rho_ideal</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">M</span> <span class="o">/</span> <span class="p">(</span><span class="n">R</span> <span class="o">*</span> <span class="n">T</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"p=</span><span class="si">{</span><span class="n">p_bar</span><span class="si">:</span><span class="s2">3d</span><span class="si">}</span><span class="s2"> bar  Z=</span><span class="si">{</span><span class="n">Z</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">  rho_PR=</span><span class="si">{</span><span class="n">rho_pr</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> kg/m3  "</span>
+          <span class="sa">f</span><span class="s2">"rho_ideal=</span><span class="si">{</span><span class="n">rho_ideal</span><span class="si">:</span><span class="s2">6.2f</span><span class="si">}</span><span class="s2"> kg/m3"</span><span class="p">)</span>
+
+<span class="c1"># 临界点校核：PR 的理论临界压缩因子约为 0.307</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Z at critical point ≈"</span><span class="p">,</span> <span class="n">pr_z</span><span class="p">(</span><span class="n">Tc</span><span class="p">,</span> <span class="n">pc</span><span class="p">))</span>
+</code></pre></div>
+
+<p>输出会显示：低压时 PR 与理想气体几乎一致；50 bar 以上 PR 密度明显更高，\(Z\) 低于 1；临界点附近 \(Z\approx0.3\)，与 PR 方程的理论值相符。</p>
+<div class="admonition warning"><div class="admonition-title">立方方程的多根</div><div class="admonition-body"><p>PR 方程在饱和 dome 内有三个实根，分别对应液相、亚稳态与气相。选错根会导致密度跳变、相变判断错误。工程代码通常按“最大根为气相、最小根为液相”选取，并用逸度相等判断相稳定性。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>状态方程把 \((p,T)\) 与密度联系起来，理想气体只适用于低压高温；高压与近临界区必须用 PR、SRK 或专用物性库。</li>
+<li>焓、熵与等熵关系是可压缩 CFD 的基础，声速 \(a=\sqrt{\gamma RT}\) 决定马赫数与壅塞。</li>
+<li>相平衡由 Clausius–Clapeyron 与 Antoine 描述，干度是连接热力学与两相流的桥梁。</li>
+<li>CFD 中必须明确用内能还是焓、是否包含压力功，以及是否需要低马赫预处理。</li>
+<li>物性库（NASA、IF97、CoolProp）比自拟公式可靠，跨临界与相变问题尤其如此。</li>
+</ul>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li>Incropera, F. P., DeWitt, D. P. <em>Fundamentals of Heat and Mass Transfer</em>, 7th ed. Wiley, 2011.</li>
+<li>Çengel, Y. A., Ghajar, A. J. <em>Heat and Mass Transfer</em>, 6th ed. McGraw-Hill, 2020.</li>
+<li>Bird, R. B., Stewart, W. E., Lightfoot, E. N. <em>Transport Phenomena</em>, 2nd ed. Wiley, 2006.</li>
+<li>Patankar, S. V. <em>Numerical Heat Transfer and Fluid Flow</em>. Hemisphere, 1980.</li>
+</ul>
+    </div>
+
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="thermo">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../thermo/index.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">本章导览</span>
+        </a>
+        <a class="page-nav-item is-next" href="../thermo/conduction.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">导热与傅里叶定律</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="thermo/thermodynamics.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#系统状态与过程">系统、状态与过程</a></li>
+<li><a href="#热力学第一定律">热力学第一定律</a><ul>
+<li><a href="#比热与-mayer-关系">比热与 Mayer 关系</a></li>
+</ul>
+</li>
+<li><a href="#第二定律与熵">第二定律与熵</a><ul>
+<li><a href="#声速与马赫数">声速与马赫数</a></li>
+<li><a href="#滞止参数">滞止参数</a></li>
+</ul>
+</li>
+<li><a href="#状态方程">状态方程</a><ul>
+<li><a href="#理想气体">理想气体</a></li>
+<li><a href="#压缩因子与真实气体">压缩因子与真实气体</a></li>
+</ul>
+</li>
+<li><a href="#相平衡与饱和">相平衡与饱和</a><ul>
+<li><a href="#clausiusclapeyron-方程">Clausius–Clapeyron 方程</a></li>
+<li><a href="#antoine-方程">Antoine 方程</a></li>
+<li><a href="#干度与饱和状态">干度与饱和状态</a></li>
+</ul>
+</li>
+<li><a href="#热物性计算">热物性计算</a><ul>
+<li><a href="#nasa-多项式">NASA 多项式</a></li>
+<li><a href="#水与蒸汽">水与蒸汽</a></li>
+</ul>
+</li>
+<li><a href="#cfd-中的热力学选择">CFD 中的热力学选择</a><ul>
+<li><a href="#不可压缩与可压缩">不可压缩与可压缩</a></li>
+<li><a href="#低速可压缩与低马赫预处理">低速可压缩与低马赫预处理</a></li>
+</ul>
+</li>
+<li><a href="#python-示例pengrobinson-状态方程">Python 示例：Peng–Robinson 状态方程</a></li>
+<li><a href="#小结">小结</a></li>
+<li><a href="#延伸阅读">延伸阅读</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

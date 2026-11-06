@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>辐射换热 · CFD Wiki</title>
+  <meta name="description" content="从黑体辐射与斯特藩–玻尔兹曼定律出发，讲清发射率、角系数与灰体表面网络，给出两面封闭腔与辐射屏的计算方法，并介绍参与性介质中的辐射传递方程与 CFD 常用辐射模型。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link is-active" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../thermo/index.html">热力学与传热学</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">辐射换热</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">辐射换热</h1>
+        <p class="page-summary">从黑体辐射与斯特藩–玻尔兹曼定律出发，讲清发射率、角系数与灰体表面网络，给出两面封闭腔与辐射屏的计算方法，并介绍参与性介质中的辐射传递方程与 CFD 常用辐射模型。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">热力学与传热学</span>
+        <span class="meta-sep">·</span>
+        <span>约 2516 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#辐射</span><span class="tag">#角系数</span><span class="tag">#灰体</span><span class="tag">#辐射传递方程</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>导热与对流需要介质，辐射不需要。太阳的热量穿过真空到达地球，高温炉膛的热量以电磁波形式穿过烟气抵达水冷壁。在高温（\(T>800\ \mathrm{K}\)）或大温差场景中，辐射换热量常与对流同量级甚至更大；忽略辐射的 CFD 结果会系统性偏低。</p>
+<h2 id="基本概念">基本概念</h2>
+<h3 id="立体角与辐射强度">立体角与辐射强度</h3>
+<p>辐射沿方向传播，用<strong>立体角</strong> \(\Omega\)（单位 sr）描述方向范围。<strong>辐射强度</strong> \(I\)（W/(m²·sr)）定义为单位面积、单位立体角内的辐射功率。对漫发射表面（各方向强度相同），半球空间的积分给出<strong>辐射力</strong></p>
+<div class="math-block">\[E=\pi I.\]</div>
+<p>这个 \(\pi\) 来自半球积分 \(\int\cos\theta\,\mathrm{d}\Omega=\pi\)，是辐射计算中最容易漏掉的因子。</p>
+<h3 id="黑体与-planck-定律">黑体与 Planck 定律</h3>
+<p><strong>黑体</strong>是理想吸收体与发射体：吸收率、发射率均为 1。其光谱辐射力由 Planck 定律给出：</p>
+<div class="math-block">\[E_{b\lambda}=\frac{2\pi hc^2}{\lambda^5}
+\frac{1}{\exp\left(hc/\lambda k_BT\right)-1},\]</div>
+<p>\(h\) 是 Planck 常数，\(c\) 是光速，\(k_B\) 是 Boltzmann 常数。对全部波长积分得到 <strong>Stefan–Boltzmann 定律</strong>：</p>
+<div class="math-block">\[E_b=\sigma T^4,
+\qquad
+\sigma=5.670\times10^{-8}\ \mathrm{W/(m^2\cdot K^4)}.\]</div>
+<p>峰值波长由 <strong>Wien 位移定律</strong> 给出：</p>
+<div class="math-block">\[\lambda_{max}T=2898\ \mathrm{\mu m\cdot K}.\]</div>
+<p>300 K 的物体峰值在 9.7 μm（远红外），1000 K 时移到 2.9 μm，因此高温辐射主要在近红外。</p>
+<h3 id="表面辐射性质">表面辐射性质</h3>
+<p>实际表面不是黑体。定义：</p>
+<ul>
+<li><strong>发射率</strong> \(\varepsilon=E/E_b\)，\(0\le\varepsilon\le1\)；</li>
+<li><strong>吸收率</strong> \(\alpha\)：入射辐射被吸收的比例；</li>
+<li><strong>反射率</strong> \(\rho\)：被反射的比例；</li>
+<li><strong>透射率</strong> \(\tau\)：透过的比例，\(\alpha+\rho+\tau=1\)。</li>
+</ul>
+<p>对不透明表面 \(\tau=0\)，\(\alpha+\rho=1\)。<strong>Kirchhoff 定律</strong>指出，在热平衡下，光谱定向发射率等于光谱定向吸收率：</p>
+<div class="math-block">\[\varepsilon_\lambda(\theta)=\alpha_\lambda(\theta).\]</div>
+<p>工程上常做两条简化：<strong>灰体</strong>（\(\varepsilon\) 与波长无关）与<strong>漫射</strong>（\(\varepsilon\) 与方向无关）。在这两条假设下 \(\varepsilon=\alpha\)。</p>
+<table>
+<thead>
+<tr>
+<th>表面（约 300 K）</th>
+<th>发射率 \(\varepsilon\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>抛光铝</td>
+<td>0.04–0.05</td>
+</tr>
+<tr>
+<td>氧化铝</td>
+<td>0.8</td>
+</tr>
+<tr>
+<td>不锈钢（抛光）</td>
+<td>0.1–0.2</td>
+</tr>
+<tr>
+<td>氧化钢</td>
+<td>0.8</td>
+</tr>
+<tr>
+<td>水</td>
+<td>0.96</td>
+</tr>
+<tr>
+<td>玻璃</td>
+<td>0.90–0.95</td>
+</tr>
+<tr>
+<td>炭黑/烟炱</td>
+<td>0.95</td>
+</tr>
+</tbody>
+</table>
+<p>低发射率表面（抛光金属）既能减少吸热，也能减少散热，这是保温杯镀银的原理。</p>
+<h2 id="角系数">角系数</h2>
+<p><strong>角系数</strong> \(F_{ij}\) 定义为表面 \(i\) 发出的辐射中直接到达表面 \(j\) 的比例：</p>
+<div class="math-block">\[F_{ij}=\frac{1}{A_i}\int_{A_i}\int_{A_j}
+\frac{\cos\theta_i\cos\theta_j}{\pi R^2}\,\mathrm{d}A_j\,\mathrm{d}A_i,\]</div>
+<p>\(R\) 是两微元之间的距离，\(\theta_i\)、\(\theta_j\) 是法向与连线的夹角。角系数是纯几何量，与温度、发射率无关。</p>
+<p>三条基本性质：</p>
+<p>互易性：</p>
+<div class="math-block">\[A_iF_{ij}=A_jF_{ji},\]</div>
+<p>封闭性（对封闭腔求和为 1）：</p>
+<div class="math-block">\[\sum_jF_{ij}=1,\]</div>
+<p>可加性（\(j\)、\(k\) 不重叠）：</p>
+<div class="math-block">\[F_{i(j+k)}=F_{ij}+F_{ik}.\]</div>
+<p>常用结果：</p>
+<table>
+<thead>
+<tr>
+<th>几何</th>
+<th>角系数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无限大平行平板</td>
+<td>\(F_{12}=1\)</td>
+</tr>
+<tr>
+<td>同心球/无限长同心圆柱</td>
+<td>\(F_{12}=1\)，\(F_{21}=A_1/A_2\)</td>
+</tr>
+<tr>
+<td>小表面被大腔包围</td>
+<td>\(F_{12}=1\)</td>
+</tr>
+<tr>
+<td>两平行有限矩形</td>
+<td>需查表或数值积分</td>
+</tr>
+</tbody>
+</table>
+<p>二维几何可用<strong>交叉线法</strong>：把两表面的端点用交叉与非交叉线连接，</p>
+<div class="math-block">\[F_{12}=\frac{L_{cross}-L_{uncross}}{2L_1},\]</div>
+<p>\(L_{cross}\)、\(L_{uncross}\) 分别为交叉线与非交叉线的总长，\(L_1\) 是表面 1 的长度。</p>
+<h2 id="灰体表面网络">灰体表面网络</h2>
+<p>对不透明灰体表面，定义<strong>有效辐射</strong>（radiosity）</p>
+<div class="math-block">\[J=E+\rho G=\varepsilon E_b+(1-\varepsilon)G,\]</div>
+<p>\(G\) 是投入辐射（irradiation）。离开表面的净辐射为</p>
+<div class="math-block">\[Q_i=\left(J_i-G_i\right)A_i
+=\frac{E_{b,i}-J_i}{(1-\varepsilon_i)/(\varepsilon_iA_i)}.\]</div>
+<p>表面之间的辐射交换为</p>
+<div class="math-block">\[Q_{ij}=\frac{J_i-J_j}{1/(A_iF_{ij})}.\]</div>
+<p>于是每个表面可以画成一个节点：节点电势为 \(J_i\)，对地电阻为 \((1-\varepsilon_i)/(\varepsilon_iA_i)\)，表面间电阻为 \(1/(A_iF_{ij})\)。这就是<strong>辐射网络法</strong>。</p>
+<h3 id="两面封闭腔">两面封闭腔</h3>
+<p>对两个表面组成的封闭腔（如无限大平行板、同心圆柱），网络简化为三个串联电阻：</p>
+<div class="math-block">\[Q=\frac{\sigma\left(T_1^4-T_2^4\right)}
+{\dfrac{1-\varepsilon_1}{\varepsilon_1A_1}
++\dfrac{1}{A_1F_{12}}
++\dfrac{1-\varepsilon_2}{\varepsilon_2A_2}}.\]</div>
+<p>对无限大平行板，\(A_1=A_2=A\)、\(F_{12}=1\)，单位面积热流为</p>
+<div class="math-block">\[q''=\frac{\sigma\left(T_1^4-T_2^4\right)}
+{1/\varepsilon_1+1/\varepsilon_2-1}.\]</div>
+<p>这个式子说明：即使两块板都是黑体，\(q''\) 也不会超过 \(\sigma(T_1^4-T_2^4)\)；发射率降低会成倍增加热阻。</p>
+<h3 id="辐射屏">辐射屏</h3>
+<p>在两面之间插入一块薄屏（发射率 \(\varepsilon_s\)），网络增加两个表面电阻，并把原来的一个空间电阻换成两个。对无限大平行板，插入 \(N\) 块屏后</p>
+<div class="math-block">\[q''=\frac{\sigma\left(T_1^4-T_2^4\right)}
+{1/\varepsilon_1+1/\varepsilon_2-1
++N\left(\dfrac{2}{\varepsilon_s}-1\right)}.\]</div>
+<p>当屏的发射率很低（如镀铝箔 \(\varepsilon_s\approx0.05\)）时，热流可降低一个数量级。这是真空绝热、低温储罐与航天热控的基础。</p>
+<div class="admonition tip"><div class="admonition-title">辐射屏的方向性</div><div class="admonition-body"><p>辐射屏对“无限大平行板”近似成立；对圆柱面或球面，屏的表面积逐层增大，网络电阻需按各自面积计算。直接用平板公式会低估屏的效果。</p></div></div>
+<h2 id="参与性介质">参与性介质</h2>
+<p>气体、烟炱、液滴云会吸收、发射与散射辐射，称为<strong>参与性介质</strong>。描述辐射在介质中传播的方程是<strong>辐射传递方程</strong>（RTE）：</p>
+<div class="math-block">\[\frac{\mathrm{d}I_\lambda}{\mathrm{d}s}
+=-\left(\kappa_\lambda+\sigma_{s\lambda}\right)I_\lambda
++\kappa_\lambda I_{b\lambda}
++\frac{\sigma_{s\lambda}}{4\pi}\int_{4\pi}I_\lambda\left(\mathbf{s}'\right)
+p\left(\mathbf{s}'\!\to\mathbf{s}\right)\mathrm{d}\Omega',\]</div>
+<p>\(\kappa_\lambda\) 是吸收系数，\(\sigma_{s\lambda}\) 是散射系数，\(p\) 是散射相函数。第一项是衰减，第二项是发射，第三项是散射入射。</p>
+<h3 id="光学厚度">光学厚度</h3>
+<p>定义光学厚度</p>
+<div class="math-block">\[\tau=\int_0^L\left(\kappa+\sigma_s\right)\mathrm{d}s.\]</div>
+<p>\(\tau\ll1\) 为<strong>光学薄</strong>，介质几乎透明，辐射可忽略或按体积源处理；\(\tau\gg1\) 为<strong>光学厚</strong>，辐射近似为扩散，可用 Rosseland 近似：</p>
+<div class="math-block">\[\mathbf{q}_{rad}=-\frac{16\sigma T^3}{3\kappa}\nabla T
+=-k_{rad}\nabla T,
+\qquad
+k_{rad}=\frac{16\sigma T^3}{3\kappa}.\]</div>
+<p>这样辐射被折算成一个“辐射导热系数”，可直接加入能量方程，计算量最小。</p>
+<h3 id="常用辐射模型">常用辐射模型</h3>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>思路</th>
+<th>适用</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rosseland</td>
+<td>光学厚扩散近似</td>
+<td>炉膛、火焰内部</td>
+<td>低，但光学薄区失效</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>辐射强度展开为一阶球谐</td>
+<td>中等光学厚度</td>
+<td>中等，需求解一个扩散方程</td>
+</tr>
+<tr>
+<td>离散坐标（DO/DOM）</td>
+<td>在多个方向上解 RTE</td>
+<td>通用，可处理散射</td>
+<td>高，方向数多</td>
+</tr>
+<tr>
+<td>离散传递（DTM）</td>
+<td>沿射线积分</td>
+<td>燃烧室</td>
+<td>中等，射线效应</td>
+</tr>
+<tr>
+<td>Monte Carlo</td>
+<td>随机追踪光子</td>
+<td>复杂几何、基准</td>
+<td>很高，但最灵活</td>
+</tr>
+</tbody>
+</table>
+<p>DO 模型在 CFD 中最常用：它把 \(4\pi\) 立体角离散成若干方向，对每个方向解一条 RTE，方向数（如 8、16、32）决定精度与成本。方向太少会出现“射线效应”（ray effect），表现为非物理的热流条纹。</p>
+<h3 id="气体辐射">气体辐射</h3>
+<p>燃烧产物中的 CO\(_2\)、H\(_2\)O、CH\(_4\) 在红外波段有强吸收带，吸收系数强烈依赖波长与温度。工程上用<strong>灰气体加权和</strong>（WSGG）模型，把非灰气体近似为几种灰气体的加权组合：</p>
+<div class="math-block">\[\varepsilon\left(T\right)=\sum_{i=0}^{n}a_i\left(T\right)
+\left[1-\exp\left(-\kappa_ipL\right)\right].\]</div>
+<p>更精确的方法是逐线计算（LBL）或窄带模型，但计算量太大，通常只用于生成 WSGG 系数。</p>
+<h2 id="辐射与对流导热的耦合">辐射与对流、导热的耦合</h2>
+<p>表面辐射边界为</p>
+<div class="math-block">\[-k\frac{\partial T}{\partial n}
+=\varepsilon\sigma\left(T_w^4-T_{sur}^4\right)
++h\left(T_w-T_\infty\right).\]</div>
+<p>\(T^4\) 的强非线性使迭代容易振荡，需做线性化：</p>
+<div class="math-block">\[T_w^4\approx T_w^{*4}+4T_w^{*3}\left(T_w-T_w^{*}\right),\]</div>
+<p>把三次项并入系数矩阵，四次项留在源项。这是辐射耦合求解的标准技巧。</p>
+<p>能量方程中的辐射源项为</p>
+<div class="math-block">\[S_{rad}=-\nabla\cdot\mathbf{q}_{rad}
+=\kappa\left(4\pi I_b-G\right),\]</div>
+<p>其中 \(G=\int_{4\pi}I\,\mathrm{d}\Omega\) 是投入辐射。P1 与 DO 模型都通过这一项与能量方程耦合。</p>
+<h2 id="python-示例两面封闭腔与辐射屏">Python 示例：两面封闭腔与辐射屏</h2>
+<p>下面的脚本计算两块无限大平行板之间的辐射热流，并比较插入 1 块与 5 块低发射率辐射屏的效果。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">sigma</span> <span class="o">=</span> <span class="mf">5.670e-8</span>
+<span class="n">T1</span><span class="p">,</span> <span class="n">T2</span> <span class="o">=</span> <span class="mf">800.0</span><span class="p">,</span> <span class="mf">300.0</span>
+<span class="n">eps1</span> <span class="o">=</span> <span class="n">eps2</span> <span class="o">=</span> <span class="mf">0.8</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">q_parallel</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">sigma</span> <span class="o">*</span> <span class="p">(</span><span class="n">T1</span><span class="o">**</span><span class="mi">4</span> <span class="o">-</span> <span class="n">T2</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="n">eps1</span> <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="n">eps2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">q_with_shields</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">,</span> <span class="n">eps_s</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="mi">1</span><span class="o">/</span><span class="n">eps1</span> <span class="o">+</span> <span class="mi">1</span><span class="o">/</span><span class="n">eps2</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">N</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="n">eps_s</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">sigma</span> <span class="o">*</span> <span class="p">(</span><span class="n">T1</span><span class="o">**</span><span class="mi">4</span> <span class="o">-</span> <span class="n">T2</span><span class="o">**</span><span class="mi">4</span><span class="p">)</span> <span class="o">/</span> <span class="n">R</span>
+
+<span class="n">q0</span> <span class="o">=</span> <span class="n">q_parallel</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">)</span>
+<span class="n">q1</span> <span class="o">=</span> <span class="n">q_with_shields</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">q5</span> <span class="o">=</span> <span class="n">q_with_shields</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"无屏热流：        </span><span class="si">{</span><span class="n">q0</span><span class="o">/</span><span class="mf">1e3</span><span class="si">:</span><span class="s2">8.2f</span><span class="si">}</span><span class="s2"> kW/m2"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"1 块铝箔屏：      </span><span class="si">{</span><span class="n">q1</span><span class="o">/</span><span class="mf">1e3</span><span class="si">:</span><span class="s2">8.2f</span><span class="si">}</span><span class="s2"> kW/m2  (</span><span class="si">{</span><span class="n">q1</span><span class="o">/</span><span class="n">q0</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"5 块铝箔屏：      </span><span class="si">{</span><span class="n">q5</span><span class="o">/</span><span class="mf">1e3</span><span class="si">:</span><span class="s2">8.2f</span><span class="si">}</span><span class="s2"> kW/m2  (</span><span class="si">{</span><span class="n">q5</span><span class="o">/</span><span class="n">q0</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">%)"</span><span class="p">)</span>
+
+<span class="c1"># 屏数与热流的关系</span>
+<span class="k">for</span> <span class="n">N</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">]:</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">q_with_shields</span><span class="p">(</span><span class="n">T1</span><span class="p">,</span> <span class="n">T2</span><span class="p">,</span> <span class="n">eps1</span><span class="p">,</span> <span class="n">eps2</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span> <span class="k">if</span> <span class="n">N</span> <span class="k">else</span> <span class="n">q0</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"N=</span><span class="si">{</span><span class="n">N</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">  q''=</span><span class="si">{</span><span class="n">q</span><span class="o">/</span><span class="mf">1e3</span><span class="si">:</span><span class="s2">7.2f</span><span class="si">}</span><span class="s2"> kW/m2"</span><span class="p">)</span>
+</code></pre></div>
+
+<p>结果会显示：一块 \(\varepsilon=0.05\) 的辐射屏就把热流降到原来的约 4%；屏数增加后热流近似按 \(1/N\) 下降。这与真空绝热的设计逻辑完全一致。</p>
+<div class="admonition warning"><div class="admonition-title">辐射计算的常见错误</div><div class="admonition-body"><p>三个高频错误：忘记 \(E=\pi I\) 中的 \(\pi\)；把摄氏度直接代入 \(T^4\)（必须用开尔文）；对非黑体表面漏掉 \((1-\varepsilon)/\varepsilon\) 的表面电阻。任何辐射结果都应先用黑体极限 \(\sigma(T_1^4-T_2^4)\) 检查量级。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>黑体辐射由 Stefan–Boltzmann 定律 \(E_b=\sigma T^4\) 描述，峰值波长由 Wien 定律给出。</li>
+<li>实际表面用发射率、吸收率、反射率描述，灰体与漫射假设下 \(\varepsilon=\alpha\)。</li>
+<li>角系数是纯几何量，满足互易性、封闭性与可加性；灰体网络把辐射问题化为电阻网络。</li>
+<li>两面封闭腔的热流由表面电阻与空间电阻串联决定，辐射屏可成倍降低热流。</li>
+<li>参与性介质用 RTE 描述，光学厚度决定能否用 Rosseland 或 P1 近似；DO 是通用但昂贵的模型。</li>
+<li>辐射与能量方程耦合时需对 \(T^4\) 线性化，避免迭代振荡。</li>
+</ul>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li>Incropera, F. P., DeWitt, D. P. <em>Fundamentals of Heat and Mass Transfer</em>, 7th ed. Wiley, 2011.</li>
+<li>Çengel, Y. A., Ghajar, A. J. <em>Heat and Mass Transfer</em>, 6th ed. McGraw-Hill, 2020.</li>
+<li>Patankar, S. V. <em>Numerical Heat Transfer and Fluid Flow</em>. Hemisphere, 1980.</li>
+<li>Kays, W. M., Crawford, M. E., Weigand, B. <em>Convective Heat and Mass Transfer</em>, 4th ed. McGraw-Hill, 2005.</li>
+</ul>
+    </div>
+
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="thermo">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../thermo/convection.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">对流换热与边界层</span>
+        </a>
+        <a class="page-nav-item is-next" href="../thermo/heat-exchanger-cfd.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">换热器与 CFD 耦合</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="thermo/radiation.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#基本概念">基本概念</a><ul>
+<li><a href="#立体角与辐射强度">立体角与辐射强度</a></li>
+<li><a href="#黑体与-planck-定律">黑体与 Planck 定律</a></li>
+<li><a href="#表面辐射性质">表面辐射性质</a></li>
+</ul>
+</li>
+<li><a href="#角系数">角系数</a></li>
+<li><a href="#灰体表面网络">灰体表面网络</a><ul>
+<li><a href="#两面封闭腔">两面封闭腔</a></li>
+<li><a href="#辐射屏">辐射屏</a></li>
+</ul>
+</li>
+<li><a href="#参与性介质">参与性介质</a><ul>
+<li><a href="#光学厚度">光学厚度</a></li>
+<li><a href="#常用辐射模型">常用辐射模型</a></li>
+<li><a href="#气体辐射">气体辐射</a></li>
+</ul>
+</li>
+<li><a href="#辐射与对流导热的耦合">辐射与对流、导热的耦合</a></li>
+<li><a href="#python-示例两面封闭腔与辐射屏">Python 示例：两面封闭腔与辐射屏</a></li>
+<li><a href="#小结">小结</a></li>
+<li><a href="#延伸阅读">延伸阅读</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

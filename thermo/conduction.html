@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>导热与傅里叶定律 · CFD Wiki</title>
+  <meta name="description" content="从傅里叶定律与热阻网络出发，推导一维平板、圆筒与球壳的稳态导热，讨论肋片、接触热阻、集总参数与半无限体瞬态导热，并给出二维导热的有限体积离散与 Python 实现。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link is-active" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../thermo/index.html">热力学与传热学</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">导热与傅里叶定律</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">导热与傅里叶定律</h1>
+        <p class="page-summary">从傅里叶定律与热阻网络出发，推导一维平板、圆筒与球壳的稳态导热，讨论肋片、接触热阻、集总参数与半无限体瞬态导热，并给出二维导热的有限体积离散与 Python 实现。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">热力学与传热学</span>
+        <span class="meta-sep">·</span>
+        <span>约 2398 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#傅里叶定律</span><span class="tag">#热阻</span><span class="tag">#肋片</span><span class="tag">#瞬态导热</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>导热是三种传热方式中最“安静”的一种：没有流体运动，也没有电磁波，热量靠分子振动与自由电子从高温处向低温处迁移。它决定了固体内部的温度分布，也决定了流固界面上的热流。CFD 中的共轭传热、电子散热、电池热管理，最终都要回到导热方程。</p>
+<h2 id="傅里叶定律">傅里叶定律</h2>
+<p>一维稳态导热的实验定律为</p>
+<div class="math-block">\[q''=-k\frac{\mathrm{d}T}{\mathrm{d}x},\]</div>
+<p>\(q''\) 是热流密度（W/m²），\(k\) 是导热系数（W/(m·K)），负号表示热流方向与温度梯度相反。三维推广为</p>
+<div class="math-block">\[\mathbf{q}''=-k\nabla T.\]</div>
+<p>对各向异性材料（如纤维增强复合材料、层状岩体），\(k\) 是二阶张量：</p>
+<div class="math-block">\[q''_i=-k_{ij}\frac{\partial T}{\partial x_j}.\]</div>
+<p>CFD 中大多数工程材料按各向同性处理，但复合材料与生物组织必须用张量形式。</p>
+<table>
+<thead>
+<tr>
+<th>材料（约 300 K）</th>
+<th>\(k\)，W/(m·K)</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>铜</td>
+<td>398</td>
+<td>电子导热，换热器管壁</td>
+</tr>
+<tr>
+<td>铝</td>
+<td>205</td>
+<td>轻量化散热器</td>
+</tr>
+<tr>
+<td>不锈钢</td>
+<td>15–20</td>
+<td>耐腐蚀，热阻较大</td>
+</tr>
+<tr>
+<td>玻璃</td>
+<td>0.8</td>
+<td>保温、观察窗</td>
+</tr>
+<tr>
+<td>水</td>
+<td>0.60</td>
+<td>自然对流与沸腾介质</td>
+</tr>
+<tr>
+<td>空气</td>
+<td>0.026</td>
+<td>隔热层主体</td>
+</tr>
+</tbody>
+</table>
+<p>导热系数的温度依赖性对高温问题不可忽略；金属的 \(k\) 随温度升高通常下降，气体则上升。</p>
+<h2 id="一维稳态导热与热阻">一维稳态导热与热阻</h2>
+<h3 id="平壁">平壁</h3>
+<p>对厚度 \(L\)、面积 \(A\) 的平壁，温度线性分布：</p>
+<div class="math-block">\[q''=k\frac{T_1-T_2}{L},
+\qquad
+Q=kA\frac{T_1-T_2}{L}.\]</div>
+<p>定义导热热阻</p>
+<div class="math-block">\[R_{cond}=\frac{L}{kA},\]</div>
+<p>则 \(Q=\Delta T/R_{cond}\)，与电路的欧姆定律完全同构。</p>
+<h3 id="圆筒壁">圆筒壁</h3>
+<p>对内外半径 \(r_1\)、\(r_2\)、长度 \(L\) 的圆筒，稳态径向导热为</p>
+<div class="math-block">\[Q=\frac{2\pi kL\left(T_1-T_2\right)}{\ln(r_2/r_1)},
+\qquad
+R_{cond}=\frac{\ln(r_2/r_1)}{2\pi kL}.\]</div>
+<p>注意热流沿半径方向扩散，面积随半径增大，因此温度分布是对数型而非线性。</p>
+<h3 id="球壳">球壳</h3>
+<div class="math-block">\[Q=\frac{4\pi k\left(T_1-T_2\right)}{1/r_1-1/r_2},
+\qquad
+R_{cond}=\frac{1/r_1-1/r_2}{4\pi k}.\]</div>
+<h3 id="复合壁与接触热阻">复合壁与接触热阻</h3>
+<p>多层平壁的总热阻为各层串联：</p>
+<div class="math-block">\[R_{total}=\sum_i\frac{L_i}{k_iA}.\]</div>
+<p>两层固体接触时，微观粗糙度导致实际接触面积小于名义面积，形成<strong>接触热阻</strong></p>
+<div class="math-block">\[R_c=\frac{1}{h_cA},\]</div>
+<p>\(h_c\) 是接触换热系数，典型值从粗糙干燥接触的 \(10^3\ \mathrm{W/(m^2\cdot K)}\) 到涂导热硅脂的 \(10^5\) 量级。CFD 中共轭传热若忽略接触热阻，界面温度会偏低，热流被高估。</p>
+<div class="admonition tip"><div class="admonition-title">热阻网络的用法</div><div class="admonition-body"><p>把导热、对流、辐射都写成热阻，可以快速估算多层结构的温度分布，而不必解 PDE。例如“芯片—硅脂—散热器—空气”四层串联，先算总热阻，再由功耗定温升。这是电子散热设计的日常工作。</p></div></div>
+<h2 id="扩展表面肋片">扩展表面：肋片</h2>
+<p>肋片（fin）通过增大换热面积降低对流热阻，广泛用于散热器、换热器与燃气轮机叶片冷却。</p>
+<p>对等截面直肋，取一维导热 + 表面对流，能量平衡给出</p>
+<div class="math-block">\[\frac{\mathrm{d}^2\theta}{\mathrm{d}x^2}-m^2\theta=0,
+\qquad
+\theta=T-T_\infty,\]</div>
+<div class="math-block">\[m=\sqrt{\frac{hP}{kA_c}},\]</div>
+<p>\(P\) 是肋片周长，\(A_c\) 是横截面积。边界条件为肋根 \(\theta(0)=\theta_b\)、肋端绝热（\(\mathrm{d}\theta/\mathrm{d}x=0\)）时，</p>
+<div class="math-block">\[\frac{\theta(x)}{\theta_b}
+=\frac{\cosh\left[m(L-x)\right]}{\cosh(mL)}.\]</div>
+<p>肋效率定义为实际散热量与“整个肋面保持肋根温度”时的理想散热量之比：</p>
+<div class="math-block">\[\eta_f=\frac{\tanh(mL)}{mL}.\]</div>
+<p>肋片越薄越长，\(mL\) 越大，效率越低——因为肋端温度已经接近环境温度，再增加长度只增加面积而不增加温差。</p>
+<table>
+<thead>
+<tr>
+<th>肋型</th>
+<th>效率公式（绝热端）</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>等截面直肋</td>
+<td>\(\tanh(mL)/(mL)\)</td>
+<td>最常见</td>
+</tr>
+<tr>
+<td>环肋</td>
+<td>修正贝塞尔函数</td>
+<td>散热器翅片</td>
+</tr>
+<tr>
+<td>针肋</td>
+<td>类似直肋</td>
+<td>紧凑式换热器</td>
+</tr>
+</tbody>
+</table>
+<h2 id="二维与三维稳态导热">二维与三维稳态导热</h2>
+<p>无内热源时，稳态导热满足拉普拉斯方程：</p>
+<div class="math-block">\[\nabla^2T=0.\]</div>
+<p>有内热源 \(q'''\)（W/m³）时：</p>
+<div class="math-block">\[\nabla^2T=-\frac{q'''}{k}.\]</div>
+<p>解析解只对少数规则几何（矩形、圆柱、球）存在，一般靠分离变量或格林函数。工程上更多用数值方法，把区域离散成网格，解线性方程组。</p>
+<p>常见边界条件：</p>
+<ul>
+<li><strong>第一类（Dirichlet）</strong>：给定壁温 \(T=T_w\)；</li>
+<li><strong>第二类（Neumann）</strong>：给定热流 \(-k\partial T/\partial n=q''_w\)，绝热时 \(q''_w=0\)；</li>
+<li><strong>第三类（Robin）</strong>：给定对流换热 \(-k\partial T/\partial n=h(T_w-T_\infty)\)；</li>
+<li><strong>辐射边界</strong>：\(-k\partial T/\partial n=\varepsilon\sigma(T_w^4-T_{sur}^4)\)。</li>
+</ul>
+<h2 id="瞬态导热">瞬态导热</h2>
+<h3 id="集总参数法">集总参数法</h3>
+<p>当物体内部导热热阻远小于表面对流热阻时，可假设内部温度均匀。判据是 <strong>Biot 数</strong></p>
+<div class="math-block">\[Bi=\frac{hL_c}{k}<0.1,\]</div>
+<p>\(L_c=V/A_s\) 是特征长度。此时能量平衡为</p>
+<div class="math-block">\[\rho Vc_p\frac{\mathrm{d}T}{\mathrm{d}t}=-hA_s\left(T-T_\infty\right),\]</div>
+<p>解得</p>
+<div class="math-block">\[\frac{T(t)-T_\infty}{T_i-T_\infty}=e^{-t/\tau},
+\qquad
+\tau=\frac{\rho Vc_p}{hA_s}.\]</div>
+<p>\(\tau\) 是热时间常数：\(t=\tau\) 时温差衰减到初始值的 36.8%，\(t=3\tau\) 时约 5%。</p>
+<h3 id="半无限体">半无限体</h3>
+<p>表面温度突然变为 \(T_s\) 时，半无限体的温度分布为</p>
+<div class="math-block">\[\frac{T(x,t)-T_i}{T_s-T_i}
+=\operatorname{erfc}\left(\frac{x}{2\sqrt{\alpha t}}\right),\]</div>
+<p>\(\alpha=k/(\rho c_p)\) 是热扩散率。热影响深度约为</p>
+<div class="math-block">\[\delta\sim\sqrt{\alpha t}.\]</div>
+<p>这解释了为什么土壤日温度波动只影响表层几十厘米，而年温度波动可深入数米。</p>
+<h3 id="有限厚度的瞬态">有限厚度的瞬态</h3>
+<p>有限平壁的瞬态解是无穷级数，工程上常用 Heisler 图表或一维数值解。级数首项在 \(Fo=\alpha t/L^2>1\) 后占主导，因此长时间行为近似指数衰减。</p>
+<h2 id="数值离散有限体积法">数值离散：有限体积法</h2>
+<p>对控制体 \(P\) 积分稳态导热方程：</p>
+<div class="math-block">\[\int_V\nabla\cdot(k\nabla T)\,\mathrm{d}V
+=\sum_f k_f\frac{T_N-T_P}{d_{PN}}A_f.\]</div>
+<p>二维正交网格上，离散方程为</p>
+<div class="math-block">\[a_PT_P=a_ET_E+a_WT_W+a_NT_N+a_ST_S,\]</div>
+<div class="math-block">\[a_E=\frac{k_eA_e}{\delta x_e},\quad
+a_W=\frac{k_wA_w}{\delta x_w},\quad
+a_P=a_E+a_W+a_N+a_S.\]</div>
+<p>界面导热系数用<strong>调和平均</strong>：</p>
+<div class="math-block">\[k_e=\frac{2k_Pk_E}{k_P+k_E},\]</div>
+<p>它保证两层材料串联时的热阻正确。若用算术平均，界面热阻会被低估。</p>
+<p>源项线性化：</p>
+<div class="math-block">\[S_P\Delta V=S_u+S_PT_P,\]</div>
+<p>把 \(S_P\) 移到左端可保证对角占优，避免负温度。这一处理是 Patankar 书中的标准做法。</p>
+<h3 id="迭代求解">迭代求解</h3>
+<p>二维 Laplace 方程的 Jacobi 迭代为</p>
+<div class="math-block">\[T_P^{(n+1)}=\frac{1}{4}\left(T_E+T_W+T_N+T_S\right)^{(n)}.\]</div>
+<p>Gauss–Seidel 用最新值更新，收敛更快；再加 SOR（超松弛）可进一步加速。大规模三维问题用多重网格或 Krylov 方法。</p>
+<h2 id="共轭传热">共轭传热</h2>
+<p>流体与固体同时求解温度场，界面满足</p>
+<div class="math-block">\[T_s=T_f,
+\qquad
+-k_s\frac{\partial T_s}{\partial n}
+=-k_f\frac{\partial T_f}{\partial n},\]</div>
+<p>这就是<strong>共轭传热</strong>（conjugate heat transfer，CHT）。它的难点不在方程，而在界面两侧网格与时间尺度不同：固体热扩散慢、流体对流快，需用隐式耦合或分区迭代。</p>
+<p>Biot 数在这里再次出现：\(Bi\ll1\) 时固体内部温度均匀，可只解流体侧；\(Bi\gg1\) 时固体内部温度梯度不可忽略，必须解固体导热。</p>
+<h2 id="python-示例二维稳态导热的迭代求解">Python 示例：二维稳态导热的迭代求解</h2>
+<p>下面的脚本在 \(50\times50\) 网格上解 Laplace 方程：左边界 \(T=100\)，右边界 \(T=0\)，上下绝热。理论解是线性分布，可用于验证离散格式。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">nx</span><span class="p">,</span> <span class="n">ny</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">ny</span><span class="p">,</span> <span class="n">nx</span><span class="p">))</span>
+<span class="n">T</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">100.0</span>          <span class="c1"># 左边界</span>
+<span class="n">T</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>           <span class="c1"># 右边界</span>
+<span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>        <span class="c1"># 下边界绝热（先给初值）</span>
+<span class="n">T</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]</span>      <span class="c1"># 上边界绝热</span>
+
+<span class="n">dx</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">nx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">tol</span> <span class="o">=</span> <span class="mf">1e-6</span>
+<span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20000</span><span class="p">):</span>
+    <span class="n">T_old</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="c1"># 内部节点 Jacobi 迭代（向量化）</span>
+    <span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="p">(</span>
+        <span class="n">T_old</span><span class="p">[</span><span class="mi">2</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">T_old</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="o">+</span> <span class="n">T_old</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">+</span> <span class="n">T_old</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="c1"># 绝热边界：零法向梯度</span>
+    <span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">T</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">T</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">err</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="n">T_old</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"收敛于第 </span><span class="si">{</span><span class="n">it</span><span class="si">}</span><span class="s2"> 步，残差 </span><span class="si">{</span><span class="n">err</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="k">break</span>
+
+<span class="c1"># 与一维线性解对比（上下绝热时应为 T = 100(1 - x/L)）</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="p">)</span>
+<span class="n">T_exact</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+<span class="n">mid</span> <span class="o">=</span> <span class="n">ny</span> <span class="o">//</span> <span class="mi">2</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"中心线最大误差:"</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">mid</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">T_exact</span><span class="p">)))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"平均温度:"</span><span class="p">,</span> <span class="n">T</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+</code></pre></div>
+
+<p>运行后中心线误差应在 \(10^{-3}\) 量级（离散误差随网格加密按二阶减小）。把上下边界改成对流边界，就能模拟更接近实际的散热问题。</p>
+<div class="admonition warning"><div class="admonition-title">绝热边界的实现</div><div class="admonition-body"><p>绝热边界不是“把边界温度固定”，而是令法向梯度为零。上面的做法用相邻内点赋值，等价于零梯度；更严谨的有限体积做法是在边界面上令通量为零。两者在均匀网格上等价，在非均匀网格上不同。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>傅里叶定律 \(\mathbf{q}''=-k\nabla T\) 是导热的唯一本构关系，热阻网络是它的工程化表达。</li>
+<li>平壁、圆筒、球壳的热阻形式不同，复合壁按串联相加，接触热阻常被忽略但影响很大。</li>
+<li>肋片用 \(m=\sqrt{hP/(kA_c)}\) 与 \(\eta_f=\tanh(mL)/(mL)\) 描述，肋效率随 \(mL\) 增大而下降。</li>
+<li>瞬态导热的两个基本模型是集总参数（\(Bi<0.1\)）与半无限体（erfc 解）。</li>
+<li>数值离散的关键是界面导热系数的调和平均与源项线性化，共轭传热需同时满足温度与热流连续。</li>
+</ul>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li>Incropera, F. P., DeWitt, D. P. <em>Fundamentals of Heat and Mass Transfer</em>, 7th ed. Wiley, 2011.</li>
+<li>Çengel, Y. A., Ghajar, A. J. <em>Heat and Mass Transfer</em>, 6th ed. McGraw-Hill, 2020.</li>
+<li>Patankar, S. V. <em>Numerical Heat Transfer and Fluid Flow</em>. Hemisphere, 1980.</li>
+<li>Bird, R. B., Stewart, W. E., Lightfoot, E. N. <em>Transport Phenomena</em>, 2nd ed. Wiley, 2006.</li>
+</ul>
+    </div>
+
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="thermo">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../thermo/thermodynamics.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">热力学基础与状态方程</span>
+        </a>
+        <a class="page-nav-item is-next" href="../thermo/convection.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">对流换热与边界层</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="thermo/conduction.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#傅里叶定律">傅里叶定律</a></li>
+<li><a href="#一维稳态导热与热阻">一维稳态导热与热阻</a><ul>
+<li><a href="#平壁">平壁</a></li>
+<li><a href="#圆筒壁">圆筒壁</a></li>
+<li><a href="#球壳">球壳</a></li>
+<li><a href="#复合壁与接触热阻">复合壁与接触热阻</a></li>
+</ul>
+</li>
+<li><a href="#扩展表面肋片">扩展表面：肋片</a></li>
+<li><a href="#二维与三维稳态导热">二维与三维稳态导热</a></li>
+<li><a href="#瞬态导热">瞬态导热</a><ul>
+<li><a href="#集总参数法">集总参数法</a></li>
+<li><a href="#半无限体">半无限体</a></li>
+<li><a href="#有限厚度的瞬态">有限厚度的瞬态</a></li>
+</ul>
+</li>
+<li><a href="#数值离散有限体积法">数值离散：有限体积法</a><ul>
+<li><a href="#迭代求解">迭代求解</a></li>
+</ul>
+</li>
+<li><a href="#共轭传热">共轭传热</a></li>
+<li><a href="#python-示例二维稳态导热的迭代求解">Python 示例：二维稳态导热的迭代求解</a></li>
+<li><a href="#小结">小结</a></li>
+<li><a href="#延伸阅读">延伸阅读</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

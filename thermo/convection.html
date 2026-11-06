@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>对流换热与边界层 · CFD Wiki</title>
+  <meta name="description" content="从对流换热的定义与边界层方程出发，梳理 Re、Pr、Nu、Pe、St 等无量纲数，给出管内与外部强制对流、自然对流与混合对流的经典关联式及其适用区间。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link is-active" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../thermo/index.html">热力学与传热学</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">对流换热与边界层</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">对流换热与边界层</h1>
+        <p class="page-summary">从对流换热的定义与边界层方程出发，梳理 Re、Pr、Nu、Pe、St 等无量纲数，给出管内与外部强制对流、自然对流与混合对流的经典关联式及其适用区间。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">热力学与传热学</span>
+        <span class="meta-sep">·</span>
+        <span>约 2500 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#对流换热</span><span class="tag">#边界层</span><span class="tag">#Nu</span><span class="tag">#Dittus-Boelter</span><span class="tag">#Churchill-Bernstein</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>导热只靠分子传热，对流则靠流体把热量“搬走”。同样一块 60 ℃ 的散热片，在静止空气中靠自然对流，在风扇吹拂下靠强制对流，散热量可能相差一个量级。CFD 计算对流换热的核心，是把壁面热流写成 \(q''=h(T_w-T_\infty)\)，而 \(h\) 必须由边界层结构或实验关联式给出。</p>
+<h2 id="对流换热的定义">对流换热的定义</h2>
+<p>牛顿冷却定律定义对流换热系数：</p>
+<div class="math-block">\[q''=h\left(T_w-T_\infty\right),
+\qquad
+h=\frac{q''}{T_w-T_\infty}.\]</div>
+<p>\(h\) 不是物性，而是流场、壁面几何与温差共同决定的“结果量”。这就是为什么同一个表面在不同流速下 \(h\) 不同，也是为什么 CFD 要用局部 \(h(x)\) 而不是全场常数。</p>
+<p>用导热系数无量纲化，得到 <strong>Nusselt 数</strong></p>
+<div class="math-block">\[Nu=\frac{hL}{k},\]</div>
+<p>它表示“对流换热量与同厚度流体层纯导热量之比”。\(Nu\) 是几何与流动的函数，\(h\) 只是它的有量纲包装。</p>
+<h2 id="边界层方程">边界层方程</h2>
+<p>对平板绕流，Prandtl 边界层近似给出</p>
+<div class="math-block">\[u\frac{\partial u}{\partial x}+v\frac{\partial u}{\partial y}
+=-\frac{1}{\rho}\frac{\mathrm{d}p}{\mathrm{d}x}
++\nu\frac{\partial^2u}{\partial y^2},\]</div>
+<div class="math-block">\[u\frac{\partial T}{\partial x}+v\frac{\partial T}{\partial y}
+=\alpha\frac{\partial^2T}{\partial y^2},\]</div>
+<div class="math-block">\[\frac{\partial u}{\partial x}+\frac{\partial v}{\partial y}=0.\]</div>
+<p>动量方程与能量方程结构相同，只是扩散系数从 \(\nu\) 换成热扩散率 \(\alpha\)。二者之比就是 <strong>Prandtl 数</strong></p>
+<div class="math-block">\[Pr=\frac{\nu}{\alpha}=\frac{\mu c_p}{k}.\]</div>
+<p>\(Pr\) 衡量“动量扩散与热扩散谁更快”：\(Pr\approx1\) 时速度边界层与温度边界层厚度相近（空气 \(Pr\approx0.71\)）；\(Pr\gg1\) 时温度边界层更薄（水 \(Pr\approx7\)，油 \(Pr\gg100\)）；液态金属 \(Pr\ll1\)，温度边界层远厚于速度边界层。</p>
+<h3 id="边界层厚度的尺度关系">边界层厚度的尺度关系</h3>
+<p>层流平板的速度边界层厚度</p>
+<div class="math-block">\[\delta\sim\frac{x}{\sqrt{Re_x}},
+\qquad
+Re_x=\frac{Ux}{\nu},\]</div>
+<p>热边界层厚度</p>
+<div class="math-block">\[\delta_T\sim\frac{\delta}{Pr^{1/3}}.\]</div>
+<p>由此得到局部 \(Nu\) 的标度：</p>
+<div class="math-block">\[Nu_x\sim Re_x^{1/2}Pr^{1/3}.\]</div>
+<p>这正是层流平板关联式 \(Nu_x=0.332Re_x^{1/2}Pr^{1/3}\) 的来源，常数由 Blasius 相似解确定。</p>
+<h2 id="无量纲数体系">无量纲数体系</h2>
+<table>
+<thead>
+<tr>
+<th>无量纲数</th>
+<th>定义</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reynolds \(Re\)</td>
+<td>\(\rho UL/\mu\)</td>
+<td>惯性力/粘性力</td>
+</tr>
+<tr>
+<td>Prandtl \(Pr\)</td>
+<td>\(\mu c_p/k\)</td>
+<td>动量扩散/热扩散</td>
+</tr>
+<tr>
+<td>Nusselt \(Nu\)</td>
+<td>\(hL/k\)</td>
+<td>对流/纯导热</td>
+</tr>
+<tr>
+<td>Péclet \(Pe\)</td>
+<td>\(Re\,Pr\)</td>
+<td>对流/热扩散</td>
+</tr>
+<tr>
+<td>Stanton \(St\)</td>
+<td>\(Nu/(Re\,Pr)\)</td>
+<td>实际换热/热容量通量</td>
+</tr>
+<tr>
+<td>Grashof \(Gr\)</td>
+<td>\(g\beta\Delta T L^3/\nu^2\)</td>
+<td>浮力/粘性力</td>
+</tr>
+<tr>
+<td>Rayleigh \(Ra\)</td>
+<td>\(Gr\,Pr\)</td>
+<td>自然对流强度</td>
+</tr>
+<tr>
+<td>Richardson \(Ri\)</td>
+<td>\(Gr/Re^2\)</td>
+<td>自然对流/强制对流</td>
+</tr>
+</tbody>
+</table>
+<p>这些数不是孤立的：\(Pe=RePr\)、\(Ra=GrPr\)、\(St=Nu/(RePr)\)，记住这三条关系可以少背很多公式。</p>
+<h2 id="管内强制对流">管内强制对流</h2>
+<h3 id="入口段与充分发展">入口段与充分发展</h3>
+<p>管内流动先经过入口段，速度剖面与温度剖面逐渐发展。层流入口长度约为</p>
+<div class="math-block">\[L_{h}\approx0.05\,Re_D\,D,\]</div>
+<p>湍流入口长度约为 \(10D\)。热入口长度还受 \(Pr\) 影响，层流时约为 \(0.05Re_DPr\,D\)。</p>
+<p>充分发展层流的 \(Nu\) 只取决于边界条件：</p>
+<table>
+<thead>
+<tr>
+<th>边界条件</th>
+<th>\(Nu_D\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>常壁温</td>
+<td>3.66</td>
+</tr>
+<tr>
+<td>常热流</td>
+<td>4.36</td>
+</tr>
+</tbody>
+</table>
+<p>这两个数是层流管内换热的“下限”，与 \(Re\) 无关。很多 CFD 算例用它们校核层流管道换热。</p>
+<h3 id="湍流管内关联式">湍流管内关联式</h3>
+<p><strong>Dittus–Boelter</strong>：</p>
+<div class="math-block">\[Nu_D=0.023\,Re_D^{0.8}Pr^{n},
+\qquad
+n=\begin{cases}0.4,&\text{heating}\\0.3,&\text{cooling}\end{cases}\]</div>
+<p>适用：\(Re_D>10^4\)、\(0.6<Pr<160\)、充分发展湍流、物性变化不大。它是最经典的工程公式，但对低 \(Re\) 与高 \(Pr\) 偏差较大。</p>
+<p><strong>Sieder–Tate</strong>：</p>
+<div class="math-block">\[Nu_D=0.027\,Re_D^{0.8}Pr^{1/3}
+\left(\frac{\mu}{\mu_w}\right)^{0.14},\]</div>
+<p>适用：\(Re_D>10^4\)、\(0.7<Pr<16700\)，用壁温粘度修正非均匀物性。努塞尔数对 \(Pr\) 的指数从 0.4 降为 1/3，是对高 \(Pr\) 流体的修正。</p>
+<p><strong>Gnielinski</strong>：</p>
+<div class="math-block">\[Nu_D=\frac{(f/8)\left(Re_D-1000\right)Pr}
+{1+12.7\sqrt{f/8}\left(Pr^{2/3}-1\right)},\]</div>
+<div class="math-block">\[f=\left(0.790\ln Re_D-1.64\right)^{-2},\]</div>
+<p>适用：\(3000<Re_D<5\times10^6\)、\(0.5<Pr<2000\)。它覆盖过渡区，精度优于 Dittus–Boelter，是当前工程计算的首选。</p>
+<table>
+<thead>
+<tr>
+<th>关联式</th>
+<th>适用 \(Re\)</th>
+<th>适用 \(Pr\)</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dittus–Boelter</td>
+<td>\(>10^4\)</td>
+<td>0.6–160</td>
+<td>最简单</td>
+</tr>
+<tr>
+<td>Sieder–Tate</td>
+<td>\(>10^4\)</td>
+<td>0.7–16700</td>
+<td>含壁温粘度修正</td>
+</tr>
+<tr>
+<td>Gnielinski</td>
+<td>3000–\(5\times10^6\)</td>
+<td>0.5–2000</td>
+<td>覆盖过渡区，精度高</td>
+</tr>
+</tbody>
+</table>
+<h3 id="粗糙管与非圆管">粗糙管与非圆管</h3>
+<p>工程管道有粗糙度，Moody 图的摩擦因子可直接用于换热类比：</p>
+<div class="math-block">\[St\,Pr^{2/3}=\frac{f}{8},\]</div>
+<p>即 <strong>Chilton–Colburn 类比</strong>。由此</p>
+<div class="math-block">\[Nu=Re\,Pr^{1/3}\frac{f}{8}.\]</div>
+<p>粗糙度增大摩擦因子的同时增强换热，二者通过 \(j\) 因子联系在一起。非圆管用水力直径</p>
+<div class="math-block">\[D_h=\frac{4A_c}{P},\]</div>
+<p>\(A_c\) 是流通面积，\(P\) 是湿周；但层流非圆管的 \(Nu\) 与形状有关，需查表修正。</p>
+<h2 id="外部强制对流">外部强制对流</h2>
+<h3 id="平板">平板</h3>
+<p>层流（\(Re_x<5\times10^5\)）：</p>
+<div class="math-block">\[Nu_x=0.332\,Re_x^{1/2}Pr^{1/3},
+\qquad
+\overline{Nu}_L=0.664\,Re_L^{1/2}Pr^{1/3}.\]</div>
+<p>湍流：</p>
+<div class="math-block">\[Nu_x=0.0296\,Re_x^{0.8}Pr^{1/3},
+\qquad
+\overline{Nu}_L=0.037\,Re_L^{0.8}Pr^{1/3}.\]</div>
+<p>混合边界层（前缘层流、后段湍流）常用</p>
+<div class="math-block">\[\overline{Nu}_L
+=\left(0.037Re_L^{0.8}-871\right)Pr^{1/3},\]</div>
+<p>其中 \(871\) 来自转捩位置修正。</p>
+<h3 id="圆柱churchillbernstein">圆柱：Churchill–Bernstein</h3>
+<div class="math-block">\[Nu_D=0.3+
+\frac{0.62\,Re_D^{1/2}Pr^{1/3}}
+{\left[1+\left(0.4/Pr\right)^{2/3}\right]^{1/4}}
+\left[1+\left(\frac{Re_D}{282000}\right)^{5/8}\right]^{4/5},\]</div>
+<p>适用 \(Re_DPr>0.2\)，覆盖层流到湍流、低 \(Pr\) 到高 \(Pr\)。它是圆柱绕流最常用的单式关联。</p>
+<h3 id="球与管束">球与管束</h3>
+<p>球体常用 Whitaker 关系：</p>
+<div class="math-block">\[Nu=2+\left(0.4Re^{1/2}+0.06Re^{2/3}\right)Pr^{0.4}
+\left(\frac{\mu_\infty}{\mu_s}\right)^{1/4}.\]</div>
+<p>管束换热用 Grimison 或 Zukauskas 关联，需按排列方式（顺排/叉排）与 \(Re\) 分段查表。CFD 中若直接解析管束，网格量巨大，通常用多孔介质或周期性单元近似。</p>
+<h2 id="自然对流">自然对流</h2>
+<p>自然对流的驱动力是浮力，强度由 Rayleigh 数</p>
+<div class="math-block">\[Ra=Gr\,Pr=\frac{g\beta\Delta T L^3}{\nu\alpha}\]</div>
+<p>决定。竖直平板自然对流的 Churchill–Chu 关联式为</p>
+<div class="math-block">\[Nu=\left\{
+0.825+
+\frac{0.387\,Ra^{1/6}}
+{\left[1+\left(0.492/Pr\right)^{9/16}\right]^{8/27}}
+\right\}^2,\]</div>
+<p>适用于整块竖直平板，包括层流与湍流。水平圆柱、水平板与封闭腔各有专门关联式。</p>
+<p>自然对流换热的量级：室内空气、\(Ra\sim10^9\) 时 \(Nu\sim10^2\)，\(h\sim5\ \mathrm{W/(m^2\cdot K)}\)，远低于强制对流。这就是为什么散热器需要风扇。</p>
+<h2 id="混合对流">混合对流</h2>
+<p>当自然对流与强制对流同时显著时，用 Richardson 数判断：</p>
+<div class="math-block">\[Ri=\frac{Gr}{Re^2}.\]</div>
+<p>\(Ri\ll1\) 强制对流主导，\(Ri\gg1\) 自然对流主导，\(Ri\sim1\) 必须同时考虑。工程上常用</p>
+<div class="math-block">\[Nu^n=Nu_{forced}^n\pm Nu_{natural}^n,\]</div>
+<p>\(n\) 取 3 左右，符号取决于浮力与流动方向一致或相反。具体指数与符号需按工况选取，不能一概而论。</p>
+<h2 id="换热强化">换热强化</h2>
+<p>常见强化手段及其代价：</p>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>机理</th>
+<th>代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>肋片/翅片</td>
+<td>增大面积</td>
+<td>体积、材料、流阻</td>
+</tr>
+<tr>
+<td>螺旋槽管</td>
+<td>旋转流、边界层分离</td>
+<td>压降上升</td>
+</tr>
+<tr>
+<td>内插物（扭带、线圈）</td>
+<td>扰流、二次流</td>
+<td>压降显著上升</td>
+</tr>
+<tr>
+<td>纳米流体</td>
+<td>提高导热系数</td>
+<td>稳定性、粘度上升</td>
+</tr>
+<tr>
+<td>射流冲击</td>
+<td>薄边界层</td>
+<td>局部热应力</td>
+</tr>
+</tbody>
+</table>
+<p>评价强化效果不能只看 \(h\)，要看<strong>单位泵功下的换热量</strong>。常用准则有 \(Nu/Nu_0\) 与 \((f/f_0)^{1/3}\) 的比值（等泵功比较），或熵产最小化。</p>
+<h2 id="cfd-中的对流换热">CFD 中的对流换热</h2>
+<h3 id="壁面热流与-mathi78">壁面热流与 \(y^+\)</h3>
+<p>要解析热边界层，第一层网格应满足 \(y^+<1\)（低 \(Re\) 模型）；若用壁面函数，\(y^+\) 应落在对数律区间（约 30–300），且不能跨区间。热边界层的 \(y^+\) 要求与速度边界层相同，但高 \(Pr\) 流体的热边界层更薄，网格需更密。</p>
+<h3 id="热壁面函数">热壁面函数</h3>
+<p>湍流热通量的壁面函数通常写成</p>
+<div class="math-block">\[\frac{T_w-T_P}{T_\tau}
+=\frac{Pr_t}{\kappa}\ln\left(\frac{y^+}{y_0^+}\right)+P,\]</div>
+<p>\(T_\tau=q''_w/(\rho c_p u_\tau)\) 是摩擦温度，\(Pr_t\) 是湍流 Prandtl 数（常取 0.85–0.9），\(P\) 是 Jayatilleke 函数。高 \(Pr\) 流体（水、油）的 \(P\) 项很大，壁面函数误差明显，宜用低 \(Re\) 或两层模型。</p>
+<h3 id="共轭传热边界">共轭传热边界</h3>
+<p>流体侧与固体侧同时求解时，界面热流必须连续：</p>
+<div class="math-block">\[q''_f=q''_s,
+\qquad
+-k_f\frac{\partial T_f}{\partial n}
+=-k_s\frac{\partial T_s}{\partial n}.\]</div>
+<p>CFD 中若只解流体、把壁温当常数，会忽略固体内部导热，薄壁换热器的误差可达 20% 以上。</p>
+<h2 id="python-示例管内对流关联式对比">Python 示例：管内对流关联式对比</h2>
+<p>下面的脚本对水在圆管内流动，比较 Dittus–Boelter、Sieder–Tate 与 Gnielinski 三个关联式，并给出相对偏差。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">D</span> <span class="o">=</span> <span class="mf">0.02</span>            <span class="c1"># m</span>
+<span class="n">mu</span><span class="p">,</span> <span class="n">rho</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">cp</span> <span class="o">=</span> <span class="mf">8.9e-4</span><span class="p">,</span> <span class="mf">998.0</span><span class="p">,</span> <span class="mf">0.60</span><span class="p">,</span> <span class="mf">4180.0</span>
+<span class="n">Pr</span> <span class="o">=</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">cp</span> <span class="o">/</span> <span class="n">k</span>
+<span class="n">mu_w</span> <span class="o">=</span> <span class="mf">6.5e-4</span>       <span class="c1"># 壁温下的粘度（示例）</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">dittus_boelter</span><span class="p">(</span><span class="n">Re</span><span class="p">,</span> <span class="n">heating</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mf">0.4</span> <span class="k">if</span> <span class="n">heating</span> <span class="k">else</span> <span class="mf">0.3</span>
+    <span class="k">return</span> <span class="mf">0.023</span> <span class="o">*</span> <span class="n">Re</span><span class="o">**</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">Pr</span><span class="o">**</span><span class="n">n</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sieder_tate</span><span class="p">(</span><span class="n">Re</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mf">0.027</span> <span class="o">*</span> <span class="n">Re</span><span class="o">**</span><span class="mf">0.8</span> <span class="o">*</span> <span class="n">Pr</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">mu</span> <span class="o">/</span> <span class="n">mu_w</span><span class="p">)</span><span class="o">**</span><span class="mf">0.14</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">gnielinski</span><span class="p">(</span><span class="n">Re</span><span class="p">):</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.790</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">Re</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.64</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">f</span> <span class="o">/</span> <span class="mi">8</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">Re</span> <span class="o">-</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">*</span> <span class="n">Pr</span> <span class="o">/</span> <span class="p">(</span>
+        <span class="mi">1</span> <span class="o">+</span> <span class="mf">12.7</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">f</span> <span class="o">/</span> <span class="mi">8</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">Pr</span><span class="o">**</span><span class="p">(</span><span class="mi">2</span><span class="o">/</span><span class="mi">3</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Pr = </span><span class="si">{</span><span class="n">Pr</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">'Re'</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'D-B'</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'S-T'</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'Gnielinski'</span><span class="si">:</span><span class="s2">&gt;12</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="s1">'D-B偏差'</span><span class="si">:</span><span class="s2">&gt;10</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">Re</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">5e3</span><span class="p">,</span> <span class="mf">1e4</span><span class="p">,</span> <span class="mf">5e4</span><span class="p">,</span> <span class="mf">1e5</span><span class="p">,</span> <span class="mf">5e5</span><span class="p">]:</span>
+    <span class="n">nu_db</span> <span class="o">=</span> <span class="n">dittus_boelter</span><span class="p">(</span><span class="n">Re</span><span class="p">)</span>
+    <span class="n">nu_st</span> <span class="o">=</span> <span class="n">sieder_tate</span><span class="p">(</span><span class="n">Re</span><span class="p">)</span>
+    <span class="n">nu_gn</span> <span class="o">=</span> <span class="n">gnielinski</span><span class="p">(</span><span class="n">Re</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">nu_gn</span> <span class="o">*</span> <span class="n">k</span> <span class="o">/</span> <span class="n">D</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">Re</span><span class="si">:</span><span class="s2">10.0f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">nu_db</span><span class="si">:</span><span class="s2">10.1f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">nu_st</span><span class="si">:</span><span class="s2">10.1f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">nu_gn</span><span class="si">:</span><span class="s2">12.1f</span><span class="si">}</span><span class="s2"> "</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="p">(</span><span class="n">nu_db</span><span class="o">/</span><span class="n">nu_gn</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="mi">100</span><span class="si">:</span><span class="s2">9.1f</span><span class="si">}</span><span class="s2">%   h=</span><span class="si">{</span><span class="n">h</span><span class="si">:</span><span class="s2">7.0f</span><span class="si">}</span><span class="s2"> W/m2K"</span><span class="p">)</span>
+</code></pre></div>
+
+<p>典型结果：\(Re=10^4\) 时 Dittus–Boelter 与 Gnielinski 接近；\(Re=10^5\) 时前者低约 16%，\(Re=5\times10^5\) 时低约 24%。这说明高 \(Re\) 下 Dittus–Boelter 偏保守，工程上应优先用 Gnielinski。</p>
+<div class="admonition warning"><div class="admonition-title">关联式的“同名不同式”</div><div class="admonition-body"><p>同一位作者在不同年份、不同教材中可能给出略有差异的系数（例如 Dittus–Boelter 的 0.023 与 0.024）。引用时必须同时给出系数与适用区间，否则结果无法复现。工程计算应在同一份报告内保持关联式一致。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>对流换热系数 \(h\) 不是物性，而是边界层结构与流场的综合结果；\(Nu=hL/k\) 才是可标度的量。</li>
+<li>\(Pr\) 决定速度与温度边界层的相对厚度，\(Pe=RePr\)、\(St=Nu/(RePr)\) 是常用换算。</li>
+<li>管内湍流优先用 Gnielinski，Dittus–Boelter 适合快速估算，Sieder–Tate 适合物性变化大的工况。</li>
+<li>外部流动用 Churchill–Bernstein（圆柱）、平板相似解与 Whitaker（球）等关联式。</li>
+<li>自然对流由 \(Ra\) 控制，混合对流由 \(Ri\) 判断；CFD 中壁面 \(y^+\) 与热壁面函数决定换热精度。</li>
+</ul>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li>Incropera, F. P., DeWitt, D. P. <em>Fundamentals of Heat and Mass Transfer</em>, 7th ed. Wiley, 2011.</li>
+<li>Çengel, Y. A., Ghajar, A. J. <em>Heat and Mass Transfer</em>, 6th ed. McGraw-Hill, 2020.</li>
+<li>Kays, W. M., Crawford, M. E., Weigand, B. <em>Convective Heat and Mass Transfer</em>, 4th ed. McGraw-Hill, 2005.</li>
+<li>Bird, R. B., Stewart, W. E., Lightfoot, E. N. <em>Transport Phenomena</em>, 2nd ed. Wiley, 2006.</li>
+</ul>
+    </div>
+
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="thermo">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../thermo/conduction.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">导热与傅里叶定律</span>
+        </a>
+        <a class="page-nav-item is-next" href="../thermo/radiation.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">辐射换热</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="thermo/convection.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#对流换热的定义">对流换热的定义</a></li>
+<li><a href="#边界层方程">边界层方程</a><ul>
+<li><a href="#边界层厚度的尺度关系">边界层厚度的尺度关系</a></li>
+</ul>
+</li>
+<li><a href="#无量纲数体系">无量纲数体系</a></li>
+<li><a href="#管内强制对流">管内强制对流</a><ul>
+<li><a href="#入口段与充分发展">入口段与充分发展</a></li>
+<li><a href="#湍流管内关联式">湍流管内关联式</a></li>
+<li><a href="#粗糙管与非圆管">粗糙管与非圆管</a></li>
+</ul>
+</li>
+<li><a href="#外部强制对流">外部强制对流</a><ul>
+<li><a href="#平板">平板</a></li>
+<li><a href="#圆柱churchillbernstein">圆柱：Churchill–Bernstein</a></li>
+<li><a href="#球与管束">球与管束</a></li>
+</ul>
+</li>
+<li><a href="#自然对流">自然对流</a></li>
+<li><a href="#混合对流">混合对流</a></li>
+<li><a href="#换热强化">换热强化</a></li>
+<li><a href="#cfd-中的对流换热">CFD 中的对流换热</a><ul>
+<li><a href="#壁面热流与-mathi78">壁面热流与 @@MATHI78@@</a></li>
+<li><a href="#热壁面函数">热壁面函数</a></li>
+<li><a href="#共轭传热边界">共轭传热边界</a></li>
+</ul>
+</li>
+<li><a href="#python-示例管内对流关联式对比">Python 示例：管内对流关联式对比</a></li>
+<li><a href="#小结">小结</a></li>
+<li><a href="#延伸阅读">延伸阅读</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

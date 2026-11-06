@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>均相流与漂移流模型 · CFD Wiki</title>
+  <meta name="description" content="从均相假设出发推导混合物密度、含气率与两相摩擦，再引入滑移比的 Zivi 关系与 Zuber–Findlay 漂移流方程，说明两类一维模型的精度差异与适用工况。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link is-active" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../multiphase/index.html">两相流与多相流</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">均相流与漂移流模型</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">均相流与漂移流模型</h1>
+        <p class="page-summary">从均相假设出发推导混合物密度、含气率与两相摩擦，再引入滑移比的 Zivi 关系与 Zuber–Findlay 漂移流方程，说明两类一维模型的精度差异与适用工况。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">两相流与多相流</span>
+        <span class="meta-sep">·</span>
+        <span>约 2591 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#均相模型</span><span class="tag">#漂移流</span><span class="tag">#滑移比</span><span class="tag">#Zuber-Findlay</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>上一页的流型告诉我们：气液两相的速度很少相等。但工程计算不可能对每根管道都做三维界面解析，于是出现两类一维近似：<strong>均相模型</strong>强行令两相速度相同，把混合物当作一种“等效流体”；<strong>漂移流模型</strong>承认速度差，但只用一个平均漂移速度来修正。前者简单、后者更接近实际，两者共同构成两相流一维分析的主干。</p>
+<h2 id="均相模型的基本假设">均相模型的基本假设</h2>
+<p>均相模型（homogeneous model）做了三条强假设：</p>
+<ol>
+<li>两相速度相等，\(S=u_g/u_l=1\)；</li>
+<li>两相处于热力学平衡，温度相同；</li>
+<li>混合物可用单一密度、单一粘度与单一速度描述。</li>
+</ol>
+<p>在这些假设下，混合物密度由体积加权得到：</p>
+<div class="math-block">\[\frac{1}{\rho_h}=\frac{x}{\rho_g}+\frac{1-x}{\rho_l},
+\qquad
+\rho_h=\left(\frac{x}{\rho_g}+\frac{1-x}{\rho_l}\right)^{-1}.\]</div>
+<p>它与干度的关系是非线性的：即使 \(x\) 很小，只要 \(\rho_l/\rho_g\) 很大，含气率也会迅速上升。</p>
+<h3 id="含气率">含气率</h3>
+<p>由 \(S=1\) 与干度定义，直接得到</p>
+<div class="math-block">\[\alpha_h=\frac{x/\rho_g}{x/\rho_g+(1-x)/\rho_l}
+=\frac{1}{1+\dfrac{1-x}{x}\dfrac{\rho_g}{\rho_l}}.\]</div>
+<p>这条式子是均相模型的核心。对水-空气常压系统（\(\rho_l/\rho_g\approx830\)），\(x=0.01\) 时 \(\alpha_h\approx0.89\)。也就是说，<strong>质量上只有 1% 的气，体积上却占了近 90%</strong>。这正是两相流“干度小、含气率大”的反直觉之处。</p>
+<h3 id="均相摩擦压降">均相摩擦压降</h3>
+<p>均相模型的摩擦压降写成单相形式：</p>
+<div class="math-block">\[-\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_f
+=f_h\frac{G^2}{2D\rho_h},
+\qquad
+Re_h=\frac{GD}{\mu_h},\]</div>
+<p>其中 \(G=\dot m/A\) 是总质量通量，\(f_h\) 由 \(Re_h\) 按单相 Moody 图或 Colebrook 公式求得。问题转移到<strong>两相粘度</strong> \(\mu_h\) 如何定义。常用关联式有：</p>
+<table>
+<thead>
+<tr>
+<th>名称</th>
+<th>两相粘度定义</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>McAdams</td>
+<td>\(\dfrac{1}{\mu_h}=\dfrac{x}{\mu_g}+\dfrac{1-x}{\mu_l}\)</td>
+<td>偏小，压降预测偏高</td>
+</tr>
+<tr>
+<td>Cicchitti</td>
+<td>\(\mu_h=x\mu_g+(1-x)\mu_l\)</td>
+<td>线性加权，最简单</td>
+</tr>
+<tr>
+<td>Dukler</td>
+<td>\(\mu_h=\rho_h\left(\dfrac{x\mu_g}{\rho_g}+\dfrac{(1-x)\mu_l}{\rho_l}\right)\)</td>
+<td>体积加权，常用于油气管道</td>
+</tr>
+</tbody>
+</table>
+<p>三者没有绝对优劣：它们都是把实验数据拟合进一个“等效粘度”里。选哪一个，应与压降关联式的标定数据保持一致。</p>
+<div class="admonition tip"><div class="admonition-title">均相模型的适用场合</div><div class="admonition-body"><p>均相模型在<strong>高干度、高流速、气泡细小且分布均匀</strong>的工况下表现最好，例如雾状流、窄通道内的分散泡状流、临界流计算。对分层流、弹状流与低干度环状流，误差可达 50% 以上。</p></div></div>
+<h2 id="滑移比与-zivi-关系">滑移比与 Zivi 关系</h2>
+<p>均相模型最大的偏差来自忽略滑移。若只保留滑移比 \(S\) 这一个自由度，含气率变为</p>
+<div class="math-block">\[\alpha=\frac{1}{1+\dfrac{1-x}{x}\dfrac{\rho_g}{\rho_l}S}.\]</div>
+<p>\(S\) 越大，同样干度下 \(\alpha\) 越小：气相速度越高，维持同样质量流量所需的体积份额越少。Zivi（1964）从“最小熵产”出发，给出一个只依赖密度的估计：</p>
+<div class="math-block">\[S=\left(\frac{\rho_l}{\rho_g}\right)^{1/3}.\]</div>
+<p>对水-空气，\(S\approx9.4\)，已经远大于 1；对水-蒸汽（\(\rho_l/\rho_g\) 约 20–100），\(S\) 约 3–4.6。Zivi 关系不需要任何实验标定，因此在缺乏数据时常用作一阶修正。</p>
+<p>更一般地，滑移比与流型相关：泡状流 \(S\) 接近 1–2，弹状流可达 3–5，环状流液膜速度远低于气芯，\(S\) 可超过 10。因此固定 \(S\) 的模型只在窄工况内有效。</p>
+<h2 id="漂移流模型">漂移流模型</h2>
+<p>漂移流模型（drift-flux model）由 Zuber 与 Findlay（1965）提出，是两相流一维分析中精度与复杂度平衡得最好的一类。它的出发点不是“假设速度相等”，而是把两相速度差写成一个<strong>分布参数</strong>加一个<strong>漂移速度</strong>。</p>
+<h3 id="基本运动学关系">基本运动学关系</h3>
+<p>定义气相表观速度 \(j_g=\alpha u_g\)、液相表观速度 \(j_l=(1-\alpha)u_l\)，混合物表观速度 \(j=j_g+j_l\)。气相速度可分解为</p>
+<div class="math-block">\[u_g=C_0 j+V_{gj},\]</div>
+<p>其中 \(C_0\) 是<strong>分布参数</strong>（distribution parameter），反映截面上的速度与含气率分布；\(V_{gj}\) 是<strong>漂移速度</strong>（drift velocity），反映气泡相对于混合物的上升。两边乘 \(\alpha\) 得</p>
+<div class="math-block">\[j_g=\alpha\left(C_0 j+V_{gj}\right),\]</div>
+<p>于是</p>
+<div class="math-block">\[\alpha=\frac{j_g}{C_0 j+V_{gj}}\]</div>
+<p>这个式子非常实用：只要知道 \(j_g\)、\(j_l\) 与两个封闭参数，就能算出含气率，不需要迭代。</p>
+<h3 id="封闭参数的典型取值">封闭参数的典型取值</h3>
+<table>
+<thead>
+<tr>
+<th>流型</th>
+<th>\(C_0\)</th>
+<th>\(V_{gj}\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>泡状流</td>
+<td>约 1.2</td>
+<td>\(\sqrt{2}\left(\dfrac{\sigma g(\rho_l-\rho_g)}{\rho_l^2}\right)^{1/4}\)</td>
+</tr>
+<tr>
+<td>弹状流</td>
+<td>约 1.2</td>
+<td>\(0.35\sqrt{\dfrac{gD(\rho_l-\rho_g)}{\rho_l}}\)</td>
+</tr>
+<tr>
+<td>搅混流</td>
+<td>约 1.0–1.2</td>
+<td>与泡状流同阶</td>
+</tr>
+<tr>
+<td>环状流</td>
+<td>约 1.0</td>
+<td>近似为 0（气芯速度由压降决定）</td>
+</tr>
+</tbody>
+</table>
+<p>\(C_0>1\) 的物理含义是：管道中心速度高于截面平均速度，而含气率也常在中心较高，两者相关导致气相被“加权”输运得更快。\(V_{gj}\) 则来自浮力与表面张力（或重力）的平衡，泡状流的 \(\sqrt{2}(\sigma g\Delta\rho/\rho_l^2)^{1/4}\) 就是经典的 Zuber 上升速度尺度。</p>
+<div class="admonition warning"><div class="admonition-title">参数不是万能常数</div><div class="admonition-body"><p>\(C_0\) 与 \(V_{gj}\) 都随管径、压力、入口与流型变化。Ishii 与 Hibiki 给出了考虑管径与界面浓度的修正形式。直接把表中的常数用于高压蒸汽或大管径，误差可能超过 30%。</p></div></div>
+<h3 id="一维守恒方程">一维守恒方程</h3>
+<p>漂移流模型仍需与守恒方程耦合。气相连续性方程为</p>
+<div class="math-block">\[\frac{\partial(\alpha\rho_g)}{\partial t}
++\frac{\partial(\alpha\rho_g u_g)}{\partial z}
+=\Gamma_g,\]</div>
+<p>液相连续性为</p>
+<div class="math-block">\[\frac{\partial((1-\alpha)\rho_l)}{\partial t}
++\frac{\partial((1-\alpha)\rho_l u_l)}{\partial z}
+=-\Gamma_g,\]</div>
+<p>混合物动量方程（忽略相间动量交换的细节）为</p>
+<div class="math-block">\[\frac{\partial(\rho_m j)}{\partial t}
++\frac{\partial}{\partial z}\left(\rho_m j^2\right)
+=-\frac{\partial p}{\partial z}
+-\rho_m g\sin\theta
+-\frac{4\tau_w}{D},\]</div>
+<p>其中 \(\rho_m=\alpha\rho_g+(1-\alpha)\rho_l\) 是混合密度，\(\tau_w\) 是壁面剪切。\(\Gamma_g\) 是相变源项，在沸腾与凝结中不能省略。</p>
+<p>这组方程是系统级热工水力程序（RELAP5、TRACE、CATHARE）的核心结构，也是 CFD 与一维管网耦合时的常用接口。</p>
+<h2 id="三类模型的比较">三类模型的比较</h2>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>未知量</th>
+<th>封闭关系</th>
+<th>典型误差</th>
+<th>适用场景</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>均相</td>
+<td>\(\alpha\)、\(u\)、\(p\)</td>
+<td>\(\mu_h\) 关联式</td>
+<td>低干度时偏大，可达 50%</td>
+<td>雾状流、临界流、快速估算</td>
+</tr>
+<tr>
+<td>滑移（Zivi）</td>
+<td>加 \(S\)</td>
+<td>\(S=(\rho_l/\rho_g)^{1/3}\)</td>
+<td>20%–40%</td>
+<td>无实验数据的绝热流动</td>
+</tr>
+<tr>
+<td>漂移流</td>
+<td>加 \(C_0\)、\(V_{gj}\)</td>
+<td>按流型选参数</td>
+<td>10%–20%</td>
+<td>管流、沸腾通道、系统程序</td>
+</tr>
+<tr>
+<td>两流体</td>
+<td>每相速度、温度</td>
+<td>相间力、传热、传质</td>
+<td>取决于封闭</td>
+<td>三维 CFD、非平衡流动</td>
+</tr>
+</tbody>
+</table>
+<p>精度提升的代价是封闭关系越来越多。三维两流体模型要为阻力、升力、虚拟质量、湍流扩散分别建模，而漂移流模型只用一个 \(C_0\) 与一个 \(V_{gj}\) 概括。这也是为什么工程初步设计几乎总是从漂移流开始。</p>
+<h2 id="python-示例三种模型的含气率对比">Python 示例：三种模型的含气率对比</h2>
+<p>下面的脚本对水-空气系统扫描干度，比较均相、Zivi 滑移与漂移流的含气率，并画出曲线。漂移流参数取泡状流的典型值。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="n">rho_l</span><span class="p">,</span> <span class="n">rho_g</span> <span class="o">=</span> <span class="mf">998.0</span><span class="p">,</span> <span class="mf">1.2</span>
+<span class="n">sigma</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">D</span> <span class="o">=</span> <span class="mf">0.072</span><span class="p">,</span> <span class="mf">9.81</span><span class="p">,</span> <span class="mf">0.05</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">alpha_homogeneous</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">x</span> <span class="o">*</span> <span class="n">rho_g</span> <span class="o">/</span> <span class="n">rho_l</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">alpha_zivi</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="p">(</span><span class="n">rho_l</span> <span class="o">/</span> <span class="n">rho_g</span><span class="p">)</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">x</span> <span class="o">*</span> <span class="n">rho_g</span> <span class="o">/</span> <span class="n">rho_l</span> <span class="o">*</span> <span class="n">S</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">alpha_drift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">G</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""G 为总质量通量 kg/(m2 s)，用漂移流关系求 alpha。"""</span>
+    <span class="n">j_g</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">G</span> <span class="o">/</span> <span class="n">rho_g</span>
+    <span class="n">j_l</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">G</span> <span class="o">/</span> <span class="n">rho_l</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="n">j_g</span> <span class="o">+</span> <span class="n">j_l</span>
+    <span class="n">C0</span> <span class="o">=</span> <span class="mf">1.2</span>
+    <span class="n">Vgj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">sigma</span> <span class="o">*</span> <span class="n">g</span> <span class="o">*</span> <span class="p">(</span><span class="n">rho_l</span> <span class="o">-</span> <span class="n">rho_g</span><span class="p">)</span> <span class="o">/</span> <span class="n">rho_l</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.25</span>
+    <span class="k">return</span> <span class="n">j_g</span> <span class="o">/</span> <span class="p">(</span><span class="n">C0</span> <span class="o">*</span> <span class="n">j</span> <span class="o">+</span> <span class="n">Vgj</span><span class="p">)</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.001</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="n">a1</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">a3</span> <span class="o">=</span> <span class="n">alpha_homogeneous</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">alpha_zivi</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">alpha_drift</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">xi</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"x=</span><span class="si">{</span><span class="n">xi</span><span class="si">:</span><span class="s2">4.2f</span><span class="si">}</span><span class="s2">  均相=</span><span class="si">{</span><span class="n">alpha_homogeneous</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  "</span>
+          <span class="sa">f</span><span class="s2">"Zivi=</span><span class="si">{</span><span class="n">alpha_zivi</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">  漂移流=</span><span class="si">{</span><span class="n">alpha_drift</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"homogeneous (S=1)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"Zivi slip"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">"drift-flux (C0=1.2)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">"quality x"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">"void fraction \(\alpha\)"</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div>
+
+<p>结果会显示：在低干度区，均相模型给出最高的含气率（因为它假设无滑移），Zivi 与漂移流都明显更低，二者在极小干度与中等干度时互有高低；干度增大时均相与 Zivi 逐渐趋近 1，而固定 \(C_0=1.2\) 的漂移流在高干度下会明显偏低。这正是漂移流参数必须随流型切换的原因。</p>
+<div class="admonition note"><div class="admonition-title">干度趋近于零的数值问题</div><div class="admonition-body"><p>\(x\to0\) 时 \(\alpha\) 对 \(x\) 极其敏感，且 \(1/x\) 会造成除零。实际程序中应设一个很小的干度下限（例如 \(10^{-6}\)），或用 \(j_g\) 直接构造 \(\alpha\)，避免奇异性。</p></div></div>
+<h2 id="从一维到三维的桥梁">从一维到三维的桥梁</h2>
+<p>漂移流模型可以作为三维两流体模型的<strong>代数滑移封闭</strong>：在只关心相分布、不关心界面细节时，用 \(\alpha=j_g/(C_0j+V_{gj})\) 替代完整的相间力平衡，计算量显著下降。OpenFOAM 的 <code>driftFluxFoam</code> 就是这一思路的实现，常用于沉降、鼓泡塔与泥浆输送。</p>
+<p>但要注意：漂移流模型的 \(C_0\)、\(V_{gj}\) 是在一维截面平均意义上标定的，直接用在三维网格上时，必须把它们解释为局部关系，否则会出现非物理的相分布。严谨做法是用两流体模型标定，再用漂移流做快速估算。</p>
+<h2 id="小结">小结</h2>
+<ul>
+<li>均相模型用混合物密度与等效粘度把两相流写成单相形式，低干度时严重低估含气率。</li>
+<li>Zivi 关系用 \(S=(\rho_l/\rho_g)^{1/3}\) 引入滑移，不需要实验标定，适合一阶修正。</li>
+<li>漂移流模型用 \(C_0\) 与 \(V_{gj}\) 概括截面分布与相间滑移，\(\alpha=j_g/(C_0j+V_{gj})\) 是工程上最常用的一维关系。</li>
+<li>模型精度从均相、滑移到漂移流递增，封闭参数也随之增多；三维两流体模型则需要完整的相间力与传热封闭。</li>
+<li>一维模型的价值在于快速估算与系统耦合，不能替代三维界面解析。</li>
+</ul>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li>Wallis, G. B. <em>One-Dimensional Two-Phase Flow</em>. McGraw-Hill, 1969.</li>
+<li>Ishii, M., Hibiki, T. <em>Thermo-Fluid Dynamics of Two-Phase Flow</em>, 2nd ed. Springer, 2006.</li>
+<li>Brennen, C. E. <em>Fundamentals of Multiphase Flow</em>. Cambridge University Press, 2005.</li>
+<li>Crowe, C. T., Schwarzkopf, J. D., Sommerfeld, M., Tsuji, Y. <em>Multiphase Flows with Droplets and Particles</em>, 2nd ed. CRC Press, 2011.</li>
+</ul>
+    </div>
+
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="multiphase">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../multiphase/flow-regimes.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">流型与相分布</span>
+        </a>
+        <a class="page-nav-item is-next" href="../multiphase/two-phase-momentum.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">两相流动量方程与压降</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="multiphase/homogeneous-drift-flux.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#均相模型的基本假设">均相模型的基本假设</a><ul>
+<li><a href="#含气率">含气率</a></li>
+<li><a href="#均相摩擦压降">均相摩擦压降</a></li>
+</ul>
+</li>
+<li><a href="#滑移比与-zivi-关系">滑移比与 Zivi 关系</a></li>
+<li><a href="#漂移流模型">漂移流模型</a><ul>
+<li><a href="#基本运动学关系">基本运动学关系</a></li>
+<li><a href="#封闭参数的典型取值">封闭参数的典型取值</a></li>
+<li><a href="#一维守恒方程">一维守恒方程</a></li>
+</ul>
+</li>
+<li><a href="#三类模型的比较">三类模型的比较</a></li>
+<li><a href="#python-示例三种模型的含气率对比">Python 示例：三种模型的含气率对比</a></li>
+<li><a href="#从一维到三维的桥梁">从一维到三维的桥梁</a></li>
+<li><a href="#小结">小结</a></li>
+<li><a href="#延伸阅读">延伸阅读</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

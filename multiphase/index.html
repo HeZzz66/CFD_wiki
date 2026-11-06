@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>本章导览 · CFD Wiki</title>
+  <meta name="description" content="本章从流型与相分布出发，依次建立均相流、漂移流与分相压降模型，讨论沸腾与凝结传热，最后落到 VOF 与欧拉-欧拉等多相 CFD 方法，形成“现象—一维模型—三维模拟”的完整链条。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../multiphase/index.html">两相流与多相流</a>
+    </nav>
+
+    <header class="page-header">
+        <div class="chapter-kicker">
+          <span class="chapter-kicker-num">CHAPTER 5</span>
+<span class="chapter-kicker-sub">流型 · 均相流 · 漂移流 · 相变传热 · 多相 CFD</span>        </div>
+      <h1 class="page-title">本章导览</h1>
+        <p class="page-summary">本章从流型与相分布出发，依次建立均相流、漂移流与分相压降模型，讨论沸腾与凝结传热，最后落到 VOF 与欧拉-欧拉等多相 CFD 方法，形成“现象—一维模型—三维模拟”的完整链条。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">两相流与多相流</span>
+        <span class="meta-sep">·</span>
+        <span>约 1718 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#多相流</span><span class="tag">#两相流</span><span class="tag">#学习路径</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>单相流动的 CFD 已经足够复杂，多相流又在上面加了三层困难：<strong>界面在动、相间有滑移、相变带潜热</strong>。同一根管子，含水率从 0 变到 5%，压降可能翻倍，传热系数可能变三倍；而这些变化并不是连续的，往往在某个流型转变点突然发生。本章的目标不是把所有关联式背下来，而是建立一条可操作的判断链：先认流型，再选一维模型，最后决定要不要上三维 CFD。</p>
+<h2 id="本章在全书中的位置">本章在全书中的位置</h2>
+<p>前面的章节建立了单相守恒方程、有限体积离散与湍流模型。多相流并没有推翻这些工具，而是把它们<strong>按相重复使用</strong>：每一相都有自己的连续性、动量与能量方程，方程之间通过界面交换项耦合。因此，本章可以看作前四章的“多场版本”：</p>
+<ul>
+<li><a class="wiki-link" href="../ch2/governing-equations.html">守恒方程</a> 是分相方程的骨架；</li>
+<li><a class="wiki-link" href="../ch3/fvm.html">有限体积法</a> 是 VOF 与两流体模型的离散基础；</li>
+<li><a class="wiki-link" href="../ch4/turbulence-physics.html">湍流</a> 在分散相中变成“气泡诱导湍流”与“相间湍流扩散”；</li>
+<li><a class="wiki-link" href="../thermo/index.html">热力学与传热学</a> 提供相平衡、潜热与传热关联式；</li>
+<li><a class="wiki-link" href="../ch5/pinns.html">AI for CFD</a> 中的神经算子，也开始用于两相流场的代理建模。</li>
+</ul>
+<p>需要提醒的是，多相流的实验数据比单相少得多，关联式的适用范围往往很窄。<strong>本章的每一个公式都应带着“适用工况”一起记</strong>，这比记住系数更重要。</p>
+<h2 id="章节地图">章节地图</h2>
+<table>
+<thead>
+<tr>
+<th>顺序</th>
+<th>页面</th>
+<th>要解决的问题</th>
+<th>读完后应能</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a class="wiki-link" href="../multiphase/flow-regimes.html">流型与相分布</a></td>
+<td>气液两相长什么样？</td>
+<td>用体积分数、干度、表观速度描述两相流，识别垂直/水平管流型</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a class="wiki-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></td>
+<td>能不能用一维模型快速算含气率？</td>
+<td>写出均相密度与 \(\alpha_h\)，用 Zivi 与漂移流关系估算含气率</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a class="wiki-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></td>
+<td>压降由哪几部分组成？</td>
+<td>用 Lockhart–Martinelli 乘子算摩擦压降，分解加速与重力项</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a class="wiki-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></td>
+<td>相变时传热系数怎么算？</td>
+<td>读懂沸腾曲线，选用 Rohsenow、Chen、Nusselt 等关联式</td>
+</tr>
+<tr>
+<td>5</td>
+<td><a class="wiki-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></td>
+<td>什么时候必须做三维模拟？</td>
+<td>在 VOF、欧拉-欧拉、拉格朗日之间做出有依据的选择</td>
+</tr>
+</tbody>
+</table>
+<p>五页的顺序是刻意安排的：<strong>先描述、再平均、后计算、最后模拟</strong>。跳过流型直接套压降公式，会在弹状流与环状流上得到完全错误的结果；跳过一维模型直接做 VOF，则很难判断三维结果是否合理。</p>
+<h2 id="三条阅读建议">三条阅读建议</h2>
+<p><strong>第一条：始终带着一根管子读。</strong> 建议用“内径 25 mm 的垂直蒸发管，水在 1 bar 下从过冷到干度 0.2”作为贯穿案例。读流型时判断它处在泡状、弹状还是环状；读均相流时算 \(\alpha_h\)；读压降时分解摩擦、加速与重力；读沸腾时判断核态沸腾还是两相对流；读 CFD 时决定要不要解析界面。同一根管子反复出现，公式会逐渐有物理重量。</p>
+<p><strong>第二条：先分清“平衡”与“非平衡”。</strong> 均相模型假设两相速度与温度都相等；漂移流只允许速度差；两流体模型允许每相有独立速度与温度；VOF 则解析界面。模型越往后，封闭关系越多、计算越贵。选模型的依据不是“越高级越好”，而是<strong>你的问题是否真的需要那些自由度</strong>。</p>
+<p><strong>第三条：把所有结果换算成无量纲数再比较。</strong> 遇到新工况先算 \(Re\)、\(We\)、\(Fr\)、\(Ja\)，再决定用哪一页的关联式。\(We\) 大说明界面易破碎，\(Fr\) 小说明重力主导分层，\(Ja\) 大说明显热相对潜热重要。这条习惯会一直用到三维 CFD 的后处理。</p>
+<div class="admonition tip"><div class="admonition-title">和其他章节的衔接</div><div class="admonition-body"><p>本章的相间力与相变源项，在 <a class="wiki-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a> 中展开为具体的方程与封闭；本章的压降与传热关联式，在 <a class="wiki-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a> 中用于整机性能校核；本章的相平衡与潜热，在 <a class="wiki-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a> 中给出更严格的定义。</p></div></div>
+<h2 id="一条贯穿全章的线索">一条贯穿全章的线索</h2>
+<p>以“水在垂直管中受热沸腾”为例：</p>
+<ol>
+<li>入口是过冷液，壁温高于 \(T_{sat}\) 但主流未饱和，属于<strong>过冷沸腾</strong>；</li>
+<li>沿程干度上升，流型从泡状过渡到弹状，含气率由 <a class="wiki-link" href="../multiphase/homogeneous-drift-flux.html">漂移流关系</a> 估算；</li>
+<li>压降由摩擦、加速、重力三部分组成，摩擦项用 <a class="wiki-link" href="../multiphase/two-phase-momentum.html">Lockhart–Martinelli 乘子</a>，重力项随含气率上升而减小；</li>
+<li>壁面热流由 <a class="wiki-link" href="../multiphase/boiling-condensation.html">核态沸腾关联式</a> 给出，接近 CHF 时必须校核安全裕度；</li>
+<li>若需要知道液膜在哪里干涸、气泡如何合并，只能上 <a class="wiki-link" href="../multiphase/multiphase-cfd.html">VOF 或两流体 CFD</a>。</li>
+</ol>
+<p>这条线索把五个页面串成一个物理过程，而不是五个孤立的知识点。</p>
+<h2 id="读完本章的自检清单">读完本章的自检清单</h2>
+<ol>
+<li>给定质量流量、干度与管径，能否算出 \(j_g\)、\(j_l\)、\(\alpha_h\) 与 \(S\)？</li>
+<li>能否说出垂直管四种流型的名称、含气率范围与主导相间作用？</li>
+<li>给定 \(X\) 与 \(C\)，能否写出 \(\phi_l^2\) 并说明 \(C\) 的取值依据？</li>
+<li>能否解释为什么低干度时均相模型低估含气率？</li>
+<li>能否画出沸腾曲线的四个区域，并标出 CHF 与 Leidenfrost 点？</li>
+<li>给定一个鼓泡塔问题，能否说明为什么不能用 VOF，而要用欧拉-欧拉？</li>
+</ol>
+<p>如果其中任何一题卡住，回到对应页面重读那一节。本章的公式数量不少，但真正需要记住的是<strong>每条公式的前提与量级</strong>。</p>
+<h2 id="推荐教材">推荐教材</h2>
+<ul>
+<li>Wallis, G. B. <em>One-Dimensional Two-Phase Flow</em>. McGraw-Hill, 1969.（一维两相流奠基之作，漂移流与流型判据的源头）</li>
+<li>Ishii, M., Hibiki, T. <em>Thermo-Fluid Dynamics of Two-Phase Flow</em>, 2nd ed. Springer, 2006.（两流体模型与界面面积输运的标准参考）</li>
+<li>Brennen, C. E. <em>Fundamentals of Multiphase Flow</em>. Cambridge University Press, 2005.（物理图像清晰，适合入门）</li>
+<li>Crowe, C. T., Schwarzkopf, J. D., Sommerfeld, M., Tsuji, Y. <em>Multiphase Flows with Droplets and Particles</em>, 2nd ed. CRC Press, 2011.（颗粒与喷雾方向）</li>
+<li>Hewitt, G. F., Hall-Taylor, N. S. <em>Annular Two-Phase Flow</em>. Pergamon Press, 1970.（环状流与液膜的经典专著）</li>
+</ul>
+<p>建议先读 Brennen 的前四章建立物理图像，再用 Ishii–Hibiki 补两流体模型的数学结构，最后按需查阅 Wallis 与 Hewitt 的专题章节。</p>
+    </div>
+
+    <section class="chapter-toc">
+      <div class="section-head compact">
+        <h2>本章内容</h2>
+        <p>5 篇文章，按建议阅读顺序排列。</p>
+      </div>
+      <div class="chapter-pages-grid">
+        <a class="chapter-page-card" href="../multiphase/flow-regimes.html">
+          <span class="cp-index">01</span>
+          <span class="cp-text">
+            <strong>流型与相分布</strong>
+<small>建立多相流的描述语言（体积分数、干度、表观速度、滑移比），梳理垂直与水平管道的典型流型及其转变机制，并给出流型图、界面面积浓度与 CFD 建模选择。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../multiphase/homogeneous-drift-flux.html">
+          <span class="cp-index">02</span>
+          <span class="cp-text">
+            <strong>均相流与漂移流模型</strong>
+<small>从均相假设出发推导混合物密度、含气率与两相摩擦，再引入滑移比的 Zivi 关系与 Zuber–Findlay 漂移流方程，说明两类一维模型的精度差异与适用工况。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../multiphase/two-phase-momentum.html">
+          <span class="cp-index">03</span>
+          <span class="cp-text">
+            <strong>两相流动量方程与压降</strong>
+<small>从分相与混合物动量方程出发，把两相压降分解为摩擦、加速与重力三部分，给出 Lockhart–Martinelli 参数与 Chisholm 乘子、Friedel 等关联式的结构与适用条件，并说明局部损失与临界流。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../multiphase/boiling-condensation.html">
+          <span class="cp-index">04</span>
+          <span class="cp-text">
+            <strong>沸腾与凝结传热</strong>
+<small>从沸腾曲线出发，梳理核态沸腾、临界热流密度、过渡与膜态沸腾的物理机制与经典关联式，再讨论流动沸腾的分区与 Chen 关联式，以及膜状凝结的 Nusselt 解与工程修正。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="chapter-page-card" href="../multiphase/multiphase-cfd.html">
+          <span class="cp-index">05</span>
+          <span class="cp-text">
+            <strong>多相流 CFD 建模</strong>
+<small>按“界面是否解析”梳理多相 CFD 的方法谱系：VOF/Level-Set 界面捕捉、欧拉-欧拉两流体、欧拉-拉格朗日颗粒追踪，给出相间力、相变与湍流封闭，并讨论网格、时间步与验证算例。</small>          </span>
+          <span class="cp-arrow" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="multiphase">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../ch4/implementation.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">C++ 与 Fortran 实现</span>
+        </a>
+        <a class="page-nav-item is-next" href="../multiphase/flow-regimes.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">流型与相分布</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="multiphase/index.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#本章在全书中的位置">本章在全书中的位置</a></li>
+<li><a href="#章节地图">章节地图</a></li>
+<li><a href="#三条阅读建议">三条阅读建议</a></li>
+<li><a href="#一条贯穿全章的线索">一条贯穿全章的线索</a></li>
+<li><a href="#读完本章的自检清单">读完本章的自检清单</a></li>
+<li><a href="#推荐教材">推荐教材</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>

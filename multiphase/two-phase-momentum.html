@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>两相流动量方程与压降 · CFD Wiki</title>
+  <meta name="description" content="从分相与混合物动量方程出发，把两相压降分解为摩擦、加速与重力三部分，给出 Lockhart–Martinelli 参数与 Chisholm 乘子、Friedel 等关联式的结构与适用条件，并说明局部损失与临界流。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head is-active" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link is-active" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,196 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner">
+  <article class="article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+          <a href="../index.html">首页</a>
+<span class="crumb-sep">/</span>          <a href="../multiphase/index.html">两相流与多相流</a>
+<span class="crumb-sep">/</span>          <span class="crumb-current">两相流动量方程与压降</span>
+    </nav>
+
+    <header class="page-header">
+      <h1 class="page-title">两相流动量方程与压降</h1>
+        <p class="page-summary">从分相与混合物动量方程出发，把两相压降分解为摩擦、加速与重力三部分，给出 Lockhart–Martinelli 参数与 Chisholm 乘子、Friedel 等关联式的结构与适用条件，并说明局部损失与临界流。</p>
+      <div class="page-meta">
+        <span class="meta-chapter">两相流与多相流</span>
+        <span class="meta-sep">·</span>
+        <span>约 3037 字</span>
+          <span class="meta-sep">·</span>
+          <span class="meta-tags">
+<span class="tag">#两相压降</span><span class="tag">#Lockhart-Martinelli</span><span class="tag">#Chisholm</span><span class="tag">#加速压降</span>          </span>
+      </div>
+    </header>
+
+    <div class="article-body">
+      <p>一维两相流计算最常被问到的两个量是<strong>压降</strong>与<strong>含气率</strong>。上一页解决了含气率，这一页解决压降。与单相不同，两相压降不能简单用“平均密度 + 总质量流量”代入 Darcy 公式：相间速度差、界面剪切、蒸发加速、重力分量都会各自贡献一部分。工程上把这四项分开计算，再用关联式封闭摩擦项。</p>
+<h2 id="压降的分解">压降的分解</h2>
+<p>对定截面管道内的定常两相流，总压降写成</p>
+<div class="math-block">\[-\frac{\mathrm{d}p}{\mathrm{d}z}
+=\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_f
++\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_{acc}
++\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_{g},\]</div>
+<p>三项分别称为<strong>摩擦压降</strong>、<strong>加速压降</strong>与<strong>重力压降</strong>。对水平管，重力项为零；对垂直上升管，重力项为正（消耗压力）；对下降管，重力项为负（重力助流）。三者量级随工况变化：低干度水平管以摩擦为主，高干度蒸发通道中加速项可占 20%–40%，而垂直沸腾通道中重力项往往最大。</p>
+<h2 id="分相动量方程">分相动量方程</h2>
+<p>把每一相看作占据各自体积分数的连续介质，气相与液相的动量方程分别为</p>
+<div class="math-block">\[\alpha\rho_g\frac{\mathrm{D}\mathbf{u}_g}{\mathrm{D}t}
+=-\alpha\nabla p+\nabla\cdot\left(\alpha\boldsymbol{\tau}_g\right)
++\alpha\rho_g\mathbf{g}+\mathbf{F}_{ig},\]</div>
+<div class="math-block">\[(1-\alpha)\rho_l\frac{\mathrm{D}\mathbf{u}_l}{\mathrm{D}t}
+=-(1-\alpha)\nabla p+\nabla\cdot\left((1-\alpha)\boldsymbol{\tau}_l\right)
++(1-\alpha)\rho_l\mathbf{g}-\mathbf{F}_{ig},\]</div>
+<p>其中 \(\mathbf{F}_{ig}\) 是界面动量交换（阻力、升力、虚拟质量等）。两式相加得到混合物动量方程；若忽略相间加速度与界面应力，混合物方程退化为</p>
+<div class="math-block">\[\frac{\partial(\rho_m j)}{\partial t}
++\frac{\partial}{\partial z}\left(\rho_m j^2\right)
+=-\frac{\mathrm{d}p}{\mathrm{d}z}-\rho_m g\sin\theta-\frac{4\tau_w}{D},\]</div>
+<p>\(\rho_m=\alpha\rho_g+(1-\alpha)\rho_l\)。这一步说明：<strong>一维压降计算的关键，仍然是把壁面剪切 \(\tau_w\) 用两相关联式封闭</strong>。</p>
+<h2 id="摩擦压降lockhartmartinelli-方法">摩擦压降：Lockhart–Martinelli 方法</h2>
+<p>Lockhart 与 Martinelli（1949）提出用“分相折算”处理摩擦压降。记液相单独流过同一管道（质量流量为 \(\dot m_l=(1-x)\dot m\)）时的压降为</p>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_l
+=f_l\frac{G_l^2}{2D\rho_l},
+\qquad G_l=(1-x)G,\]</div>
+<p>气相单独流过时的压降为</p>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_g
+=f_g\frac{G_g^2}{2D\rho_g},
+\qquad G_g=xG.\]</div>
+<p>定义 <strong>Lockhart–Martinelli 参数</strong></p>
+<div class="math-block">\[X=\sqrt{\frac{(dp/dz)_l}{(dp/dz)_g}},\]</div>
+<p>以及两相摩擦乘子</p>
+<div class="math-block">\[\phi_l^2=\frac{(dp/dz)_f}{(dp/dz)_l},
+\qquad
+\phi_g^2=\frac{(dp/dz)_f}{(dp/dz)_g}.\]</div>
+<p>Chisholm 给出乘子与 \(X\) 的解析关系：</p>
+<div class="math-block">\[\phi_l^2=1+\frac{C}{X}+\frac{1}{X^2}\]</div>
+<div class="math-block">\[\phi_g^2=1+C X+X^2,\]</div>
+<p>其中 \(C\) 是取决于两相流态的常数：</p>
+<table>
+<thead>
+<tr>
+<th>液相流态</th>
+<th>气相流态</th>
+<th>\(C\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>湍流</td>
+<td>湍流</td>
+<td>20</td>
+</tr>
+<tr>
+<td>层流</td>
+<td>层流</td>
+<td>12</td>
+</tr>
+<tr>
+<td>层流</td>
+<td>湍流</td>
+<td>10</td>
+</tr>
+<tr>
+<td>湍流</td>
+<td>层流</td>
+<td>10–12</td>
+</tr>
+</tbody>
+</table>
+<p>最后一行在不同文献中取值略有差异，取 10 或 12 都会带来百分之几的偏差。工程计算中通常先按 \(Re_l\)、\(Re_g\) 判断流态，再查表。</p>
+<h3 id="快速估算-mathi9">快速估算 \(X\)</h3>
+<p>当两相均为湍流时，用 Blasius 关系 \(f\propto Re^{-0.2}\) 可把 \(X\) 化为只含干度与物性的形式：</p>
+<div class="math-block">\[X_{tt}=\left(\frac{1-x}{x}\right)^{0.9}
+\left(\frac{\rho_g}{\rho_l}\right)^{0.5}
+\left(\frac{\mu_l}{\mu_g}\right)^{0.1}.\]</div>
+<p>两相均为层流时：</p>
+<div class="math-block">\[X_{ll}=\left(\frac{1-x}{x}\right)^{0.5}
+\left(\frac{\rho_g}{\rho_l}\right)^{0.5}
+\left(\frac{\mu_l}{\mu_g}\right)^{0.5}.\]</div>
+<p>这两个式子的价值在于：不需要先算 \(f_l\)、\(f_g\)，就能估出 \(X\) 的量级。对水-空气常压系统，\(X_{tt}\) 在 \(x=0.1\) 时约为 0.4；对水-蒸汽高压系统，由于密度比小得多，\(X\) 会明显更大。</p>
+<h3 id="用-mathi18-还原压降">用 \(\phi_l^2\) 还原压降</h3>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_f
+=\phi_l^2\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_l.\]</div>
+<p>这是 L-M 方法最常用的形式：先按液相单独流动算一个“基准压降”，再乘以乘子。乘子的物理含义是“两相流的摩擦损失相当于多少倍的液相单独流动”。</p>
+<div class="admonition warning"><div class="admonition-title">L-M 方法的适用范围</div><div class="admonition-body"><p>Lockhart–Martinelli 原始数据来自低压、小管径、绝热的气液两相流，适用于<strong>低干度、分层或环状、无相变</strong>的工况。对高压、高干度、弹状流、沸腾通道，误差会明显增大。它也<strong>不适用于加速压降与重力压降</strong>，那两项必须单独计算。</p></div></div>
+<h2 id="其他摩擦压降关联式">其他摩擦压降关联式</h2>
+<p>由于 L-M 方法的局限，工程上发展了大量替代关联式。它们大多以“全液相折算”为基准，即把总质量流量全部当作液体流过管道：</p>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_{lo}
+=f_{lo}\frac{G^2}{2D\rho_l},
+\qquad
+\phi_{lo}^2=\frac{(dp/dz)_f}{(dp/dz)_{lo}}.\]</div>
+<p><strong>Friedel（1979）</strong> 关联式是高压、高干度工况中应用最广的形式之一。它把乘子写成</p>
+<div class="math-block">\[\phi_{lo}^2=Eu+3.24\,F\,H\,Fr^{-0.045}We^{-0.035},\]</div>
+<p>其中 \(Eu\) 反映两相与全液相的动量比，\(F\)、\(H\) 是干度与物性比的幂函数组合，\(Fr=G^2/(gD\rho_h^2)\)、\(We=G^2D/(\rho_h\sigma)\) 是两相 Froude 数与 Weber 数。具体指数见原文；这里只需记住：<strong>Friedel 用 Froude 数修正重力影响、用 Weber 数修正表面张力影响</strong>，因此比 L-M 更适合大管径与高压。</p>
+<p><strong>Müller-Steinhagen &amp; Heck（1986）</strong> 采用另一种思路：分别算全液相与全气相的压降梯度，再按干度做经验插值。它不需要判断流态，在油气管道中表现稳定。</p>
+<p><strong>均相模型</strong> 则直接用 \(\rho_h\) 与 \(\mu_h\)（见 <a class="wiki-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a>）：</p>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_f
+=f_h\frac{G^2}{2D\rho_h}.\]</div>
+<table>
+<thead>
+<tr>
+<th>关联式</th>
+<th>基准</th>
+<th>适用工况</th>
+<th>优点 / 局限</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lockhart–Martinelli</td>
+<td>分相</td>
+<td>低压、低干度、绝热</td>
+<td>形式简单；高压误差大</td>
+</tr>
+<tr>
+<td>Chisholm</td>
+<td>分相</td>
+<td>宽干度、需流态判断</td>
+<td>有解析式；\(C\) 依赖流态</td>
+</tr>
+<tr>
+<td>Friedel</td>
+<td>全液相</td>
+<td>高压、大管径、高干度</td>
+<td>精度较好；公式复杂</td>
+</tr>
+<tr>
+<td>Müller-Steinhagen–Heck</td>
+<td>全液相/全气相</td>
+<td>油气管道</td>
+<td>无需流态判断</td>
+</tr>
+<tr>
+<td>均相</td>
+<td>混合物</td>
+<td>雾状流、临界流</td>
+<td>最简单；低干度偏差大</td>
+</tr>
+</tbody>
+</table>
+<h2 id="加速压降">加速压降</h2>
+<p>加速压降来自动量通量的变化。分相模型中</p>
+<div class="math-block">\[M(z)=G^2\left[\frac{x^2}{\rho_g\alpha}
++\frac{(1-x)^2}{\rho_l(1-\alpha)}\right],\]</div>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_{acc}
+=\frac{\mathrm{d}M}{\mathrm{d}z}.\]</div>
+<p>当干度沿程增大（蒸发）或含气率上升时，\(M\) 增大，压力下降。对均相模型，\(M=G^2/\rho_h=G^2[x/\rho_g+(1-x)/\rho_l]\)，于是</p>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_{acc}
+=G^2\frac{\mathrm{d}}{\mathrm{d}z}
+\left(\frac{x}{\rho_g}+\frac{1-x}{\rho_l}\right).\]</div>
+<p>若忽略密度沿程变化，可近似写成</p>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_{acc}
+\approx G^2\left(\frac{1}{\rho_g}-\frac{1}{\rho_l}\right)\frac{\mathrm{d}x}{\mathrm{d}z}.\]</div>
+<p>这一项在<strong>蒸发器出口、闪蒸、临界流</strong>中不可忽略。很多初学者只算摩擦项，结果在高压蒸汽管道中低估压降 30% 以上。</p>
+<h2 id="重力压降">重力压降</h2>
+<div class="math-block">\[\left(\frac{\mathrm{d}p}{\mathrm{d}z}\right)_g
+=\left[\alpha\rho_g+(1-\alpha)\rho_l\right]g\sin\theta,\]</div>
+<p>\(\theta\) 为管道与水平面的夹角。垂直上升管 \(\theta=90^\circ\)，重力项等于混合密度乘以 \(g\)。对水-蒸汽系统，\(\rho_m\) 随含气率从 \(\rho_l\) 迅速降到接近 \(\rho_g\)，因此重力压降沿程显著减小。</p>
+<p>注意符号约定：若定义 \(\mathrm{d}p/\mathrm{d}z\) 为沿流动方向的压力梯度，则上升管中 \(-\mathrm{d}p/\mathrm{d}z\) 为正的压降；下降管中重力项为负，可能抵消摩擦项。</p>
+<h2 id="局部损失">局部损失</h2>
+<p>弯头、阀门、突扩突缩等局部阻力，两相流的处理比单相复杂。工程近似常用两种做法：</p>
+<p><strong>均相法</strong>：把混合物当作单相，</p>
+<div class="math-block">\[\Delta p_{local}=K_m\frac{\rho_m u_m^2}{2},
+\qquad u_m=j=\frac{G}{\rho_h},\]</div>
+<p>\(K_m\) 取单相的值。</p>
+<p><strong>乘子法</strong>：</p>
+<div class="math-block">\[\Delta p_{local}=\phi_{lo}^2\,\Delta p_{lo},\]</div>
+<p>即用全液相局部损失乘以两相乘子。突扩、突缩、孔板等部件的两相 \(K\) 值有专门实验关联式，不能简单沿用单相值。</p>
+<h2 id="临界流与壅塞">临界流与壅塞</h2>
+<p>当出口压力降到某一值以下，管内流量不再随背压下降而增加，出现<strong>壅塞（choked flow）</strong>。均相平衡模型（HEM）给出的临界质量通量为</p>
+<div class="math-block">\[G_c=\left(-\frac{1}{\left(\partial v/\partial p\right)_s}\right)^{1/2},\]</div>
+<p>\(v\) 是混合物比容，下标 \(s\) 表示沿等熵线求导。对理想气体，\(G_c=\sqrt{\gamma p\rho}=\rho a\)，即出口速度达到声速。两相流的“声速”远低于单相声速，因为气相的可压缩性被液相的热惯性调制；这正是压力容器泄放、安全阀选型必须用两相声速的原因。</p>
+<div class="admonition note"><div class="admonition-title">两相声速不是常数</div><div class="admonition-body"><p>两相混合物声速可低至几十 m/s（远低于气相声速数百 m/s），且强烈依赖含气率与频率。工程上用 HEM 声速做保守估计，用六方程模型做更精细的临界流分析。</p></div></div>
+<h2 id="工程算例蒸发管压降分解">工程算例：蒸发管压降分解</h2>
+<p>考虑一根内径 \(D=25\ \mathrm{mm}\) 的垂直蒸发管，质量通量 \(G=800\ \mathrm{kg/(m^2\cdot s)}\)，入口干度 \(x=0\)，出口干度 \(x=0.2\)，工质为水，压力约 1 bar。</p>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>估算方法</th>
+<th>量级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>摩擦</td>
+<td>L-M 乘子或均相 \(f_h\)</td>
+<td>数十 kPa</td>
+</tr>
+<tr>
+<td>加速</td>
+<td>\(G^2\Delta(1/\rho)\)</td>
+<td>数 kPa</td>
+</tr>
+<tr>
+<td>重力</td>
+<td>\(\rho_m g L\)</td>
+<td>每米约 9 kPa</td>
+</tr>
+</tbody>
+</table>
+<p>可以看到：<strong>重力项在垂直管中按每米 9 kPa 量级累积</strong>，一根 3 m 长的管子就贡献约 27 kPa，往往超过摩擦项。这也是为什么锅炉水冷壁的压降计算必须精确给出含气率分布。</p>
+<h2 id="python-示例l-m-摩擦压降与三项分解">Python 示例：L-M 摩擦压降与三项分解</h2>
+<p>下面的脚本计算空气-水水平管的两相摩擦压降，并比较 L-M 与均相模型。</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">rho_l</span><span class="p">,</span> <span class="n">rho_g</span> <span class="o">=</span> <span class="mf">998.0</span><span class="p">,</span> <span class="mf">1.2</span>
+<span class="n">mu_l</span><span class="p">,</span> <span class="n">mu_g</span> <span class="o">=</span> <span class="mf">8.9e-4</span><span class="p">,</span> <span class="mf">1.8e-5</span>
+<span class="n">D</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="mf">0.025</span><span class="p">,</span> <span class="mf">500.0</span><span class="p">,</span> <span class="mf">0.10</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">friction_factor</span><span class="p">(</span><span class="n">Re</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""层流用 64/Re，湍流用 Blasius（Darcy 摩擦因子）。"""</span>
+    <span class="k">if</span> <span class="n">Re</span> <span class="o">&lt;</span> <span class="mi">2300</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">64.0</span> <span class="o">/</span> <span class="n">Re</span>
+    <span class="k">return</span> <span class="mf">0.3164</span> <span class="o">*</span> <span class="n">Re</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mf">0.25</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">single_phase_dp</span><span class="p">(</span><span class="n">G_k</span><span class="p">,</span> <span class="n">rho_k</span><span class="p">,</span> <span class="n">mu_k</span><span class="p">):</span>
+    <span class="n">Re</span> <span class="o">=</span> <span class="n">G_k</span> <span class="o">*</span> <span class="n">D</span> <span class="o">/</span> <span class="n">mu_k</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">friction_factor</span><span class="p">(</span><span class="n">Re</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span> <span class="o">*</span> <span class="n">G_k</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">D</span> <span class="o">*</span> <span class="n">rho_k</span><span class="p">),</span> <span class="n">Re</span>
+
+<span class="n">dp_l</span><span class="p">,</span> <span class="n">Re_l</span> <span class="o">=</span> <span class="n">single_phase_dp</span><span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">G</span><span class="p">,</span> <span class="n">rho_l</span><span class="p">,</span> <span class="n">mu_l</span><span class="p">)</span>
+<span class="n">dp_g</span><span class="p">,</span> <span class="n">Re_g</span> <span class="o">=</span> <span class="n">single_phase_dp</span><span class="p">(</span><span class="n">x</span> <span class="o">*</span> <span class="n">G</span><span class="p">,</span> <span class="n">rho_g</span><span class="p">,</span> <span class="n">mu_g</span><span class="p">)</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dp_l</span> <span class="o">/</span> <span class="n">dp_g</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">Re_l</span> <span class="o">&gt;</span> <span class="mi">2300</span> <span class="ow">and</span> <span class="n">Re_g</span> <span class="o">&gt;</span> <span class="mi">2300</span><span class="p">:</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="mf">20.0</span>
+<span class="k">elif</span> <span class="n">Re_l</span> <span class="o">&lt;</span> <span class="mi">2300</span> <span class="ow">and</span> <span class="n">Re_g</span> <span class="o">&lt;</span> <span class="mi">2300</span><span class="p">:</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="mf">12.0</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="mf">10.0</span>
+<span class="n">phi_l2</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">C</span> <span class="o">/</span> <span class="n">X</span> <span class="o">+</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">X</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">dp_tp</span> <span class="o">=</span> <span class="n">phi_l2</span> <span class="o">*</span> <span class="n">dp_l</span>
+
+<span class="c1"># 均相模型对照</span>
+<span class="n">rho_h</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">rho_g</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">rho_l</span><span class="p">)</span>
+<span class="n">mu_h</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">mu_g</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">mu_l</span><span class="p">)</span>
+<span class="n">dp_h</span><span class="p">,</span> <span class="n">Re_h</span> <span class="o">=</span> <span class="n">single_phase_dp</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">rho_h</span><span class="p">,</span> <span class="n">mu_h</span><span class="p">)</span>
+
+<span class="c1"># 加速项（忽略密度沿程变化）</span>
+<span class="n">dp_acc</span> <span class="o">=</span> <span class="n">G</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">rho_g</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">rho_l</span><span class="p">)</span> <span class="o">*</span> <span class="n">x</span> <span class="o">/</span> <span class="mf">1.0</span>   <span class="c1"># 设 dx/dz = 1 m^-1</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Re_l=</span><span class="si">{</span><span class="n">Re_l</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, Re_g=</span><span class="si">{</span><span class="n">Re_g</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"X=</span><span class="si">{</span><span class="n">X</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">, phi_l2=</span><span class="si">{</span><span class="n">phi_l2</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"L-M 摩擦压降 = </span><span class="si">{</span><span class="n">dp_tp</span><span class="o">/</span><span class="mf">1e3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> kPa/m"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"均相摩擦压降 = </span><span class="si">{</span><span class="n">dp_h</span><span class="o">/</span><span class="mf">1e3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> kPa/m"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"加速压降（dx/dz=1） = </span><span class="si">{</span><span class="n">dp_acc</span><span class="o">/</span><span class="mf">1e3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> kPa/m"</span><span class="p">)</span>
+</code></pre></div>
+
+<p>典型的输出会显示 L-M 乘子在数十量级（本例约 60），即两相摩擦压降比液相单独流动大近两个量级。这正是多相流管道设计中“压降裕量”往往很大的原因。</p>
+<div class="admonition tip"><div class="admonition-title">结果校核</div><div class="admonition-body"><p>算出压降后，务必回到能量平衡检查：泵功 \(=\Delta p\,\dot V\) 是否与热负荷、摩擦耗散一致？若压降对应的泵功超过输入热功率的百分之几，通常说明含气率或摩擦乘子被高估。</p></div></div>
+<h2 id="小结">小结</h2>
+<ul>
+<li>两相压降分为摩擦、加速、重力三部分，必须分开计算，不能用一个“平均密度”糊在一起。</li>
+<li>Lockhart–Martinelli 用 \(X\) 与 \(\phi_l^2=1+C/X+1/X^2\) 把两相摩擦折算到液相基准，适用于低压、低干度、绝热工况。</li>
+<li>高压、大管径、高干度应改用 Friedel 或 Müller-Steinhagen–Heck 关联式。</li>
+<li>加速压降由动量通量变化产生，在蒸发与临界流中占比很大；重力压降由混合密度决定。</li>
+<li>临界流必须用两相声速，HEM 给出保守的壅塞质量通量估计。</li>
+</ul>
+<h2 id="延伸阅读">延伸阅读</h2>
+<ul>
+<li>Wallis, G. B. <em>One-Dimensional Two-Phase Flow</em>. McGraw-Hill, 1969.</li>
+<li>Ishii, M., Hibiki, T. <em>Thermo-Fluid Dynamics of Two-Phase Flow</em>, 2nd ed. Springer, 2006.</li>
+<li>Hewitt, G. F., Hall-Taylor, N. S. <em>Annular Two-Phase Flow</em>. Pergamon Press, 1970.</li>
+<li>Brennen, C. E. <em>Fundamentals of Multiphase Flow</em>. Cambridge University Press, 2005.</li>
+</ul>
+    </div>
+
+
+    <section class="reference-panel" id="chapterRefs" data-chapter="multiphase">
+      <div class="section-head compact">
+        <div>
+          <span class="section-eyebrow">REFERENCES</span>
+          <h2>参考文档</h2>
+        </div>
+        <p>本章相关的论文 / 教材 / 讲义（PDF、DOCX、PPT），可上传与在线浏览。</p>
+      </div>
+      <div class="ref-upload">
+        <input type="file" id="refInput" accept=".pdf,.docx,.html,.htm,.ppt,.pptx" hidden>
+        <button class="btn btn-primary" id="refUploadBtn" type="button">上传参考文档</button>
+        <span class="upload-status" id="refStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="ref-list" id="refList"></div>
+      <div class="ref-preview" id="refPreview" hidden></div>
+    </section>
+
+    <nav class="page-nav" aria-label="翻页">
+        <a class="page-nav-item is-prev" href="../multiphase/homogeneous-drift-flux.html">
+          <span class="pn-label">← 上一篇</span>
+          <span class="pn-title">均相流与漂移流模型</span>
+        </a>
+        <a class="page-nav-item is-next" href="../multiphase/boiling-condensation.html">
+          <span class="pn-label">下一篇 →</span>
+          <span class="pn-title">沸腾与凝结传热</span>
+        </a>
+    </nav>
+  </article>
+
+  <aside class="rail" id="pageRail" data-page="multiphase/two-phase-momentum.html" aria-label="目录与笔记">
+    <div class="rail-tabs" role="tablist">
+      <button class="rail-tab is-active" data-rail-tab="toc" type="button" role="tab">目录</button>
+      <button class="rail-tab" data-rail-tab="notes" type="button" role="tab">
+        笔记<span class="rail-dot" id="railNoteDot" hidden></span>
+      </button>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="toc">
+      <div class="toc-body">
+<ul>
+<li><a href="#压降的分解">压降的分解</a></li>
+<li><a href="#分相动量方程">分相动量方程</a></li>
+<li><a href="#摩擦压降lockhartmartinelli-方法">摩擦压降：Lockhart–Martinelli 方法</a><ul>
+<li><a href="#快速估算-mathi9">快速估算 @@MATHI9@@</a></li>
+<li><a href="#用-mathi18-还原压降">用 @@MATHI18@@ 还原压降</a></li>
+</ul>
+</li>
+<li><a href="#其他摩擦压降关联式">其他摩擦压降关联式</a></li>
+<li><a href="#加速压降">加速压降</a></li>
+<li><a href="#重力压降">重力压降</a></li>
+<li><a href="#局部损失">局部损失</a></li>
+<li><a href="#临界流与壅塞">临界流与壅塞</a></li>
+<li><a href="#工程算例蒸发管压降分解">工程算例：蒸发管压降分解</a></li>
+<li><a href="#python-示例l-m-摩擦压降与三项分解">Python 示例：L-M 摩擦压降与三项分解</a></li>
+<li><a href="#小结">小结</a></li>
+<li><a href="#延伸阅读">延伸阅读</a></li>
+</ul>
+</div>
+    </div>
+
+    <div class="rail-panel" data-rail-panel="notes" hidden>
+      <div class="notes-toolbar">
+        <span class="notes-status" id="notesStatus">自动保存</span>
+        <span class="notes-actions">
+          <button class="icon-mini is-on" id="notesSync" type="button" aria-pressed="true" title="正文滚动时同步笔记">同步</button>
+          <button class="icon-mini" id="notesExport" type="button" title="导出 Markdown">导出</button>
+          <button class="icon-mini" id="notesClear" type="button" title="清空本页笔记">清空</button>
+        </span>
+      </div>
+      <textarea class="notes-editor" id="notesEditor" spellcheck="false" placeholder="记录本页的推导、疑问与批注……"></textarea>
+      <div class="notes-foot">
+        <span id="notesCount">0 字</span>
+        <span class="notes-hint">Ctrl + S 保存</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<button class="notes-fab" id="notesFab" type="button" aria-label="打开笔记">笔记</button>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-refs.js" defer></script>
+<script src="../assets/js/references.js" defer></script>
+<script src="../assets/js/notes.js" defer></script>
+</body>
+</html>
