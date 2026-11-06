@@ -576,8 +576,8 @@ def render_nav(
             + "</div></div>"
         )
 
-    docs = [chapter for chapter in chapters if chapter["kind"] != "library"]
-    library = [chapter for chapter in chapters if chapter["kind"] == "library"]
+    docs = [chapter for chapter in chapters if chapter["kind"] == "docs"]
+    library = [chapter for chapter in chapters if chapter["kind"] != "docs"]
     return "\n".join(
         [
             home_block,
@@ -633,6 +633,116 @@ def save_library(items: list[dict[str, Any]]) -> None:
     LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
     (LIBRARY_DIR / "manifest.json").write_text(
         json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+# ---- 个人知识库（在读文献）-------------------------------------------
+KB_PATH = LIBRARY_DIR / "kb.json"
+
+
+def default_kb() -> dict[str, Any]:
+    """知识库初始结构：对应 llm_wiki 的 overview / index / log / purpose / schema。"""
+    now = datetime.now().isoformat(timespec="seconds")
+
+    def page(pid: str, title: str, ptype: str, body: str) -> dict[str, Any]:
+        return {
+            "id": pid,
+            "title": title,
+            "type": ptype,
+            "tags": [],
+            "sources": [],
+            "body": body,
+            "created": now,
+            "updated": now,
+        }
+
+    pages = [
+        page(
+            "overview",
+            "知识库总览",
+            "overview",
+            "<p>这里是由「在读文献」逐步长成的个人知识库。导入一篇文献会生成一条"
+            " <strong>来源</strong> 词条，再把其中的概念、方法、结论拆成 "
+            "<strong>概念 / 实体 / 主题</strong> 词条，用 <code>[[双链]]</code> 串起来。</p>"
+            "<h2>开始</h2>"
+            "<ol><li>在左侧「来源」上传或选择一篇正在读的文献；</li>"
+            "<li>点「阅读」做富文本批注，再点「导入知识库」生成来源摘要；</li>"
+            "<li>新建概念词条，用 <code>[[来源摘要]]</code> 建立双链；</li>"
+            "<li>在「图谱」查看关系网络，在「检索」全文查找。</li></ol>",
+        ),
+        page(
+            "index",
+            "索引",
+            "meta",
+            "<p>索引会随词条增删自动重建，作为知识库的目录与导航入口。</p>",
+        ),
+        page(
+            "log",
+            "操作日志",
+            "meta",
+            "<p>导入、新建、删除与重建索引的时间记录。</p>",
+        ),
+        page(
+            "purpose",
+            "研究目的 purpose",
+            "meta",
+            "<h2>这个库为什么存在</h2>"
+            "<p>例如：梳理多相流 CFD 的建模路线，回答“什么时候该用 VOF、什么时候用欧拉-欧拉”。</p>"
+            "<h2>关键问题</h2>"
+            "<ul><li>待补充</li></ul>"
+            "<h2>范围与边界</h2>"
+            "<p>待补充：只收哪些方向、哪些数据库、哪些时间范围。</p>",
+        ),
+        page(
+            "schema",
+            "结构规则 schema",
+            "meta",
+            "<h2>词条类型</h2>"
+            "<ul><li><strong>source</strong>：一篇文献的来源摘要，必须带 sources；</li>"
+            "<li><strong>concept</strong>：可复用的概念、方程、模型；</li>"
+            "<li><strong>entity</strong>：软件、实验台、数据集、人物；</li>"
+            "<li><strong>topic</strong>：跨词条的研究主题或问题。</li></ul>"
+            "<h2>写法</h2>"
+            "<ul><li>标题用名词短语，避免句子；</li>"
+            "<li>用 <code>[[词条名]]</code> 建立双链；</li>"
+            "<li>每页末尾列出来源与待查问题。</li></ul>",
+        ),
+    ]
+    return {"version": 1, "updated": now, "pages": pages}
+
+
+def load_kb() -> dict[str, Any]:
+    if not KB_PATH.exists():
+        return default_kb()
+    try:
+        data = json.loads(KB_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        warn("library/kb.json 无法解析，本次使用默认知识库。")
+        return default_kb()
+    if not isinstance(data, dict) or not isinstance(data.get("pages"), list):
+        return default_kb()
+    page_ids = {
+        str(item.get("id")) for item in data["pages"] if isinstance(item, dict)
+    }
+    for item in default_kb()["pages"]:
+        if item["id"] not in page_ids:
+            data["pages"].append(item)
+    return data
+
+
+def save_kb(kb: dict[str, Any]) -> None:
+    LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
+    KB_PATH.write_text(
+        json.dumps(kb, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def _write_kb_script(kb: dict[str, Any]) -> None:
+    (SITE_DIR / "library-kb.js").write_text(
+        "window.__KB__="
+        + json.dumps(kb, ensure_ascii=False, separators=(",", ":"))
+        + ";\n",
+        encoding="utf-8",
     )
 
 
@@ -740,7 +850,7 @@ def library_view(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def docs_page_count(all_pages: list[dict[str, Any]], chapters: list[dict[str, Any]]) -> int:
-    library_ids = {chapter["id"] for chapter in chapters if chapter["kind"] == "library"}
+    library_ids = {chapter["id"] for chapter in chapters if chapter["kind"] != "docs"}
     return sum(1 for page in all_pages if page["chapter_id"] not in library_ids)
 
 
@@ -800,6 +910,10 @@ def build() -> None:
         + ";\n",
         encoding="utf-8",
     )
+
+    # ---- 个人知识库（在读文献）-----------------------------------------
+    kb = load_kb()
+    _write_kb_script(kb)
 
     # ---- 章节参考文档（复制文件并注入索引，供 file:// 直开）------------
     if REFS_FILES_DIR.exists():
@@ -941,7 +1055,14 @@ def build() -> None:
             "library_items": library_view(library_items),
         }
 
-        template_name = "library.html" if chapter["kind"] == "library" else "page.html"
+        if chapter["kind"] == "reading":
+            template_name = "reading.html"
+        elif chapter["kind"] == "books":
+            template_name = "books.html"
+        elif chapter["kind"] == "library":
+            template_name = "library.html"
+        else:
+            template_name = "page.html"
         html_output = env.get_template(template_name).render(**context)
         target = SITE_DIR / page["url"]
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -1024,6 +1145,9 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
             chapter_id = self._query_param(query, "chapter")
             self.send_json(load_refs(chapter_id))
             return
+        if path == "/api/kb":
+            self.send_json(load_kb())
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
@@ -1036,6 +1160,8 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
             self.handle_fetch_weekly()
         elif path == "/api/upload-ref":
             self.handle_upload_ref()
+        elif path == "/api/kb":
+            self.handle_kb_save()
         else:
             self.send_json({"error": "未知接口"}, 404)
 
@@ -1135,6 +1261,10 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
             except Exception:
                 preview = ""
 
+        collection = unquote(self.headers.get("X-Collection", "")).strip()
+        if collection not in {"book", "reading"}:
+            collection = "reading"
+
         entry = {
             "id": ident,
             "title": unquote(self.headers.get("X-Title", "")).strip()
@@ -1142,6 +1272,7 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
             "authors": unquote(self.headers.get("X-Authors", "")).strip(),
             "year": unquote(self.headers.get("X-Year", "")).strip(),
             "kind": suffix.lstrip("."),
+            "collection": collection,
             "file": f"files/{stored_name}",
             "preview": preview,
             "size": len(payload),
@@ -1167,6 +1298,35 @@ class WikiRequestHandler(SimpleHTTPRequestHandler):
         )
 
         self.send_json(entry)
+
+    def handle_kb_save(self) -> None:
+        """保存个人知识库完整工程（library/kb.json）。"""
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            length = 0
+        if length <= 0:
+            self.send_json({"error": "请求体为空"}, 400)
+            return
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+        except Exception:
+            self.send_json({"error": "JSON 解析失败"}, 400)
+            return
+        if not isinstance(body, dict) or not isinstance(body.get("pages"), list):
+            self.send_json({"error": "知识库结构不正确"}, 400)
+            return
+        body["version"] = int(body.get("version") or 1)
+        body["updated"] = datetime.now().isoformat(timespec="seconds")
+        try:
+            save_kb(body)
+            _write_kb_script(body)
+        except OSError as exc:
+            self.send_json({"error": f"写入失败：{exc}"}, 500)
+            return
+        self.send_json(
+            {"ok": True, "updated": body["updated"], "pages": len(body["pages"])}
+        )
 
     def handle_upload_ref(self) -> None:
         """为某章节上传参考文档（PDF / DOCX / PPT）。"""

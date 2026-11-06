@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="main-inner kb-inner">
+  <header class="kb-header">
+    <div>
+      <span class="section-eyebrow">READING · PERSONAL WIKI</span>
+      <h1>{{ page.title }}</h1>
+      <p>{{ page.summary }}</p>
+    </div>
+    <div class="kb-header-meta" id="kbHeaderMeta">
+      <span><strong id="kbPageCount">—</strong> 词条</span>
+      <span><strong id="kbLinkCount">—</strong> 双链</span>
+      <span id="kbStorageBadge">本地存储</span>
+    </div>
+  </header>
+
+  <div class="kb-shell" id="kbShell" data-root="{{ root }}">
+    <nav class="kb-rail" id="kbRail" aria-label="知识库视图">
+      <button class="kb-rail-btn is-active" data-view="wiki" type="button"><span aria-hidden="true">▤</span><em>知识库</em></button>
+      <button class="kb-rail-btn" data-view="sources" type="button"><span aria-hidden="true">▣</span><em>来源</em></button>
+      <button class="kb-rail-btn" data-view="graph" type="button"><span aria-hidden="true">◇</span><em>图谱</em></button>
+      <button class="kb-rail-btn" data-view="search" type="button"><span aria-hidden="true">⌕</span><em>检索</em></button>
+      <button class="kb-rail-btn" data-view="settings" type="button"><span aria-hidden="true">⚙</span><em>设置</em></button>
+    </nav>
+
+    <aside class="kb-explorer" id="kbExplorer">
+      <div class="kb-explorer-head">
+        <div>
+          <span class="section-eyebrow" id="kbExplorerEyebrow">WIKI</span>
+          <strong id="kbExplorerTitle">知识库</strong>
+        </div>
+        <button class="kb-icon-btn" id="kbNewPage" type="button" title="新建词条">＋</button>
+      </div>
+      <div class="kb-tree" id="kbTree"></div>
+      <div class="kb-empty-mini" id="kbTreeEmpty" hidden>还没有词条。点右上角 ＋ 新建，或从「来源」导入一篇文献。</div>
+    </aside>
+
+    <section class="kb-stage">
+      <div class="kb-view kb-wiki-view" id="kbWikiView">
+        <div class="kb-editor">
+          <div class="kb-editor-head">
+            <input class="kb-title" id="kbTitle" type="text" placeholder="词条标题" autocomplete="off">
+            <div class="kb-meta-row">
+              <select id="kbType" aria-label="词条类型">
+                <option value="concept">概念 concept</option>
+                <option value="source">来源 source</option>
+                <option value="entity">实体 entity</option>
+                <option value="topic">主题 topic</option>
+                <option value="overview">总览 overview</option>
+                <option value="meta">元数据 meta</option>
+              </select>
+              <input id="kbTags" type="text" placeholder="标签，逗号分隔" autocomplete="off">
+              <span class="kb-save-state" id="kbSaveState">已保存</span>
+            </div>
+          </div>
+
+          <div class="kb-toolbar" id="kbToolbar">
+            <button type="button" data-cmd="bold" title="加粗"><b>B</b></button>
+            <button type="button" data-cmd="italic" title="斜体"><i>I</i></button>
+            <button type="button" data-cmd="underline" title="下划线"><u>U</u></button>
+            <button type="button" data-cmd="formatBlock" data-value="h2" title="二级标题">H2</button>
+            <button type="button" data-cmd="formatBlock" data-value="h3" title="三级标题">H3</button>
+            <button type="button" data-cmd="insertUnorderedList" title="列表">•</button>
+            <button type="button" data-cmd="insertOrderedList" title="有序列表">1.</button>
+            <button type="button" data-cmd="removeFormat" title="清除格式">Tx</button>
+            <span class="kb-tool-sep"></span>
+            <button type="button" data-action="wikilink" title="插入双链">[[ ]]</button>
+            <button type="button" data-action="image" title="插入图片">图</button>
+            <span class="kb-tool-sep"></span>
+            <button type="button" data-action="export-md" title="导出为 Markdown">导出 MD</button>
+            <button type="button" data-action="delete" class="kb-danger" title="删除词条">删除</button>
+          </div>
+
+          <div class="kb-body" id="kbBody" contenteditable="true" spellcheck="false"
+               data-placeholder="在这里写正文。用 [[词条名]] 建立双链，用工具栏插入标题、列表和截图。"></div>
+
+          <div class="kb-sources-row" id="kbSourcesRow"></div>
+        </div>
+
+        <aside class="kb-side">
+          <div class="kb-side-block">
+            <h4>预览 <button class="kb-link-btn" id="kbAddSource" type="button">关联来源</button></h4>
+            <div class="kb-preview" id="kbPreview"></div>
+            <div class="kb-source-picker" id="kbSourcePicker" hidden></div>
+          </div>
+          <div class="kb-side-block">
+            <h4>反向链接 <span class="kb-count-pill" id="kbBacklinkCount">0</span></h4>
+            <div class="kb-backlinks" id="kbBacklinks"></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="kb-view kb-sources-view" id="kbSourcesView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">SOURCES</span>
+            <h2>来源</h2>
+          </div>
+          <p>上传正在读的论文或章节；读完点「阅读」做批注，点「导入知识库」生成来源摘要。</p>
+        </div>
+
+        <div class="upload-drop kb-drop" id="kbUploadDrop">
+          <input type="file" id="kbUploadInput" accept=".pdf,.docx,.html,.htm" multiple hidden>
+          <span class="upload-icon" aria-hidden="true">↑</span>
+          <div class="upload-copy">
+            <strong>拖拽论文到这里</strong>
+            <span>或 <button class="link-btn" id="kbUploadPick" type="button">选择文件</button></span>
+          </div>
+          <div class="upload-hint">PDF / DOCX / HTML，单文件不超过 200 MB</div>
+        </div>
+        <div class="upload-meta" id="kbUploadMeta" hidden>
+          <input id="kbUploadTitle" type="text" placeholder="标题（默认取文件名）">
+          <input id="kbUploadAuthors" type="text" placeholder="作者（可选）">
+          <input id="kbUploadYear" type="text" placeholder="年份（可选）" inputmode="numeric">
+          <button class="btn btn-primary" id="kbUploadConfirm" type="button">开始上传</button>
+          <button class="btn btn-ghost" id="kbUploadCancel" type="button">取消</button>
+        </div>
+        <div class="upload-status" id="kbUploadStatus" role="status" aria-live="polite"></div>
+
+        <div class="kb-source-cards" id="kbSourcesGrid"></div>
+        <div class="kb-empty" id="kbSourcesEmpty" hidden>还没有来源。上传一篇 PDF，或到「书籍」区把已有文献移过来。</div>
+      </div>
+
+      <div class="kb-view kb-graph-view" id="kbGraphView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">KNOWLEDGE GRAPH</span>
+            <h2>关系图谱</h2>
+          </div>
+          <p>边权综合直接双链、共享来源、共同邻居与同类型四项；点节点回到对应词条。</p>
+        </div>
+        <div class="kb-graph-wrap">
+          <canvas id="kbGraph"></canvas>
+          <div class="kb-graph-tip" id="kbGraphTip" hidden></div>
+        </div>
+        <div class="kb-graph-legend" id="kbGraphLegend"></div>
+      </div>
+
+      <div class="kb-view kb-search-view" id="kbSearchView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">FULL TEXT SEARCH</span>
+            <h2>检索</h2>
+          </div>
+          <p>在标题、标签、正文与来源中查找，结果按命中密度排序。</p>
+        </div>
+        <input class="kb-search-input" id="kbSearchInput" type="search" placeholder="输入关键词，例如 VOF、湍流闭合、Lockhart-Martinelli" autocomplete="off">
+        <div class="kb-search-results" id="kbSearchResults"></div>
+      </div>
+
+      <div class="kb-view kb-settings-view" id="kbSettingsView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">PROJECT</span>
+            <h2>数据与设置</h2>
+          </div>
+          <p>导出完整工程、导入备份、重建索引；静态部署时数据保存在浏览器 IndexedDB。</p>
+        </div>
+
+        <div class="kb-settings-grid">
+          <div class="kb-settings-card">
+            <h4>当前工程</h4>
+            <div class="kb-stat-list">
+              <div><span>词条</span><strong id="kbStatPages">0</strong></div>
+              <div><span>双链</span><strong id="kbStatLinks">0</strong></div>
+              <div><span>来源</span><strong id="kbStatSources">0</strong></div>
+              <div><span>存储</span><strong id="kbStatStorage">本地</strong></div>
+            </div>
+            <p class="kb-hint" id="kbStorageHint"></p>
+          </div>
+          <div class="kb-settings-card">
+            <h4>工程操作</h4>
+            <div class="kb-settings-actions">
+              <button class="btn btn-primary" id="kbExportJson" type="button">导出 JSON 工程</button>
+              <button class="btn btn-ghost" id="kbImportBtn" type="button">导入 JSON</button>
+              <button class="btn btn-ghost" id="kbRebuild" type="button">重建索引与总览</button>
+              <button class="btn btn-ghost kb-danger" id="kbReset" type="button">清空知识库</button>
+              <input type="file" id="kbImportInput" accept=".json,application/json" hidden>
+            </div>
+            <p class="kb-hint">JSON 工程包含全部词条、正文、来源关联与索引日志，可迁移到其他设备，或作为 llm_wiki 的导入材料。</p>
+          </div>
+        </div>
+
+        <h3 class="kb-subhead">索引 index</h3>
+        <div class="kb-preview kb-auto-preview" id="kbIndexPreview"></div>
+        <h3 class="kb-subhead">日志 log</h3>
+        <div class="kb-preview kb-auto-preview" id="kbLogPreview"></div>
+
+        <h3 class="kb-subhead">使用指南</h3>
+        <div class="article-body kb-guide">{{ body|safe }}</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="kb-toast" id="kbToast" hidden></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ root }}library-index.js" defer></script>
+<script src="{{ root }}library-kb.js" defer></script>
+<script src="{{ root }}assets/js/kb.js" defer></script>
+{% endblock %}

@@ -3,7 +3,11 @@
   'use strict';
 
   var grid = document.getElementById('libraryGrid');
-  if (!grid) return;
+  var hasShelf = !!grid;
+  var collection = hasShelf ? (grid.getAttribute('data-collection') || '') : '';
+  var viewerBase = hasShelf
+    ? (grid.getAttribute('data-viewer') || 'viewer.html')
+    : 'viewer.html';
 
   var drop = document.getElementById('uploadDrop');
   var input = document.getElementById('uploadInput');
@@ -81,11 +85,12 @@
   }
 
   function render() {
+    if (!grid) return;
     grid.innerHTML = '';
     items.forEach(function (item) {
       var link = document.createElement('a');
       link.className = 'library-card';
-      link.href = 'viewer.html?' + (item.local ? 'local=' : 'id=') + encodeURIComponent(item.id);
+      link.href = viewerBase + '?' + (item.local ? 'local=' : 'id=') + encodeURIComponent(item.id);
 
       var badge = document.createElement('span');
       badge.className = 'lc-badge';
@@ -118,7 +123,7 @@
       grid.appendChild(link);
     });
     if (emptyEl) emptyEl.hidden = items.length > 0;
-    if (countEl) countEl.textContent = items.length + ' 份文献';
+    if (countEl) countEl.textContent = items.length + (collection === 'book' ? ' 本' : ' 份文献');
   }
 
   function load() {
@@ -135,6 +140,11 @@
       var remote = result[0] || [];
       if (!remote.length && Array.isArray(window.__LIBRARY__)) remote = window.__LIBRARY__;
       items = remote.concat(result[1]);
+      if (collection) {
+        items = items.filter(function (item) {
+          return (item.collection || 'book') === collection;
+        });
+      }
       items.sort(function (a, b) { return String(b.added).localeCompare(String(a.added)); });
       render();
     });
@@ -178,6 +188,7 @@
       xhr.setRequestHeader('X-Title', encodeURIComponent(meta.title || ''));
       xhr.setRequestHeader('X-Authors', encodeURIComponent(meta.authors || ''));
       xhr.setRequestHeader('X-Year', encodeURIComponent(meta.year || ''));
+      xhr.setRequestHeader('X-Collection', encodeURIComponent(collection || 'reading'));
       xhr.onload = function () {
         if (xhr.status >= 200 && xhr.status < 300) {
           try { resolve(JSON.parse(xhr.responseText)); }
@@ -201,6 +212,7 @@
       authors: meta.authors || '',
       year: meta.year || '',
       kind: extOf(file.name).replace('.', ''),
+      collection: collection || 'reading',
       size: file.size,
       added: localStamp(),
       blob: file
@@ -318,7 +330,7 @@
     });
   }
 
-  load();
+  if (hasShelf) load();
 
   /* ============ 文献检索（AI for Science / 神经算子）============ */
   var searchPanel = document.getElementById('librarySearch');

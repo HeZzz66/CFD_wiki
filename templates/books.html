@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block main %}
+<div class="main-inner library-inner">
+  <article class="article library-article">
+    <nav class="breadcrumbs" aria-label="面包屑">
+      <a href="{{ root }}index.html">首页</a>
+      <span class="crumb-sep">/</span>
+      <span class="crumb-current">{{ page.title }}</span>
+    </nav>
+
+    <header class="page-header">
+      <div class="chapter-kicker">
+        <span class="chapter-kicker-num">BOOKS</span>
+        {% if chapter.subtitle %}<span class="chapter-kicker-sub">{{ chapter.subtitle }}</span>{% endif %}
+      </div>
+      <h1 class="page-title">{{ page.title }}</h1>
+      {% if page.summary %}<p class="page-summary">{{ page.summary }}</p>{% endif %}
+      <div class="page-meta">
+        <span class="meta-chapter">{{ chapter.title }}</span>
+        <span class="meta-sep">·</span>
+        <span id="libraryCount">{% set books = library_items | selectattr("collection", "equalto", "book") | list %}{{ books|length }} 本</span>
+      </div>
+    </header>
+
+    <section class="library-upload" id="libraryUpload">
+      <div class="section-head compact">
+        <h2>上传书籍</h2>
+        <p>支持 PDF、DOCX、HTML。服务端模式写入 <code>library/</code> 目录，浏览器模式存入本机 IndexedDB。</p>
+      </div>
+      <div class="upload-drop" id="uploadDrop">
+        <input type="file" id="uploadInput" accept=".pdf,.docx,.html,.htm" multiple hidden>
+        <span class="upload-icon" aria-hidden="true">↑</span>
+        <div class="upload-copy">
+          <strong>拖拽教材、手册或技术报告到这里</strong>
+          <span>或 <button class="link-btn" id="uploadPick" type="button">选择文件</button></span>
+        </div>
+        <div class="upload-hint">单文件不超过 200 MB，可一次选择多个</div>
+      </div>
+
+      <div class="upload-meta" id="uploadMeta" hidden>
+        <input id="uploadTitle" type="text" placeholder="书名（默认取文件名）">
+        <input id="uploadAuthors" type="text" placeholder="作者 / 编者（可选）">
+        <input id="uploadYear" type="text" placeholder="年份（可选）" inputmode="numeric">
+        <button class="btn btn-primary" id="uploadConfirm" type="button">开始上传</button>
+        <button class="btn btn-ghost" id="uploadCancel" type="button">取消</button>
+      </div>
+      <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"></div>
+    </section>
+
+    <div class="article-body">{{ body|safe }}</div>
+
+    <section class="library-shelf">
+      <div class="section-head compact">
+        <h2>书架</h2>
+        <p>点击条目进入阅读器；PDF 支持全文检索，DOCX 会转换为网页预览。</p>
+      </div>
+      <div class="library-grid" id="libraryGrid" data-collection="book"
+           data-viewer="{{ root }}library/viewer.html" data-empty="#libraryEmpty">
+        {% for item in library_items if item.collection == "book" %}
+        <a class="library-card" href="{{ root }}library/viewer.html?id={{ item.id }}" data-id="{{ item.id }}">
+          <span class="lc-badge">{{ item.kind_label }}</span>
+          <span class="lc-body">
+            <span class="lc-title">{{ item.title }}</span>
+            <span class="lc-meta">
+              {% if item.authors %}{{ item.authors }} · {% endif %}
+              {% if item.year %}{{ item.year }} · {% endif %}
+              {{ item.size_label }}
+            </span>
+          </span>
+          <span class="lc-arrow" aria-hidden="true">→</span>
+        </a>
+        {% endfor %}
+      </div>
+      <div class="library-empty" id="libraryEmpty" {% if library_items | selectattr("collection", "equalto", "book") | list %}hidden{% endif %}>
+        书架还是空的。上传 PDF / DOCX / HTML 教材、手册或技术报告，它会出现在这里。
+      </div>
+    </section>
+  </article>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ root }}library-papers.js" defer></script>
+<script src="{{ root }}library-weekly-papers.js" defer></script>
+<script src="{{ root }}library-index.js" defer></script>
+<script src="{{ root }}assets/js/library.js" defer></script>
+{% endblock %}
