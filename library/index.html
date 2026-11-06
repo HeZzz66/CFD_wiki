@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b66d6">
-  <title>论文与书籍 · CFD Wiki</title>
-  <meta name="description" content="上传 PDF、DOCX、HTML 文献，在线浏览，并在右侧笔记面板记录批注；支持服务端入库与浏览器本地存储两种方式。">
+  <title>检索论文 · CFD Wiki</title>
+  <meta name="description" content="每周自动检索近两周新论文，年度检索按关键词分类展示近一年 AI for Science 与神经算子文献。">
   <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 
   <script>
@@ -103,13 +103,13 @@
         <nav class="sidebar-nav">
           <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
 <div class="nav-module" data-module="docs"><button class="nav-module-head" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
-<div class="nav-module" data-module="library"><button class="nav-module-head is-active" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">1</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../library/index.html"><span class="nav-badge">LIB</span><span class="nav-chapter-name">论文与书籍</span></a><ul class="nav-pages"></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head is-active" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">3</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../library/index.html"><span class="nav-badge">检</span><span class="nav-chapter-name">检索论文</span></a><ul class="nav-pages"></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../books/index.html"><span class="nav-badge">书</span><span class="nav-chapter-name">书籍</span></a><ul class="nav-pages"></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../reading/index.html"><span class="nav-badge">读</span><span class="nav-chapter-name">在读文献</span></a><ul class="nav-pages"></ul></div></div></div>
         </nav>
         <div class="sidebar-footer">
           <div class="sidebar-stat">
             <span>8 章</span>
             <span>50 篇</span>
-            <span>约 123,196 字</span>
+            <span>约 123,983 字</span>
           </div>
           <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
         </div>
@@ -122,18 +122,18 @@
     <nav class="breadcrumbs" aria-label="面包屑">
       <a href="../index.html">首页</a>
       <span class="crumb-sep">/</span>
-      <span class="crumb-current">论文与书籍</span>
+      <span class="crumb-current">检索论文</span>
     </nav>
 
     <header class="page-header">
       <div class="chapter-kicker">
-        <span class="chapter-kicker-num">LIBRARY</span>
-<span class="chapter-kicker-sub">上传 · 阅读 · 批注</span>      </div>
-      <h1 class="page-title">论文与书籍</h1>
-<p class="page-summary">上传 PDF、DOCX、HTML 文献，在线浏览，并在右侧笔记面板记录批注；支持服务端入库与浏览器本地存储两种方式。</p>      <div class="page-meta">
-        <span class="meta-chapter">论文与书籍</span>
+        <span class="chapter-kicker-num">SEARCH</span>
+<span class="chapter-kicker-sub">每周任务 · 年度检索 · 关键词分类</span>      </div>
+      <h1 class="page-title">检索论文</h1>
+<p class="page-summary">每周自动检索近两周新论文，年度检索按关键词分类展示近一年 AI for Science 与神经算子文献。</p>      <div class="page-meta">
+        <span class="meta-chapter">检索论文</span>
         <span class="meta-sep">·</span>
-        <span id="libraryCount">0 份文献</span>
+        <span>每周任务 + 年度检索</span>
       </div>
     </header>
 
@@ -163,77 +163,20 @@
       </div>
     </section>
 
-    <section class="library-upload" id="libraryUpload">
-      <div class="section-head compact">
-        <h2>上传文献</h2>
-        <p>支持 PDF、DOCX、HTML。服务端模式写入 <code>library/</code> 目录，浏览器模式存入本机 IndexedDB。</p>
-      </div>
-      <div class="upload-drop" id="uploadDrop">
-        <input type="file" id="uploadInput" accept=".pdf,.docx,.html,.htm" multiple hidden>
-        <span class="upload-icon" aria-hidden="true">↑</span>
-        <div class="upload-copy">
-          <strong>拖拽文件到这里</strong>
-          <span>或 <button class="link-btn" id="uploadPick" type="button">选择文件</button></span>
-        </div>
-        <div class="upload-hint">单文件不超过 200 MB，可一次选择多个</div>
-      </div>
-
-      <div class="upload-meta" id="uploadMeta" hidden>
-        <input id="uploadTitle" type="text" placeholder="标题（默认取文件名）">
-        <input id="uploadAuthors" type="text" placeholder="作者（可选）">
-        <input id="uploadYear" type="text" placeholder="年份（可选）" inputmode="numeric">
-        <button class="btn btn-primary" id="uploadConfirm" type="button">开始上传</button>
-        <button class="btn btn-ghost" id="uploadCancel" type="button">取消</button>
-      </div>
-      <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"></div>
-    </section>
-
-    <div class="article-body"><p>前六个章节是整理好的知识，这个分区放的是<strong>原始文献</strong>：期刊论文、教材章节、软件手册、技术报告。它们不适合改写成 Wiki 词条，但正是一手推导、实验数据与实现细节的来源。把文献与词条放在同一个站点里，读公式时可以随时翻回原文核对。</p>
-<h2 id="支持的文件类型">支持的文件类型</h2>
-<table>
-<thead>
-<tr>
-<th>类型</th>
-<th>扩展名</th>
-<th>在线阅读方式</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>PDF</td>
-<td><code>.pdf</code></td>
-<td>浏览器内置 PDF 阅读器（吸附式嵌入），可缩放、翻页、全文检索</td>
-</tr>
-<tr>
-<td>Word</td>
-<td><code>.docx</code></td>
-<td>上传时自动转换为 HTML（保留标题、段落、表格），在阅读器中直接浏览</td>
-</tr>
-<tr>
-<td>网页</td>
-<td><code>.html</code> / <code>.htm</code></td>
-<td>沙箱 iframe 渲染，外部脚本不会影响主站</td>
-</tr>
-</tbody>
-</table>
-<p>单文件上限 200 MB。上传时填写标题、作者与年份，列表按上传时间倒序排列。</p>
-<h2 id="两种存储方式">两种存储方式</h2>
-<p>站点是纯静态的，因此上传行为分两种情况：</p>
+    <div class="article-body"><p>这里是自动检索区：不用自己翻期刊目录，站点会按固定关键词去 arXiv、PoF、JFM、JCP、Nature Communications、Nature Machine Intelligence 与 NeurIPS / ICML / ICLR 抓取新论文，并把结果按关键词归类。</p>
+<h2 id="每周任务与年度检索">每周任务与年度检索</h2>
 <ul>
-<li><strong>本地服务模式</strong>：用 <code>python build.py --serve</code> 打开。文件写入项目根目录的 <code>library/files/</code>，元数据写入 <code>library/manifest.json</code>，转换后的 DOCX 预览写入 <code>library/previews/</code>。重新构建后依然存在，也可以随站点一起部署。</li>
-<li><strong>浏览器本地模式</strong>：直接双击 <code>site/index.html</code> 打开。文件存入浏览器的 IndexedDB，只在本机当前浏览器可见；清理浏览器数据会丢失。适合做临时书签式阅读。</li>
+<li><strong>每周任务</strong>（页面顶部）：每周一自动检索上两周的论文，关键词独立于年度检索，互不影响。面板会显示上次检索时间、下次检索倒计时与本周收录数量，也可以随时点“立即检索本周”。</li>
+<li><strong>年度检索</strong>：面向近 1 年，按关键词分组，每组先展示 6 篇；点 <code>more</code> 进入全部结果页面。适合做方向调研，而不是追新。</li>
 </ul>
-<p>两种模式对使用者是透明的：页面会探测 <code>/api/library</code> 是否存在，有服务就走服务端，没有就退回本地存储。</p>
-<div class="admonition tip"><div class="admonition-title">建议</div><div class="admonition-body"><p>需要长期保存的文献请用 <code>--serve</code> 模式上传，文件会落在 <code>library/</code> 目录里，后续可以直接用 Git 或网盘同步。</p></div></div>
-<h2 id="阅读时做笔记">阅读时做笔记</h2>
-<p>每个文档页面的右栏都有「目录 / 笔记」两个标签。切到笔记后会出现一个可编辑的文本区：</p>
-<ul>
-<li>输入即自动保存，保存在当前页面对应的 <code>localStorage</code> 键下，刷新、切页、重启浏览器都不会丢；</li>
-<li>正文滚动时，笔记区按相同比例同步滚动，读到哪一段笔记也跟到对应位置；不需要同步可以在工具条里关掉；</li>
-<li>支持导出 Markdown，便于整理进自己的笔记软件；</li>
-<li>移动端右栏隐藏时，右下角的「笔记」浮动按钮会打开一个全屏面板。</li>
-</ul>
-<p>笔记按页面独立保存，因此同一章的不同小节可以分别记录，不会互相覆盖。</p></div>
+<p>两个任务的数据都写在 <code>library/</code> 下的 JSON 中，周任务只增不减，不会覆盖历史记录。</p>
+<h2 id="接下来读什么">接下来读什么</h2>
+<p>检索到论文之后，通常有两条路：</p>
+<ol>
+<li>想先通读原文、做批注 → 上传到<a href="../reading/index.html">在读文献</a>，用富文本笔记边读边记，再把要点导入个人知识库。</li>
+<li>想系统补教材 → 到<a href="../books/index.html">书籍</a>上传或浏览 PDF / DOCX 教材、手册与技术报告。</li>
+</ol>
+<div class="admonition tip"><div class="admonition-title">关键词策略</div><div class="admonition-body"><p>每周任务的关键词宜窄（例如 <code>PINN turbulence</code>、<code>neural operator CFD</code>），年度检索的关键词宜宽（例如 <code>turbulence closure</code>、<code>reduced order model</code>）。窄词保证新论文不漏，宽词保证综述时覆盖面够。</p></div></div></div>
 
     <section class="library-search" id="librarySearch">
       <div class="section-head compact">
@@ -256,18 +199,6 @@
       <div class="search-meta" id="searchMeta"></div>
 
       <div class="search-results" id="searchResults"></div>
-    </section>
-
-    <section class="library-shelf">
-      <div class="section-head compact">
-        <h2>馆藏</h2>
-        <p>点击条目进入阅读器，阅读时可在右侧面板做笔记。</p>
-      </div>
-      <div class="library-grid" id="libraryGrid">
-      </div>
-      <div class="library-empty" id="libraryEmpty" >
-        还没有文献。上传第一篇论文或教材章节，它会出现在这里。
-      </div>
     </section>
   </article>
 </div>
@@ -318,7 +249,6 @@
   <script src="../assets/js/app.js" defer></script>
 <script src="../library-papers.js" defer></script>
 <script src="../library-weekly-papers.js" defer></script>
-<script src="../library-index.js" defer></script>
 <script src="../assets/js/library.js" defer></script>
 </body>
 </html>

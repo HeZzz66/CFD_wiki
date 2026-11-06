@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b66d6">
+  <title>在读文献 · CFD Wiki</title>
+  <meta name="description" content="上传正在阅读的论文与专著，做富文本批注，并按 llm_wiki 的三层结构把要点沉淀为个人知识库：来源、词条、索引、日志与关系图谱。">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('cfdwiki-theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      } catch (e) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="../assets/css/pygments.css">
+  <link rel="stylesheet" href="../assets/css/style.css">
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+        ignoreHtmlClass: 'no-mathjax'
+      },
+      svg: { scale: 1.0 }
+    };
+  </script>
+  <script defer src="../assets/js/tex-svg-full.js"></script>
+</head>
+
+<body data-root="../" class="page-doc">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-left">
+        <button class="icon-btn menu-toggle" id="menuToggle" type="button" aria-label="打开导航" aria-expanded="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16"/>
+          </svg>
+        </button>
+        <a class="brand" href="../index.html">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 40 40" width="36" height="36">
+              <defs>
+                <linearGradient id="brandGradient" x1="0" y1="0" x2="40" y2="40">
+                  <stop offset="0" stop-color="#0b66d6"/>
+                  <stop offset="1" stop-color="#0aa5a3"/>
+                </linearGradient>
+              </defs>
+              <rect x="0" y="0" width="40" height="40" rx="11" fill="url(#brandGradient)"/>
+              <path d="M8 16.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"/>
+              <path d="M8 22.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".62"/>
+              <path d="M8 28.5c4.2-5.4 8-5.2 12.4-.2s8 4.8 11.6-1" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" opacity=".3"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>CFD Wiki</strong>
+            <small>计算流体力学知识库</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <button class="search-trigger" id="searchTrigger" type="button" aria-label="搜索文档">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+            <circle cx="11" cy="11" r="6.5"/>
+            <path d="m16 16 4.2 4.2"/>
+          </svg>
+          <span class="search-trigger-label">搜索文档</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="切换深浅色主题">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M20 14.2A8.4 8.4 0 0 1 9.8 4a8.5 8.5 0 1 0 10.2 10.2Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar" aria-label="章节目录">
+      <div class="sidebar-inner">
+        <div class="sidebar-caption">知识库目录</div>
+        <nav class="sidebar-nav">
+          <a class="nav-home" href="../index.html"><span class="nav-home-icon">◧</span>首页总览</a>
+<div class="nav-module" data-module="docs"><button class="nav-module-head" type="button" data-module-toggle="docs" aria-expanded="true"><span class="nav-module-label">基础知识</span><span class="nav-module-count">8</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="docs"><div class="nav-chapter"><a class="nav-chapter-title" href="../ch1/index.html"><span class="nav-badge">1</span><span class="nav-chapter-name">流体力学中的数学基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch1/field-theory.html">场论基础</a></li><li><a class="nav-link" href="../ch1/tensor-analysis.html">张量分析与应力</a></li><li><a class="nav-link" href="../ch1/dimensional-analysis.html">量纲分析与相似准则</a></li><li><a class="nav-link" href="../ch1/pde-foundations.html">偏微分方程基础</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch2/index.html"><span class="nav-badge">2</span><span class="nav-chapter-name">流体力学基本概念</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch2/fluid-properties.html">流体性质与连续介质假设</a></li><li><a class="nav-link" href="../ch2/kinematics.html">流动的运动学描述</a></li><li><a class="nav-link" href="../ch2/governing-equations.html">守恒方程与 N-S 方程</a></li><li><a class="nav-link" href="../ch2/bernoulli-integral.html">伯努利方程与控制体积积分</a></li><li><a class="nav-link" href="../ch2/boundary-layer.html">边界层与壁面剪切</a></li><li><a class="nav-link" href="../ch2/engineering-applications.html">典型工程应用</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch3/index.html"><span class="nav-badge">3</span><span class="nav-chapter-name">CFD 数值方法基础</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch3/fvm.html">有限体积法 FVM</a></li><li><a class="nav-link" href="../ch3/fem.html">有限元法 FEM</a></li><li><a class="nav-link" href="../ch3/mesh.html">网格生成与质量</a></li><li><a class="nav-link" href="../ch3/data-formats.html">CFD 常用数据格式</a></li><li><a class="nav-link" href="../ch3/commercial-software.html">商业软件与开源求解器</a></li><li><a class="nav-link" href="../ch3/cfd-workflow.html">CFD 工作流与验证确认</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch4/index.html"><span class="nav-badge">4</span><span class="nav-chapter-name">湍流模型</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch4/turbulence-physics.html">湍流统计与能量级串</a></li><li><a class="nav-link" href="../ch4/rans.html">RANS 与涡粘模型</a></li><li><a class="nav-link" href="../ch4/les.html">大涡模拟 LES</a></li><li><a class="nav-link" href="../ch4/dns.html">DNS 与 fDNS</a></li><li><a class="nav-link" href="../ch4/implementation.html">C++ 与 Fortran 实现</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../multiphase/index.html"><span class="nav-badge">5</span><span class="nav-chapter-name">两相流与多相流</span></a><ul class="nav-pages"><li><a class="nav-link" href="../multiphase/flow-regimes.html">流型与相分布</a></li><li><a class="nav-link" href="../multiphase/homogeneous-drift-flux.html">均相流与漂移流模型</a></li><li><a class="nav-link" href="../multiphase/two-phase-momentum.html">两相流动量方程与压降</a></li><li><a class="nav-link" href="../multiphase/boiling-condensation.html">沸腾与凝结传热</a></li><li><a class="nav-link" href="../multiphase/multiphase-cfd.html">多相流 CFD 建模</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../thermo/index.html"><span class="nav-badge">6</span><span class="nav-chapter-name">热力学与传热学</span></a><ul class="nav-pages"><li><a class="nav-link" href="../thermo/thermodynamics.html">热力学基础与状态方程</a></li><li><a class="nav-link" href="../thermo/conduction.html">导热与傅里叶定律</a></li><li><a class="nav-link" href="../thermo/convection.html">对流换热与边界层</a></li><li><a class="nav-link" href="../thermo/radiation.html">辐射换热</a></li><li><a class="nav-link" href="../thermo/heat-exchanger-cfd.html">换热器与 CFD 耦合</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch5/index.html"><span class="nav-badge">7</span><span class="nav-chapter-name">AI for CFD</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch5/pinns.html">PINNs：物理信息神经网络</a></li><li><a class="nav-link" href="../ch5/fno.html">FNO：傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/deeponet.html">DeepONet</a></li><li><a class="nav-link" href="../ch5/unet.html">U-Net 与场映射</a></li><li><a class="nav-link" href="../ch5/ifno.html">IFNO：隐式傅里叶神经算子</a></li><li><a class="nav-link" href="../ch5/pino.html">PINO：物理信息神经算子</a></li><li><a class="nav-link" href="../ch5/benchmarks.html">数据集、评价指标与训练实践</a></li></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../ch6/index.html"><span class="nav-badge">8</span><span class="nav-chapter-name">后处理与可视化</span></a><ul class="nav-pages"><li><a class="nav-link" href="../ch6/tecplot.html">Tecplot 操作与后处理流程</a></li><li><a class="nav-link" href="../ch6/python-io.html">用 Python 读写 CFD 数据</a></li><li><a class="nav-link" href="../ch6/postprocessing.html">流体后处理核心算法</a></li><li><a class="nav-link" href="../ch6/visualization.html">matplotlib 与 PyVista 出版级出图</a></li></ul></div></div></div>
+<div class="nav-module" data-module="library"><button class="nav-module-head is-active" type="button" data-module-toggle="library" aria-expanded="true"><span class="nav-module-label">阅读文献</span><span class="nav-module-count">3</span><svg class="nav-module-arrow" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 10 5 5 5-5"/></svg></button><div class="nav-module-body" data-module-body="library"><div class="nav-chapter"><a class="nav-chapter-title" href="../library/index.html"><span class="nav-badge">检</span><span class="nav-chapter-name">检索论文</span></a><ul class="nav-pages"></ul></div><div class="nav-chapter"><a class="nav-chapter-title" href="../books/index.html"><span class="nav-badge">书</span><span class="nav-chapter-name">书籍</span></a><ul class="nav-pages"></ul></div><div class="nav-chapter"><a class="nav-chapter-title is-active" href="../reading/index.html"><span class="nav-badge">读</span><span class="nav-chapter-name">在读文献</span></a><ul class="nav-pages"></ul></div></div></div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="sidebar-stat">
+            <span>8 章</span>
+            <span>50 篇</span>
+            <span>约 123,983 字</span>
+          </div>
+          <div class="sidebar-tip">内容持续扩充，欢迎按 <a href="../index.html#extend">内容规范</a> 提交新章节。</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="main">
+<div class="main-inner kb-inner">
+  <header class="kb-header">
+    <div>
+      <span class="section-eyebrow">READING · PERSONAL WIKI</span>
+      <h1>在读文献</h1>
+      <p>上传正在阅读的论文与专著，做富文本批注，并按 llm_wiki 的三层结构把要点沉淀为个人知识库：来源、词条、索引、日志与关系图谱。</p>
+    </div>
+    <div class="kb-header-meta" id="kbHeaderMeta">
+      <span><strong id="kbPageCount">—</strong> 词条</span>
+      <span><strong id="kbLinkCount">—</strong> 双链</span>
+      <span id="kbStorageBadge">本地存储</span>
+    </div>
+  </header>
+
+  <div class="kb-shell" id="kbShell" data-root="../">
+    <nav class="kb-rail" id="kbRail" aria-label="知识库视图">
+      <button class="kb-rail-btn is-active" data-view="wiki" type="button"><span aria-hidden="true">▤</span><em>知识库</em></button>
+      <button class="kb-rail-btn" data-view="sources" type="button"><span aria-hidden="true">▣</span><em>来源</em></button>
+      <button class="kb-rail-btn" data-view="graph" type="button"><span aria-hidden="true">◇</span><em>图谱</em></button>
+      <button class="kb-rail-btn" data-view="search" type="button"><span aria-hidden="true">⌕</span><em>检索</em></button>
+      <button class="kb-rail-btn" data-view="settings" type="button"><span aria-hidden="true">⚙</span><em>设置</em></button>
+    </nav>
+
+    <aside class="kb-explorer" id="kbExplorer">
+      <div class="kb-explorer-head">
+        <div>
+          <span class="section-eyebrow" id="kbExplorerEyebrow">WIKI</span>
+          <strong id="kbExplorerTitle">知识库</strong>
+        </div>
+        <button class="kb-icon-btn" id="kbNewPage" type="button" title="新建词条">＋</button>
+      </div>
+      <div class="kb-tree" id="kbTree"></div>
+      <div class="kb-empty-mini" id="kbTreeEmpty" hidden>还没有词条。点右上角 ＋ 新建，或从「来源」导入一篇文献。</div>
+    </aside>
+
+    <section class="kb-stage">
+      <div class="kb-view kb-wiki-view" id="kbWikiView">
+        <div class="kb-editor">
+          <div class="kb-editor-head">
+            <input class="kb-title" id="kbTitle" type="text" placeholder="词条标题" autocomplete="off">
+            <div class="kb-meta-row">
+              <select id="kbType" aria-label="词条类型">
+                <option value="concept">概念 concept</option>
+                <option value="source">来源 source</option>
+                <option value="entity">实体 entity</option>
+                <option value="topic">主题 topic</option>
+                <option value="overview">总览 overview</option>
+                <option value="meta">元数据 meta</option>
+              </select>
+              <input id="kbTags" type="text" placeholder="标签，逗号分隔" autocomplete="off">
+              <span class="kb-save-state" id="kbSaveState">已保存</span>
+            </div>
+          </div>
+
+          <div class="kb-toolbar" id="kbToolbar">
+            <button type="button" data-cmd="bold" title="加粗"><b>B</b></button>
+            <button type="button" data-cmd="italic" title="斜体"><i>I</i></button>
+            <button type="button" data-cmd="underline" title="下划线"><u>U</u></button>
+            <button type="button" data-cmd="formatBlock" data-value="h2" title="二级标题">H2</button>
+            <button type="button" data-cmd="formatBlock" data-value="h3" title="三级标题">H3</button>
+            <button type="button" data-cmd="insertUnorderedList" title="列表">•</button>
+            <button type="button" data-cmd="insertOrderedList" title="有序列表">1.</button>
+            <button type="button" data-cmd="removeFormat" title="清除格式">Tx</button>
+            <span class="kb-tool-sep"></span>
+            <button type="button" data-action="wikilink" title="插入双链">[[ ]]</button>
+            <button type="button" data-action="image" title="插入图片">图</button>
+            <span class="kb-tool-sep"></span>
+            <button type="button" data-action="export-md" title="导出为 Markdown">导出 MD</button>
+            <button type="button" data-action="delete" class="kb-danger" title="删除词条">删除</button>
+          </div>
+
+          <div class="kb-body" id="kbBody" contenteditable="true" spellcheck="false"
+               data-placeholder="在这里写正文。用 [[词条名]] 建立双链，用工具栏插入标题、列表和截图。"></div>
+
+          <div class="kb-sources-row" id="kbSourcesRow"></div>
+        </div>
+
+        <aside class="kb-side">
+          <div class="kb-side-block">
+            <h4>预览 <button class="kb-link-btn" id="kbAddSource" type="button">关联来源</button></h4>
+            <div class="kb-preview" id="kbPreview"></div>
+            <div class="kb-source-picker" id="kbSourcePicker" hidden></div>
+          </div>
+          <div class="kb-side-block">
+            <h4>反向链接 <span class="kb-count-pill" id="kbBacklinkCount">0</span></h4>
+            <div class="kb-backlinks" id="kbBacklinks"></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="kb-view kb-sources-view" id="kbSourcesView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">SOURCES</span>
+            <h2>来源</h2>
+          </div>
+          <p>上传正在读的论文或章节；读完点「阅读」做批注，点「导入知识库」生成来源摘要。</p>
+        </div>
+
+        <div class="upload-drop kb-drop" id="kbUploadDrop">
+          <input type="file" id="kbUploadInput" accept=".pdf,.docx,.html,.htm" multiple hidden>
+          <span class="upload-icon" aria-hidden="true">↑</span>
+          <div class="upload-copy">
+            <strong>拖拽论文到这里</strong>
+            <span>或 <button class="link-btn" id="kbUploadPick" type="button">选择文件</button></span>
+          </div>
+          <div class="upload-hint">PDF / DOCX / HTML，单文件不超过 200 MB</div>
+        </div>
+        <div class="upload-meta" id="kbUploadMeta" hidden>
+          <input id="kbUploadTitle" type="text" placeholder="标题（默认取文件名）">
+          <input id="kbUploadAuthors" type="text" placeholder="作者（可选）">
+          <input id="kbUploadYear" type="text" placeholder="年份（可选）" inputmode="numeric">
+          <button class="btn btn-primary" id="kbUploadConfirm" type="button">开始上传</button>
+          <button class="btn btn-ghost" id="kbUploadCancel" type="button">取消</button>
+        </div>
+        <div class="upload-status" id="kbUploadStatus" role="status" aria-live="polite"></div>
+
+        <div class="kb-source-cards" id="kbSourcesGrid"></div>
+        <div class="kb-empty" id="kbSourcesEmpty" hidden>还没有来源。上传一篇 PDF，或到「书籍」区把已有文献移过来。</div>
+      </div>
+
+      <div class="kb-view kb-graph-view" id="kbGraphView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">KNOWLEDGE GRAPH</span>
+            <h2>关系图谱</h2>
+          </div>
+          <p>边权综合直接双链、共享来源、共同邻居与同类型四项；点节点回到对应词条。</p>
+        </div>
+        <div class="kb-graph-wrap">
+          <canvas id="kbGraph"></canvas>
+          <div class="kb-graph-tip" id="kbGraphTip" hidden></div>
+        </div>
+        <div class="kb-graph-legend" id="kbGraphLegend"></div>
+      </div>
+
+      <div class="kb-view kb-search-view" id="kbSearchView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">FULL TEXT SEARCH</span>
+            <h2>检索</h2>
+          </div>
+          <p>在标题、标签、正文与来源中查找，结果按命中密度排序。</p>
+        </div>
+        <input class="kb-search-input" id="kbSearchInput" type="search" placeholder="输入关键词，例如 VOF、湍流闭合、Lockhart-Martinelli" autocomplete="off">
+        <div class="kb-search-results" id="kbSearchResults"></div>
+      </div>
+
+      <div class="kb-view kb-settings-view" id="kbSettingsView" hidden>
+        <div class="kb-view-head">
+          <div>
+            <span class="section-eyebrow">PROJECT</span>
+            <h2>数据与设置</h2>
+          </div>
+          <p>导出完整工程、导入备份、重建索引；静态部署时数据保存在浏览器 IndexedDB。</p>
+        </div>
+
+        <div class="kb-settings-grid">
+          <div class="kb-settings-card">
+            <h4>当前工程</h4>
+            <div class="kb-stat-list">
+              <div><span>词条</span><strong id="kbStatPages">0</strong></div>
+              <div><span>双链</span><strong id="kbStatLinks">0</strong></div>
+              <div><span>来源</span><strong id="kbStatSources">0</strong></div>
+              <div><span>存储</span><strong id="kbStatStorage">本地</strong></div>
+            </div>
+            <p class="kb-hint" id="kbStorageHint"></p>
+          </div>
+          <div class="kb-settings-card">
+            <h4>工程操作</h4>
+            <div class="kb-settings-actions">
+              <button class="btn btn-primary" id="kbExportJson" type="button">导出 JSON 工程</button>
+              <button class="btn btn-ghost" id="kbImportBtn" type="button">导入 JSON</button>
+              <button class="btn btn-ghost" id="kbRebuild" type="button">重建索引与总览</button>
+              <button class="btn btn-ghost kb-danger" id="kbReset" type="button">清空知识库</button>
+              <input type="file" id="kbImportInput" accept=".json,application/json" hidden>
+            </div>
+            <p class="kb-hint">JSON 工程包含全部词条、正文、来源关联与索引日志，可迁移到其他设备，或作为 llm_wiki 的导入材料。</p>
+          </div>
+        </div>
+
+        <h3 class="kb-subhead">索引 index</h3>
+        <div class="kb-preview kb-auto-preview" id="kbIndexPreview"></div>
+        <h3 class="kb-subhead">日志 log</h3>
+        <div class="kb-preview kb-auto-preview" id="kbLogPreview"></div>
+
+        <h3 class="kb-subhead">使用指南</h3>
+        <div class="article-body kb-guide"><p>这个分区只放<strong>正在读的文献</strong>。它和检索论文、书籍的区别在于工作流：检索论文是“找”，书籍是“查”，这里是“读完之后留下什么”。</p>
+<h2 id="三层结构">三层结构</h2>
+<p>借鉴 <a href="https://github.com/nashsu/llm_wiki">nashsu/llm_wiki</a> 与 Karpathy 的 LLM Wiki 思路，这里也分成三层：</p>
+<ol>
+<li><strong>来源 Sources</strong>：上传的 PDF / DOCX / HTML 原文。原文只读，不修改，保留可追溯性。</li>
+<li><strong>词条 Wiki</strong>：你整理的来源摘要、概念、实体与主题。每个词条带 <code>type</code>、<code>tags</code>、<code>sources</code>，用 <code>[[双链]]</code> 互相关联。</li>
+<li><strong>规则 Schema</strong>：<code>purpose</code>（为什么建这个库）与 <code>schema</code>（词条怎么命名、怎么分类）两页，约束整个知识库的写法。</li>
+</ol>
+<p><code>index</code> 是目录、<code>log</code> 是操作日志：新建、导入、删除都会自动记录，和 llm_wiki 的做法一致。</p>
+<h2 id="工作流">工作流</h2>
+<ol>
+<li>在「来源」页上传论文，或直接使用已上传的文件；点“阅读”进入阅读器，右栏做富文本笔记（支持加粗、标题、列表、粘贴截图）。</li>
+<li>读完点“导入知识库”，系统会生成一条来源摘要，并把阅读器里的笔记一并带入；你只需要补齐“核心结论、方法与数据、联系、疑问”几节。</li>
+<li>在「知识库」里新建概念/实体/主题词条，用 <code>[[词条名]]</code> 建立双链；右侧会实时显示预览与反向链接。</li>
+<li>在「图谱」里查看 4 类关系（直接链接、共享来源、共同邻居、同类型）形成的网络，点击节点回到词条。</li>
+<li>在「检索」里对标题、正文、标签做全文检索。</li>
+</ol>
+<h2 id="与-llm_wiki-的差异">与 llm_wiki 的差异</h2>
+<p>llm_wiki 是桌面应用，导入时调用 LLM 自动分析并生成词条；本页是静态站点内的<strong>本地增强版</strong>：</p>
+<ul>
+<li>不调用 LLM，导入时生成结构化骨架与笔记摘录，内容由你填写；</li>
+<li>数据优先存到 <code>library/kb.json</code>（<code>--serve</code> 模式），静态部署时退回浏览器 IndexedDB；</li>
+<li>支持导出完整 JSON 工程与单页 Markdown，便于备份、迁移到 Obsidian 或导入 llm_wiki 继续加工。</li>
+</ul>
+<div class="admonition tip"><div class="admonition-title">双链写法</div><div class="admonition-body"><p><code>[[场论基础]]</code> 按标题解析；<code>[[ch1/field-theory|场论基础]]</code> 可以直接指向站内 Wiki 页面并自定义显示文字。解析不到的词条会显示为红色，点一下就能新建。</p></div></div></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="kb-toast" id="kbToast" hidden></div>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <strong>CFD Wiki</strong>
+        <span class="footer-dot">·</span>
+        <span>从场论、量纲分析与偏微分方程出发，系统梳理流体力学基本方程、有限体积与有限元、湍流模型、AI for CFD 与工程后处理。</span>
+      </div>
+      <div class="footer-meta">
+        <span>构建于 2026-11-06</span>
+        <span class="footer-dot">·</span>
+        <span>内容采用 CC BY-NC-SA 4.0 许可</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="search-modal" id="searchModal" hidden>
+    <div class="search-panel" role="dialog" aria-modal="true" aria-label="搜索">
+      <div class="search-input-row">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.5"/>
+          <path d="m16 16 4.2 4.2"/>
+        </svg>
+        <input id="searchInput" type="search" placeholder="搜索公式、模型、代码、软件……" autocomplete="off" spellcheck="false">
+        <kbd class="search-esc">Esc</kbd>
+      </div>
+      <div class="search-results" id="searchResults"></div>
+      <div class="search-foot">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 选择</span>
+        <span><kbd>Enter</kbd> 打开</span>
+        <span id="searchCount"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="back-to-top" id="backToTop" type="button" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="m6 14 6-6 6 6"/>
+    </svg>
+  </button>
+
+  <script src="../search-index.js" defer></script>
+  <script src="../assets/js/app.js" defer></script>
+<script src="../library-index.js" defer></script>
+<script src="../library-kb.js" defer></script>
+<script src="../assets/js/kb.js" defer></script>
+</body>
+</html>
